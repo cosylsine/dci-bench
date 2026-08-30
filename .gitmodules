@@ -1,0 +1,3 @@
+[submodule "pi-dci"]
+	path = pi-dci
+	url = git@github.com:cosylsine/pi-dci.git
