@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.*
+
+# Data / evaluation outputs
+data/raw/
+data/workspaces/
+results/
+logs/
+
+# OS
+.DS_Store
