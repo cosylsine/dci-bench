@@ -14,9 +14,13 @@ venv/
 
 # Data / evaluation outputs
 data/raw/
+data/metadata/
 data/workspaces/
 results/
 logs/
 
 # OS
 .DS_Store
+
+# Plan
+DCI-Bench_MVP_Implementation_Plan.md
