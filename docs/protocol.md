@@ -24,15 +24,16 @@ This document freezes Phase 0. Runtime code should import
 - Tool allowlist: `read`, `bash`.
 - Fixed limits:
   - `top_k`: 10
-  - `max_agent_steps`: 12
+  - `max_agent_steps`: 1200
   - `sample_timeout_seconds`: 600
   - `tool_result_max_chars`: 20000
   - `max_total_model_tokens`: 128000
   - `max_final_output_tokens`: 1024
 - Context compaction is disabled for the MVP.
 - A sample succeeds on the first assistant message that parses as the final
-  answer schema. Timeout, max steps, max tokens, unrecovered tool failures, or a
-  model stop without valid JSON are failures.
+  answer schema after the agent has inspected corpus document content. Filename
+  listings alone are not evidence. Timeout, max steps, max tokens, unrecovered
+  tool failures, or a model stop without valid JSON are failures.
 - Disabled capabilities: web, retriever, MCP, skills, sub-agents, memory,
   interactive clarification, and provider-specific agent enhancements.
 - Unknown document ids are schema-valid but receive zero relevance. Duplicate

@@ -11,10 +11,12 @@ venv/
 # Environment
 .env
 .env.*
+envs/
 
 # Data / evaluation outputs
 data/raw/
 data/metadata/
+data/toy/
 data/workspaces/
 results/
 logs/

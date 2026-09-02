@@ -12,7 +12,7 @@ from typing import Any
 BENCHMARK_CONTRACT_VERSION = "dci-mvp-v0"
 
 TOP_K = 10
-MAX_AGENT_STEPS = 12
+MAX_AGENT_STEPS = 1200
 SAMPLE_TIMEOUT_SECONDS = 600
 TOOL_RESULT_MAX_CHARS = 20_000
 MAX_TOTAL_MODEL_TOKENS = 128_000
@@ -117,6 +117,11 @@ The corpus is available as markdown files under /workspace/corpus. You may inspe
 files with the provided read and bash tools. Do not use network access, web search,
 external retrievers, embeddings, hidden labels, memory, skills, MCP tools, or
 sub-agents.
+
+You must inspect corpus document content before giving the final answer. A list
+of filenames or file ids is not evidence. Use full-text search commands such as
+rg -n -i or grep -Rin over important query keywords and synonyms, then read the
+most promising document files.
 
 Return only JSON matching this schema:
 {"ranked_doc_ids":["doc_id_1","doc_id_2","doc_id_3"]}
