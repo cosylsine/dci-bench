@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 DEFAULT_DATA_ROOT = Path(
-    "/mnt/afs2/202608/embedding_models/dci-bench/mteb_llm_retrieval/mteb_llm_retrieval"
+    "/mnt/afs2/202608/embedding_models/dci-bench/mteb_llm_retrieval"
 )
 
 

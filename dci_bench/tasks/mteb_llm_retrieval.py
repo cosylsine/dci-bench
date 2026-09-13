@@ -125,13 +125,14 @@ def mteb_llm_retrieval_single(
     query_id: str | None = "Q25",
     workspace_root: str = "data/workspaces",
     metadata_root: str = "data/metadata",
+    output_dir: str = "results/phase3",
 ) -> Task:
     if task_name not in TASKS:
         raise ValueError(f"Unknown task {task_name!r}. Available: {sorted(TASKS)}")
     sample = _make_sample(task_name, query_id, Path(metadata_root), Path(workspace_root))
     return Task(
         dataset=MemoryDataset([sample], name=f"{task_name}-{sample.id}"),
-        solver=pi_dci_solver(),
+        solver=pi_dci_solver(output_dir=output_dir),
         scorer=dci_retrieval_scorer(),
         sandbox="local",
         time_limit=SAMPLE_TIMEOUT_SECONDS,
