@@ -1,14 +1,75 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+
+report_error() {
+  local exit_code="$1"
+  local line_number="$2"
+  local failed_command="$3"
+  printf '[DCI][%s] ERROR exit=%s source=%s line=%s command=%s\n' \
+    "$(date --iso-8601=seconds)" \
+    "${exit_code}" \
+    "${BASH_SOURCE[1]:-${BASH_SOURCE[0]}}" \
+    "${line_number}" \
+    "${failed_command}" >&2
+}
+trap 'report_error "$?" "$LINENO" "$BASH_COMMAND"' ERR
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_ROOT}"
+
+RUN_TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+JOB_TAG="${SLURM_JOB_ID:-${JOB_ID:-${LSB_JOBID:-${PBS_JOBID:-manual-$$}}}}"
+JOB_TAG="${JOB_TAG//\//_}"
+RUN_LOG="${RUN_LOG:-${REPO_ROOT}/results/job-logs/sglang-serve-${JOB_TAG}-${RUN_TIMESTAMP}.log}"
+mkdir -p "$(dirname "${RUN_LOG}")"
+exec > >(tee -a "${RUN_LOG}") 2>&1
+
+log() {
+  printf '[DCI][%s] %s\n' "$(date --iso-8601=seconds)" "$*"
+}
+
+log "SGLang service job started; pid=$$ host=${HOSTNAME:-unknown} user=$(id -un) uid=$(id -u)"
+log "repo_root=${REPO_ROOT}"
+log "run_log=${RUN_LOG}"
+log "scheduler: SLURM_JOB_ID=${SLURM_JOB_ID:-unset} SLURM_JOB_NODELIST=${SLURM_JOB_NODELIST:-unset} SLURM_JOB_GPUS=${SLURM_JOB_GPUS:-unset} SLURM_GPUS_ON_NODE=${SLURM_GPUS_ON_NODE:-unset}"
+log "scheduler: JOB_ID=${JOB_ID:-unset} LSB_JOBID=${LSB_JOBID:-unset} PBS_JOBID=${PBS_JOBID:-unset}"
+log "initial CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset} NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-unset}"
+
+if [[ "${DEBUG_TRACE:-0}" == "1" ]]; then
+  export PS4='+ [${BASH_SOURCE}:${LINENO}] '
+  set -x
+fi
+
+if command -v bwrap >/dev/null 2>&1; then
+  log "bubblewrap already available: $(command -v bwrap)"
+else
+  log "bubblewrap missing; preparing OS package installation"
+  log "apt-get=$(command -v apt-get || printf 'not-found') user=$(id -un) uid=$(id -u)"
+  if ! command -v apt-get >/dev/null 2>&1; then
+    log "apt-get is unavailable; use a cluster image that provides /usr/bin/bwrap"
+    exit 2
+  fi
+  log "stage=apt-update begin"
+  apt-get update -o Acquire::Retries=3
+  log "stage=apt-update ok"
+  apt-cache policy bubblewrap || true
+  log "stage=bubblewrap-install begin"
+  DEBIAN_FRONTEND=noninteractive \
+    apt-get install -y --no-install-recommends bubblewrap
+  log "stage=bubblewrap-install ok; bwrap=$(command -v bwrap || printf 'not-found')"
+fi
+if ! command -v bwrap >/dev/null 2>&1; then
+  log "bubblewrap installation did not provide an executable bwrap"
+  exit 2
+fi
+log "stage=bubblewrap-check ok; path=$(command -v bwrap)"
 
 # Keep the GPU dynamic-library selection explicit so this script behaves the
 # same way in an interactive shell and in a batch job.
 export NVIDIA_DRIVER_CAPABILITIES="${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}"
 export LD_LIBRARY_PATH="/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
+export PYTHONUNBUFFERED="${PYTHONUNBUFFERED:-1}"
 
 CONDA_SH="${CONDA_SH:-/mnt/afs/250010100/miniconda/etc/profile.d/conda.sh}"
 SGLANG_ENV="${SGLANG_ENV:-dci-sglang-minicpm5}"
@@ -32,6 +93,16 @@ SGLANG_EXTRA_ARGS="${SGLANG_EXTRA_ARGS:-}"
 SGLANG_JIT_CXX="${SGLANG_JIT_CXX:-}"
 DRY_RUN="${DRY_RUN:-0}"
 
+log "runtime config: model=${MODEL_PATH} served_name=${SERVED_MODEL_NAME} SGLANG_ENV=${SGLANG_ENV} host=${SGLANG_HOST} port=${SGLANG_PORT}"
+log "runtime config: CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES} TP_SIZE=${TP_SIZE} context_length=${CONTEXT_LENGTH} dtype=${DTYPE} sampling_backend=${SAMPLING_BACKEND}"
+log "runtime config: NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES} PYTHONUNBUFFERED=${PYTHONUNBUFFERED}"
+if command -v nvidia-smi >/dev/null 2>&1; then
+  log "stage=gpu-preflight nvidia-smi -L"
+  nvidia-smi -L || log "WARNING: nvidia-smi -L failed"
+else
+  log "WARNING: nvidia-smi is not available"
+fi
+
 if [[ ! -r "${CONDA_SH}" ]]; then
   echo "[DCI] missing CONDA_SH=${CONDA_SH}" >&2
   exit 2
@@ -50,10 +121,12 @@ if [[ ! "${SGLANG_PORT}" =~ ^[1-9][0-9]*$ ]]; then
 fi
 
 # Conda compiler activation hooks may read unset optional variables.
+log "stage=sglang-env begin; activating ${SGLANG_ENV} from ${CONDA_SH}"
 set +u
 source "${CONDA_SH}"
 conda activate "${SGLANG_ENV}"
 set -u
+log "stage=sglang-env activated; python=$(command -v python) sglang=$(command -v sglang || printf 'not-found')"
 
 resolve_compiler() {
   local candidate="$1"
@@ -223,7 +296,9 @@ printf ' %q' "${CMD[@]}"
 printf '\n'
 
 if [[ "${DRY_RUN}" == "1" ]]; then
+  log "dry-run complete; SGLang server was not started"
   exit 0
 fi
 
+log "stage=sglang-serve exec; run_log=${RUN_LOG}"
 exec "${CMD[@]}"

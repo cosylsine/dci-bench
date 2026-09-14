@@ -25,6 +25,8 @@ class PiRunResult:
     repair_attempts: int
     repair_reasons: list[str]
     body_evidence: dict[str, Any]
+    inspect_sandbox: str
+    tool_sandbox: str
     output_path: Path
     trace_path: Path | None
 
@@ -120,6 +122,13 @@ def run_pi_dci(
             )
 
         payload: dict[str, Any] = json.loads(output_path.read_text(encoding="utf-8"))
+        inspect_sandbox = payload.get("inspect_sandbox")
+        tool_sandbox = payload.get("tool_sandbox")
+        if inspect_sandbox != "local" or tool_sandbox != "bubblewrap":
+            raise RuntimeError(
+                "Pi runner did not attest the required sandbox boundary: "
+                f"inspect_sandbox={inspect_sandbox!r}, tool_sandbox={tool_sandbox!r}"
+            )
         return PiRunResult(
             ranked_doc_ids=list(payload.get("ranked_doc_ids", [])),
             valid_output=bool(payload.get("valid_output", False)),
@@ -131,6 +140,8 @@ def run_pi_dci(
             repair_attempts=int(payload.get("repair_attempts", 0)),
             repair_reasons=list(payload.get("repair_reasons", [])),
             body_evidence=dict(payload.get("body_evidence", {})),
+            inspect_sandbox=inspect_sandbox,
+            tool_sandbox=tool_sandbox,
             output_path=output_path,
             trace_path=trace_path or output_path.with_suffix(".trace.json"),
         )

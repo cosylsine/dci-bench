@@ -17,7 +17,7 @@ OPENAI_API_KEY="${OPENAI_API_KEY:-EMPTY}"
 WAIT_ATTEMPTS="${WAIT_ATTEMPTS:-180}"
 WAIT_SECONDS="${WAIT_SECONDS:-5}"
 RUN_ID="${RUN_ID:-${SLURM_JOB_ID:-manual}-$(date +%Y%m%d-%H%M%S)}"
-OUTPUT_DIR="${OUTPUT_DIR:-results/phase3_sglang_minicpm5_2b}"
+OUTPUT_DIR="${OUTPUT_DIR:-results/phase3_sglang_minicpm5_2b_f1_bwrap}"
 TASK_OUTPUT_DIR="${TASK_OUTPUT_DIR:-${OUTPUT_DIR}/${TASK}}"
 RUN_OUTPUT_DIR="${RUN_OUTPUT_DIR:-${TASK_OUTPUT_DIR}/_runs/${RUN_ID}}"
 ALLOW_EXISTING_OUTPUT="${ALLOW_EXISTING_OUTPUT:-0}"
@@ -61,6 +61,18 @@ TOOL_SMOKE_RESPONSE_PATH="${TOOL_SMOKE_RESPONSE_PATH:-${RUN_OUTPUT_DIR}/tool-par
 RUN_SUMMARY_PATH="${RUN_SUMMARY_PATH:-${RUN_OUTPUT_DIR}/run-summary.json}"
 
 mkdir -p "${TASK_OUTPUT_DIR}" "${RUN_OUTPUT_DIR}" "${LOG_DIR}" "${SUMMARY_DIR}"
+
+if ! command -v bwrap >/dev/null 2>&1; then
+  echo "[DCI] bubblewrap is required and this container loses apt packages after restart." >&2
+  echo "[DCI] install it before running: apt install -y bubblewrap" >&2
+  exit 2
+fi
+(
+  cd pi-dci
+  npm exec -- tsx scripts/dci-run.ts \
+    --preflight-only \
+    --workspace "${REPO_ROOT}/data/workspaces/${TASK}"
+)
 
 source "${CONDA_SH}"
 # Conda compiler packages may install deactivate hooks that read unset backup

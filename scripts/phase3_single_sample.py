@@ -9,7 +9,12 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from dci_bench.scoring.retrieval import score_query
+from dci_bench.scoring.retrieval import (
+    DEFAULT_METRIC_KS,
+    normalize_metric_ks,
+    score_query,
+    zero_metrics,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,6 +40,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default="results/phase3")
     parser.add_argument("--metadata-root", default="data/metadata")
     parser.add_argument("--summary-path", type=Path)
+    parser.add_argument(
+        "--metric-ks",
+        nargs="+",
+        type=int,
+        default=list(DEFAULT_METRIC_KS),
+        metavar="K",
+        help="Retrieval metric cutoffs (default: 1 3 5 10 20).",
+    )
     parser.add_argument("--require-valid-output", action="store_true")
     parser.add_argument("--prepare", action="store_true")
     return parser.parse_args()
@@ -60,7 +73,9 @@ def build_sample_summary(
     openai_base_url: str,
     openai_service: str,
     inspect_log_paths: list[str],
+    metric_ks: list[int] | tuple[int, ...] | None = None,
 ) -> dict[str, Any]:
+    ks = normalize_metric_ks(metric_ks)
     sample_dir = output_dir / task_name / query_id
     final_path = sample_dir / "final.json"
     trace_path = sample_dir / "trace.json"
@@ -71,6 +86,9 @@ def build_sample_summary(
         "served_model_name": served_model_name,
         "openai_base_url": openai_base_url,
         "openai_service": openai_service,
+        "inspect_sandbox": "local",
+        "tool_sandbox": "bubblewrap",
+        "metric_ks": list(ks),
         "final_path": str(final_path),
         "trace_path": str(trace_path),
         "inspect_log_paths": inspect_log_paths,
@@ -82,8 +100,7 @@ def build_sample_summary(
                 "failure_reason": "Phase 3 did not produce final.json",
                 "agent_steps": None,
                 "tool_calls": None,
-                "ndcg_at_10": 0.0,
-                "recall_at_10": 0.0,
+                **zero_metrics(ks),
             }
         )
         return summary
@@ -97,8 +114,7 @@ def build_sample_summary(
                 "failure_reason": f"final.json is not valid JSON: {exc}",
                 "agent_steps": None,
                 "tool_calls": None,
-                "ndcg_at_10": 0.0,
-                "recall_at_10": 0.0,
+                **zero_metrics(ks),
             }
         )
         return summary
@@ -109,8 +125,7 @@ def build_sample_summary(
                 "failure_reason": "final.json must contain a JSON object",
                 "agent_steps": None,
                 "tool_calls": None,
-                "ndcg_at_10": 0.0,
-                "recall_at_10": 0.0,
+                **zero_metrics(ks),
             }
         )
         return summary
@@ -119,18 +134,29 @@ def build_sample_summary(
         metrics = score_query(
             {"ranked_doc_ids": final_payload.get("ranked_doc_ids", [])},
             _load_qrels(task_name, query_id, metadata_root),
+            metric_ks=ks,
         )
     except Exception as exc:
         metrics = {
             "valid_output": False,
             "failure_reason": f"unable to score final output: {exc}",
-            "ndcg_at_10": 0.0,
-            "recall_at_10": 0.0,
+            **zero_metrics(ks),
         }
 
     pi_valid = bool(final_payload.get("valid_output", False))
-    valid_output = pi_valid and bool(metrics["valid_output"])
-    failure_reason = final_payload.get("failure_reason") or metrics["failure_reason"]
+    sandbox_valid = (
+        final_payload.get("inspect_sandbox") == "local"
+        and final_payload.get("tool_sandbox") == "bubblewrap"
+    )
+    valid_output = pi_valid and sandbox_valid and bool(metrics["valid_output"])
+    sandbox_failure = None
+    if not sandbox_valid:
+        sandbox_failure = "final.json does not attest the required local/bubblewrap sandbox boundary"
+    failure_reason = (
+        final_payload.get("failure_reason")
+        or sandbox_failure
+        or metrics["failure_reason"]
+    )
     if not valid_output and not failure_reason:
         failure_reason = "Pi runner marked the final output invalid"
     summary.update(
@@ -140,8 +166,11 @@ def build_sample_summary(
             "agent_steps": final_payload.get("agent_steps"),
             "tool_calls": final_payload.get("tool_calls"),
             "repair_attempts": final_payload.get("repair_attempts"),
-            "ndcg_at_10": metrics["ndcg_at_10"],
-            "recall_at_10": metrics["recall_at_10"],
+            **{
+                key: value
+                for key, value in metrics.items()
+                if key.startswith(("recall_at_", "f1_at_", "ndcg_at_"))
+            },
         }
     )
     return summary
@@ -172,7 +201,12 @@ def main() -> int:
 
     if args.prepare:
         build_workspace(get_task(args.task), overwrite=True)
-    task = mteb_llm_retrieval_single(task_name=args.task, query_id=args.query_id, output_dir=args.output_dir)
+    task = mteb_llm_retrieval_single(
+        task_name=args.task,
+        query_id=args.query_id,
+        output_dir=args.output_dir,
+        metric_ks=args.metric_ks,
+    )
     logs = inspect_eval(
         task,
         model=f"openai-api/{args.openai_service}/{args.served_model_name}",
@@ -196,10 +230,17 @@ def main() -> int:
         openai_base_url=args.openai_base_url,
         openai_service=args.openai_service,
         inspect_log_paths=inspect_log_paths,
+        metric_ks=args.metric_ks,
     )
     _write_summary(summary, args.summary_path)
     print(logs)
-    print(json.dumps({**summary, "sandbox": "local"}, ensure_ascii=False, sort_keys=True))
+    print(
+        json.dumps(
+            summary,
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
     return 1 if args.require_valid_output and not summary["valid_output"] else 0
 
 

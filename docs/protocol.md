@@ -36,6 +36,11 @@ This document freezes Phase 0. Runtime code should import
   tool failures, or a model stop without valid JSON are failures.
 - Disabled capabilities: web, retriever, MCP, skills, sub-agents, memory,
   interactive clarification, and provider-specific agent enhancements.
+- Inspect `sandbox="local"` is transport plumbing for the model bridge, not the
+  security boundary. Every agent `bash` process runs in a Bubblewrap namespace
+  with no network and no host data mounts beyond the current read-only corpus;
+  `read` performs an independent canonical-path corpus check. Missing or broken
+  Bubblewrap is a hard failure and never falls back to host execution.
 - Unknown document ids are schema-valid but receive zero relevance. Duplicate
   ids, empty arrays, more than 10 ids, non-string ids, and extra JSON keys are
   invalid outputs.
@@ -49,5 +54,6 @@ Each sample result must record at least:
 - agent steps, tool calls, model input/output tokens, wall time
 - trace path
 
-Scoring uses host-side qrels only. Agent-visible workspaces must not contain the
-qrels parquet or generated qrels JSON.
+Scoring loads host-side qrels only after generation. Agent-visible workspaces
+must not contain the qrels parquet or generated qrels JSON, and qrels must not
+be placed in Inspect `Sample.target` or model-visible task state.

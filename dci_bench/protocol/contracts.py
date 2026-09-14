@@ -97,8 +97,7 @@ INSPECT_OUTPUT_CONTRACT: dict[str, Any] = {
         "query_id",
         "ranked_doc_ids",
         "valid_output",
-        "ndcg_at_10",
-        "recall_at_10",
+        "metric_ks",
         "agent_steps",
         "tool_calls",
         "model_input_tokens",
@@ -107,6 +106,9 @@ INSPECT_OUTPUT_CONTRACT: dict[str, Any] = {
         "failure_reason",
         "trace_path",
     ),
+    "retrieval_metric_families": ("recall", "f1", "ndcg"),
+    "default_metric_ks": (1, 3, 5, 10, 20),
+    "required_metric_field_template": "{metric}_at_{k} for every configured metric and k",
     "host_only_fields": ("qrels", "gold_doc_ids"),
 }
 

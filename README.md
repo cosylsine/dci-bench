@@ -29,9 +29,21 @@ The default local data root is:
 /mnt/afs2/202608/embedding_models/dci-bench/mteb_llm_retrieval/mteb_llm_retrieval
 ```
 
-Phase 3 uses Inspect with `sandbox="local"` and the `openai-api/vllm/...`
-Chat Completions provider against a vLLM OpenAI-compatible server for
-`/mnt/afs/share/Qwen3-4B`:
+Phase 3 uses Inspect with `sandbox="local"` only for the local model bridge.
+Agent `bash` calls run inside a fail-closed Bubblewrap sandbox that exposes only
+the current read-only corpus, a per-sample scratch directory, and read-only
+system runtime files. Agent `read` calls are independently restricted to the
+current corpus. Qrels stay host-side and are not stored in `Sample.target`.
+
+The container loses apt-installed packages after a restart, so install
+Bubblewrap before each new container lifetime:
+
+```bash
+apt install -y bubblewrap
+```
+
+Then run the `openai-api/vllm/...` Chat Completions provider against a vLLM
+OpenAI-compatible server for `/mnt/afs/share/Qwen3-4B`:
 
 ```bash
 conda activate dci-vllm
@@ -40,6 +52,10 @@ MODEL_PATH=/mnt/afs/share/Qwen3-4B SERVED_MODEL_NAME=Qwen3-4B scripts/serve_vllm
 conda activate dci-bench
 python scripts/phase3_single_sample.py --prepare --task LLMPublicHealthQA --query-id Q25
 ```
+
+Retrieval scoring reports recall, F1, and nDCG at `1, 3, 5, 10, 20` by
+default. Override the cutoffs for a run with, for example,
+`--metric-ks 1 5 10`.
 
 For a one-terminal cluster job that starts vLLM and then runs Phase 3:
 
