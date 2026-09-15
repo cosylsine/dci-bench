@@ -21,6 +21,15 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task", default="LLMPublicHealthQA")
     parser.add_argument("--query-id", default="Q25")
+    parser.add_argument("--model-key", default="MiniCPM5-2B")
+    parser.add_argument("--backend-manifest", type=Path)
+    parser.add_argument("--results-root", type=Path, default=Path("results"))
+    parser.add_argument("--run-id")
+    parser.add_argument("--resume-run")
+    parser.add_argument("--bridge-port", type=int, default=13131)
+    parser.add_argument("--max-concurrency", type=int, default=1)
+    parser.add_argument("--backend-artifact", action="append", type=Path, default=[])
+    parser.add_argument("--launcher-preflight-seconds", type=float)
     parser.add_argument("--model-path", default="/mnt/afs/share/Qwen3-4B")
     parser.add_argument("--served-model-name", default="Qwen3-4B")
     parser.add_argument(
@@ -188,60 +197,39 @@ def _write_summary(summary: dict[str, Any], summary_path: Path | None) -> None:
 
 def main() -> int:
     args = parse_args()
-    if not args.openai_service or "/" in args.openai_service:
-        raise ValueError("--openai-service must be a non-empty service prefix without '/'")
-
-    # Keep summary helpers importable for offline tests without importing the
-    # full Inspect stack. These imports are only required for an actual eval.
-    from inspect_ai import eval as inspect_eval
-
+    if args.backend_manifest is None:
+        raise ValueError(
+            "--backend-manifest is required; phase3_single_sample.py now delegates "
+            "to the auditable Phase 4 runner"
+        )
     from dci_bench.data.registry import get_task
+    from dci_bench.results.phase4_runner import execute_phase4
     from dci_bench.data.workspace_builder import build_workspace
-    from dci_bench.tasks.mteb_llm_retrieval import mteb_llm_retrieval_single
+    from dci_bench.tasks.mteb_llm_retrieval import _select_query_ids
 
     if args.prepare:
-        build_workspace(get_task(args.task), overwrite=True)
-    task = mteb_llm_retrieval_single(
-        task_name=args.task,
-        query_id=args.query_id,
-        output_dir=args.output_dir,
-        metric_ks=args.metric_ks,
-    )
-    logs = inspect_eval(
-        task,
-        model=f"openai-api/{args.openai_service}/{args.served_model_name}",
-        model_base_url=args.openai_base_url,
-        model_args={"api_key": args.api_key, "responses_api": False},
-        log_dir=args.log_dir,
-        display="plain",
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
-        max_samples=1,
-        fail_on_error=False,
-        score_on_error=True,
-    )
-    inspect_log_paths = [str(getattr(log, "location", "")) for log in logs]
-    summary = build_sample_summary(
-        task_name=args.task,
-        query_id=args.query_id,
-        output_dir=Path(args.output_dir),
+        build_workspace(get_task(args.task), overwrite=False)
+    selected_ids = _select_query_ids(
+        args.task,
         metadata_root=Path(args.metadata_root),
-        model_path=args.model_path,
-        served_model_name=args.served_model_name,
-        openai_base_url=args.openai_base_url,
-        openai_service=args.openai_service,
-        inspect_log_paths=inspect_log_paths,
-        metric_ks=args.metric_ks,
+        query_ids=[args.query_id],
+        all_queries=False,
     )
-    _write_summary(summary, args.summary_path)
-    print(logs)
+    execution = execute_phase4(args, selected_query_ids=selected_ids)
     print(
         json.dumps(
-            summary,
+            {
+                "run_id": execution.run_id,
+                "run_dir": str(execution.run_dir),
+                "query_ids": list(execution.query_ids),
+                "valid_samples": execution.valid_samples,
+                "invalid_samples": execution.invalid_samples,
+            },
             ensure_ascii=False,
             sort_keys=True,
         )
     )
-    return 1 if args.require_valid_output and not summary["valid_output"] else 0
+    return execution.exit_code
 
 
 if __name__ == "__main__":

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dci-task-index-v1",
+  "title": "DCI-Bench Phase 4 task run index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "model_key", "task", "updated_at", "runs"],
+  "properties": {
+    "schema_version": {"const": "dci-task-index-v1"}, "model_key": {"type": "string", "minLength": 1}, "task": {"type": "string", "minLength": 1}, "updated_at": {"type": "string", "minLength": 1}, "runs": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["run_id", "status", "run_fingerprint", "task_result_path"], "properties": {"run_id": {"type": "string", "minLength": 1}, "status": {"type": "string", "minLength": 1}, "run_fingerprint": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}, "task_result_path": {"type": "string", "minLength": 1}}}}
+  }
+}

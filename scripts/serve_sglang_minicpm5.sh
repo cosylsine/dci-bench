@@ -76,6 +76,7 @@ SGLANG_ENV="${SGLANG_ENV:-dci-sglang-minicpm5}"
 
 MODEL_PATH="${MODEL_PATH:-/mnt/afs2/202608/embedding_models/dci-bench/pretrained_models/MiniCPM5-2B}"
 SERVED_MODEL_NAME="${SERVED_MODEL_NAME:-MiniCPM5-2B}"
+MODEL_KEY="${MODEL_KEY:-MiniCPM5-2B}"
 SGLANG_HOST="${SGLANG_HOST:-127.0.0.1}"
 SGLANG_PORT="${SGLANG_PORT:-30000}"
 TP_SIZE="${TP_SIZE:-1}"
@@ -91,10 +92,22 @@ SGLANG_EXTRA_ARGS="${SGLANG_EXTRA_ARGS:-}"
 # runtime CUDA JIT. SGLang's local source forwards CXX to nvcc with -ccbin and
 # also uses it for the corresponding host link step.
 SGLANG_JIT_CXX="${SGLANG_JIT_CXX:-}"
+BACKEND_BASE_URL="${BACKEND_BASE_URL:-http://${SGLANG_HOST}:${SGLANG_PORT}/v1}"
+BACKEND_MANIFEST_PATH="${BACKEND_MANIFEST_PATH:-${REPO_ROOT}/results/backend-manifests/sglang-${MODEL_KEY}-${JOB_TAG}-${RUN_TIMESTAMP}.json}"
+REUSE_BACKEND_MANIFEST="${REUSE_BACKEND_MANIFEST:-0}"
 DRY_RUN="${DRY_RUN:-0}"
 
-log "runtime config: model=${MODEL_PATH} served_name=${SERVED_MODEL_NAME} SGLANG_ENV=${SGLANG_ENV} host=${SGLANG_HOST} port=${SGLANG_PORT}"
+# SGLang performs an HTTP warmup against its own loopback endpoint after the
+# ASGI server starts. Some cluster images ship an invalid NO_PROXY value that
+# contains a host:port pair, causing requests to proxy that local warmup and
+# eventually terminate an otherwise healthy service. Normalize the loopback
+# bypass for SGLang and its child processes while preserving any site entries.
+export NO_PROXY="127.0.0.1,localhost${NO_PROXY:+,${NO_PROXY}}"
+export no_proxy="${NO_PROXY}"
+
+log "runtime config: model=${MODEL_PATH} model_key=${MODEL_KEY} served_name=${SERVED_MODEL_NAME} SGLANG_ENV=${SGLANG_ENV} host=${SGLANG_HOST} port=${SGLANG_PORT}"
 log "runtime config: CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES} TP_SIZE=${TP_SIZE} context_length=${CONTEXT_LENGTH} dtype=${DTYPE} sampling_backend=${SAMPLING_BACKEND}"
+log "runtime config: backend_manifest=${BACKEND_MANIFEST_PATH} backend_base_url=${BACKEND_BASE_URL}"
 log "runtime config: NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES} PYTHONUNBUFFERED=${PYTHONUNBUFFERED}"
 if command -v nvidia-smi >/dev/null 2>&1; then
   log "stage=gpu-preflight nvidia-smi -L"
@@ -233,7 +246,7 @@ export CXX="${SELECTED_JIT_CXX}"
 JIT_COMPILER_VERSION="$("${SELECTED_JIT_CXX}" --version 2>&1 | sed -n '1p')"
 echo "[DCI] JIT host compiler: ${SELECTED_JIT_CXX} (${JIT_COMPILER_VERSION})"
 
-export MODEL_PATH TOOL_CALL_PARSER
+export MODEL_PATH MODEL_KEY SERVED_MODEL_NAME BACKEND_BASE_URL TOOL_CALL_PARSER SAMPLING_BACKEND TP_SIZE CONTEXT_LENGTH DTYPE
 python - <<'PY'
 import json
 import os
@@ -272,6 +285,63 @@ print(
     f"parser={parser_name}"
 )
 PY
+
+if [[ -e "${BACKEND_MANIFEST_PATH}" && "${REUSE_BACKEND_MANIFEST}" != "1" ]]; then
+  echo "[DCI] backend manifest already exists: ${BACKEND_MANIFEST_PATH}; set REUSE_BACKEND_MANIFEST=1 only to restart the identical service configuration" >&2
+  exit 2
+fi
+SGLANG_VERSION="$(python -c 'from importlib.metadata import version; print(version("sglang"))')"
+SGLANG_GIT_REVISION=""
+if [[ -d "${REPO_ROOT}/sglang/.git" ]]; then
+  SGLANG_GIT_REVISION="$(git --git-dir="${REPO_ROOT}/sglang/.git" --work-tree="${REPO_ROOT}/sglang" rev-parse HEAD 2>/dev/null || true)"
+fi
+MANIFEST_REVISION_ARGS=()
+if [[ -n "${SGLANG_GIT_REVISION}" ]]; then
+  MANIFEST_REVISION_ARGS=(--sglang-git-revision "${SGLANG_GIT_REVISION}")
+fi
+if [[ -e "${BACKEND_MANIFEST_PATH}" ]]; then
+  python - "${BACKEND_MANIFEST_PATH}" <<'PY'
+import os
+import sys
+from pathlib import Path
+
+from dci_bench.backends.manifest import load_backend_manifest, sanitize_base_url
+
+manifest = load_backend_manifest(Path(sys.argv[1]))
+model = manifest["model"]
+backend = manifest["backend"]
+expected = {
+    "model.model_key": (model["model_key"], os.environ["MODEL_KEY"]),
+    "model.source_path": (str(Path(model["source_path"]).resolve()), str(Path(os.environ["MODEL_PATH"]).resolve())),
+    "model.served_model_name": (model["served_model_name"], os.environ["SERVED_MODEL_NAME"]),
+    "backend.base_url": (backend["base_url"], sanitize_base_url(os.environ["BACKEND_BASE_URL"])),
+    "backend.tool_call_parser": (backend["tool_call_parser"], os.environ["TOOL_CALL_PARSER"]),
+    "backend.sampling_backend": (backend["sampling_backend"], os.environ["SAMPLING_BACKEND"]),
+    "backend.tensor_parallel_size": (backend["tensor_parallel_size"], int(os.environ["TP_SIZE"])),
+    "backend.context_length": (backend["context_length"], int(os.environ["CONTEXT_LENGTH"])),
+    "backend.dtype": (backend["dtype"], os.environ["DTYPE"]),
+}
+mismatches = [f"{name}: recorded={actual!r} requested={wanted!r}" for name, (actual, wanted) in expected.items() if actual != wanted]
+if mismatches:
+    raise SystemExit("cannot reuse backend manifest with changed configuration: " + "; ".join(mismatches))
+print("[DCI] existing backend manifest validated for identical service restart")
+PY
+else
+  python -m dci_bench.backends.manifest \
+    --output "${BACKEND_MANIFEST_PATH}" \
+    --model-key "${MODEL_KEY}" \
+    --model-path "${MODEL_PATH}" \
+    --served-model-name "${SERVED_MODEL_NAME}" \
+    --base-url "${BACKEND_BASE_URL}" \
+    --sglang-version "${SGLANG_VERSION}" \
+    "${MANIFEST_REVISION_ARGS[@]}" \
+    --tool-call-parser "${TOOL_CALL_PARSER}" \
+    --sampling-backend "${SAMPLING_BACKEND}" \
+    --tensor-parallel-size "${TP_SIZE}" \
+    --context-length "${CONTEXT_LENGTH}" \
+    --dtype "${DTYPE}"
+fi
+log "stage=backend-manifest ok; path=${BACKEND_MANIFEST_PATH}"
 
 CMD=(
   sglang serve

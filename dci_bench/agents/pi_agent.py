@@ -10,7 +10,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from dci_bench.protocol.contracts import MAX_AGENT_STEPS, SAMPLE_TIMEOUT_SECONDS
+from dci_bench.protocol.contracts import (
+    BENCHMARK_CONTRACT_VERSION,
+    MAX_AGENT_STEPS,
+    PI_FINAL_RESULT_VERSION,
+    SAMPLE_TIMEOUT_SECONDS,
+)
 
 
 @dataclass(frozen=True)
@@ -29,6 +34,10 @@ class PiRunResult:
     tool_sandbox: str
     output_path: Path
     trace_path: Path | None
+    contract_version: str
+    failure_kind: str | None
+    failure: dict[str, Any] | None
+    usage_summary: dict[str, Any]
 
 
 def repo_root() -> Path:
@@ -122,6 +131,18 @@ def run_pi_dci(
             )
 
         payload: dict[str, Any] = json.loads(output_path.read_text(encoding="utf-8"))
+        contract_version = payload.get("contract_version")
+        if contract_version != BENCHMARK_CONTRACT_VERSION:
+            raise RuntimeError(
+                "Pi runner returned an unsupported protocol contract: "
+                f"expected {BENCHMARK_CONTRACT_VERSION!r}, got {contract_version!r}"
+            )
+        pi_result_version = payload.get("pi_result_version")
+        if pi_result_version != PI_FINAL_RESULT_VERSION:
+            raise RuntimeError(
+                "Pi runner returned an unsupported Pi final result version: "
+                f"expected {PI_FINAL_RESULT_VERSION!r}, got {pi_result_version!r}"
+            )
         inspect_sandbox = payload.get("inspect_sandbox")
         tool_sandbox = payload.get("tool_sandbox")
         if inspect_sandbox != "local" or tool_sandbox != "bubblewrap":
@@ -129,6 +150,12 @@ def run_pi_dci(
                 "Pi runner did not attest the required sandbox boundary: "
                 f"inspect_sandbox={inspect_sandbox!r}, tool_sandbox={tool_sandbox!r}"
             )
+        failure_payload = payload.get("failure")
+        if failure_payload is not None and not isinstance(failure_payload, dict):
+            raise RuntimeError("Pi runner failure field must be an object or null")
+        usage_payload = payload.get("usage_summary", payload.get("usage", {}))
+        if not isinstance(usage_payload, dict):
+            raise RuntimeError("Pi runner usage_summary field must be an object")
         return PiRunResult(
             ranked_doc_ids=list(payload.get("ranked_doc_ids", [])),
             valid_output=bool(payload.get("valid_output", False)),
@@ -144,6 +171,14 @@ def run_pi_dci(
             tool_sandbox=tool_sandbox,
             output_path=output_path,
             trace_path=trace_path or output_path.with_suffix(".trace.json"),
+            contract_version=str(contract_version),
+            failure_kind=(
+                str(failure_payload["kind"])
+                if isinstance(failure_payload, dict) and failure_payload.get("kind") is not None
+                else None
+            ),
+            failure=failure_payload,
+            usage_summary=usage_payload,
         )
     finally:
         query_file.unlink(missing_ok=True)
