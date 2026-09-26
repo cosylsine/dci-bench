@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TASK="${1:-LLMPublicHealthQA}"
+if [[ $# -eq 0 ]]; then
+  set -- --all-tasks --refresh-existing
+elif [[ "$1" != --* ]]; then
+  task="$1"
+  shift
+  set -- --task "$task" "$@"
+fi
 
 python -m dci_bench.data.workspace_builder \
-  --task "$TASK" \
-  --overwrite \
-  --sample-queries 5
+  "$@" \
+  --sample-queries "${SAMPLE_QUERIES:-5}"

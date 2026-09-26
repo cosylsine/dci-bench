@@ -5,6 +5,7 @@ from pathlib import Path
 
 from dci_bench.backends.manifest import (
     build_sglang_manifest,
+    build_vllm_manifest,
     load_backend_manifest,
     sanitize_base_url,
     write_json_atomic,
@@ -64,6 +65,34 @@ class BackendManifestTest(unittest.TestCase):
             sanitize_base_url("http://user:secret@example.test/v1")
         with self.assertRaises(ValueError):
             sanitize_base_url("https://example.test/v1?token=secret")
+
+    def test_vllm_manifest_is_accepted_by_the_shared_runner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = build_vllm_manifest(
+                model_key="Qwen3.8-27B",
+                model_path=self._model(root),
+                served_model_name="Qwen3.8-27B",
+                base_url="http://127.0.0.1:17892/v1",
+                vllm_version="0.17.0",
+                tool_call_parser="qwen3_coder",
+                reasoning_parser="qwen3",
+                language_model_only=True,
+                tensor_parallel_size=4,
+                context_length=32768,
+                dtype="bfloat16",
+                max_num_seqs=4,
+                gpu_memory_utilization=0.80,
+            )
+            output = root / "vllm.json"
+            write_json_atomic(output, payload)
+            loaded = load_backend_manifest(output)
+            self.assertEqual(loaded["backend"]["kind"], "vllm")
+            self.assertEqual(loaded["backend"]["openai_service"], "vllm")
+            self.assertEqual(loaded["backend"]["reasoning_parser"], "qwen3")
+            self.assertTrue(loaded["backend"]["language_model_only"])
+            self.assertEqual(loaded["backend"]["max_num_seqs"], 4)
+            self.assertEqual(loaded["backend"]["gpu_memory_utilization"], 0.80)
 
     def test_digest_tampering_fails(self):
         with tempfile.TemporaryDirectory() as tmp:

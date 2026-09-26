@@ -3,6 +3,7 @@ import json
 import sys
 import tempfile
 import unittest
+from contextlib import asynccontextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -15,11 +16,13 @@ try:
         BridgePortPool,
         _make_samples,
         _select_query_ids,
+        _serialized_bridge_start,
     )
 except (ImportError, OSError):
     BridgePortPool = None
     _make_samples = None
     _select_query_ids = None
+    _serialized_bridge_start = None
 
 
 def load_run_task_module():
@@ -133,6 +136,41 @@ class Phase4BatchTaskTest(unittest.TestCase):
 
         anyio.run(exercise)
 
+    def test_bridge_startup_is_serialized_while_sample_bodies_overlap(self):
+        async def exercise():
+            pool = BridgePortPool(13131, 2)
+            active_enters = 0
+            max_enters = 0
+            active_bodies = 0
+            max_bodies = 0
+
+            @asynccontextmanager
+            async def bridge_context():
+                nonlocal active_enters, max_enters, active_bodies, max_bodies
+                active_enters += 1
+                max_enters = max(max_enters, active_enters)
+                await anyio.sleep(0.02)
+                active_enters -= 1
+                active_bodies += 1
+                max_bodies = max(max_bodies, active_bodies)
+                try:
+                    yield object()
+                finally:
+                    active_bodies -= 1
+
+            async def worker():
+                async with _serialized_bridge_start(pool, bridge_context()):
+                    await anyio.sleep(0.05)
+
+            async with anyio.create_task_group() as group:
+                group.start_soon(worker)
+                group.start_soon(worker)
+
+            self.assertEqual(max_enters, 1)
+            self.assertEqual(max_bodies, 2)
+
+        anyio.run(exercise)
+
 
 @unittest.skipUnless(_make_samples is not None, "a working inspect_ai environment is required")
 class Phase4BatchCliTest(unittest.TestCase):
@@ -190,6 +228,11 @@ class Phase4BatchCliTest(unittest.TestCase):
             self.assertEqual(calls[0][1]["max_samples"], 2)
             self.assertEqual(calls[0][1]["max_connections"], 2)
             self.assertEqual(make_task.call_args.kwargs["query_ids"], ["Q2", "Q1"])
+            self.assertEqual(make_task.call_args.kwargs["model_context_window"], 128000)
+            self.assertIn(
+                "public-health questions",
+                make_task.call_args.kwargs["task_instruction"],
+            )
 
 
 class Phase4BatchCliOfflineTest(unittest.TestCase):

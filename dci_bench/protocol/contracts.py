@@ -48,10 +48,31 @@ TERMINATION_CONDITION: dict[str, Any] = deepcopy(_CONTRACT["termination_conditio
 INSPECT_OUTPUT_CONTRACT: dict[str, Any] = deepcopy(_CONTRACT["inspect_output_contract"])
 SYSTEM_PROMPT = str(_CONTRACT["system_prompt"])
 QUERY_PROMPT_TEMPLATE = str(_CONTRACT["query_prompt_template"])
+TASK_INSTRUCTION_TEMPLATE = str(_CONTRACT["task_instruction_template"])
 REPAIR_PROMPT_TEMPLATE = str(_CONTRACT["repair_prompt_template"])
 
 
-def protocol_contract() -> dict[str, Any]:
-    """Return a deep-copied, JSON-serializable canonical protocol snapshot."""
+def protocol_contract(
+    *,
+    task_name: str | None = None,
+    task_instruction: str | None = None,
+) -> dict[str, Any]:
+    """Return a canonical protocol snapshot, optionally resolved for one task.
 
-    return deepcopy(_CONTRACT)
+    The base contract remains task-neutral. A resolved run records the trusted
+    registry instruction here so prompt behavior participates in the immutable
+    run fingerprint instead of being hidden in launcher state.
+    """
+
+    snapshot = deepcopy(_CONTRACT)
+    if task_name is None and task_instruction is None:
+        return snapshot
+    if not isinstance(task_name, str) or not task_name.strip():
+        raise ValueError("task_name must be a non-empty string for a task-aware contract")
+    if not isinstance(task_instruction, str):
+        raise ValueError("task_instruction must be a string")
+    snapshot["task_context"] = {
+        "task_name": task_name,
+        "instruction": task_instruction.strip(),
+    }
+    return snapshot

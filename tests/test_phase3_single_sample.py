@@ -60,7 +60,7 @@ class Phase3SingleSampleTest(unittest.TestCase):
             self.assertEqual(summary["ndcg_at_10"], 1.0)
             self.assertEqual(summary["recall_at_10"], 1.0)
             self.assertEqual(summary["f1_at_1"], 1.0)
-            self.assertAlmostEqual(summary["f1_at_10"], 2 / 11)
+            self.assertEqual(summary["f1_at_10"], 1.0)
             self.assertEqual(summary["metric_ks"], [1, 3, 5, 10, 20])
             self.assertEqual(summary["openai_service"], "sglang")
             self.assertNotIn("qrels", summary)

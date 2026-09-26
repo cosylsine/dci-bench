@@ -19,6 +19,7 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 from dci_bench.backends.manifest import load_backend_manifest
+from dci_bench.data.registry import get_task, validate_task_manifest
 from dci_bench.protocol.contracts import (
     BENCHMARK_CONTRACT_VERSION,
     MAX_TOTAL_MODEL_TOKENS,
@@ -139,8 +140,12 @@ def code_audit(repo_root: Path) -> dict[str, Any]:
         *sorted((repo_root / "dci_bench").rglob("*.py")),
         *sorted((repo_root / "schemas" / "results").glob("*.json")),
         repo_root / "scripts" / "run_task.py",
+        repo_root / "scripts" / "run_all.py",
+        repo_root / "scripts" / "run_phase5_with_sglang.sh",
+        repo_root / "scripts" / "run_phase5_qwen38_vllm_node.sh",
         repo_root / "scripts" / "run_phase3_with_sglang.sh",
         repo_root / "scripts" / "serve_sglang_minicpm5.sh",
+        repo_root / "scripts" / "serve_vllm_qwen38.sh",
         repo_root / "pi-dci" / "scripts" / "dci-run.ts",
     ]
     source_hashes = [
@@ -168,10 +173,13 @@ def data_audit(metadata_root: Path, task: str) -> dict[str, Any]:
     source = read_json(manifest_path)
     if not isinstance(source, Mapping):
         raise ValueError(f"data manifest must be an object: {manifest_path}")
+    task_spec = get_task(task)
+    resolved_revision = validate_task_manifest(task_spec, source)
+    requested_revision = source.get("revision")
     return {
         "dataset": source.get("dataset"),
-        "requested_revision": source.get("revision"),
-        "resolved_revision": source.get("resolved_revision"),
+        "requested_revision": requested_revision,
+        "resolved_revision": resolved_revision,
         "source_manifest_path": manifest_path.relative_to(metadata_root.parent).as_posix(),
         "source_manifest_sha256": sha256_file(manifest_path),
         "queries_sha256": sha256_file(queries_path),
@@ -660,7 +668,11 @@ def execute_phase4(
     model_info, backend_info = _backend_audit(backend_manifest)
     data_info = data_audit(Path(args.metadata_root), args.task)
     code_info = code_audit(repo_root)
-    contract = protocol_contract()
+    task_spec = get_task(args.task)
+    contract = protocol_contract(
+        task_name=task_spec.name,
+        task_instruction=task_spec.task_instruction,
+    )
     fingerprint = compute_run_fingerprint(
         model=model_info,
         backend=backend_info,
@@ -779,6 +791,8 @@ def execute_phase4(
             metric_ks=metric_ks,
             bridge_port=args.bridge_port,
             max_concurrency=args.max_concurrency,
+            model_context_window=int(backend_info["context_length"]),
+            task_instruction=task_spec.task_instruction,
         )
         if inspect_eval_fn is None:
             from inspect_ai import eval as inspect_eval_fn

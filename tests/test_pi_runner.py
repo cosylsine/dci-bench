@@ -63,6 +63,8 @@ class PiRunnerTest(unittest.TestCase):
                 trace_path=root / "trace.json",
                 mock_script=mock_script,
                 max_agent_steps=8,
+                context_window=65536,
+                task_instruction="Search climate and hunting concepts, then stop.",
             )
 
             self.assertTrue(result.valid_output)
@@ -72,6 +74,14 @@ class PiRunnerTest(unittest.TestCase):
             final_text = output_path.read_text(encoding="utf-8")
             trace_text = (root / "trace.json").read_text(encoding="utf-8")
             self.assertEqual(json.loads(final_text)["contract"]["max_agent_steps"], 8)
+            self.assertEqual(json.loads(final_text)["contract"]["context_window"], 65536)
+            self.assertEqual(
+                json.loads(final_text)["contract"]["task_instruction"],
+                "Search climate and hunting concepts, then stop.",
+            )
+            first_user_text = json.loads(trace_text)["messages"][0]["content"][0]["text"]
+            self.assertIn("Task-aware retrieval guidance:", first_user_text)
+            self.assertIn("Search climate and hunting concepts, then stop.", first_user_text)
             self.assertEqual(final_text, json.dumps(json.loads(final_text), indent=2, sort_keys=True) + "\n")
             self.assertEqual(trace_text, json.dumps(json.loads(trace_text), indent=2, sort_keys=True) + "\n")
 
@@ -261,7 +271,7 @@ class PiRunnerTest(unittest.TestCase):
             self.assertFalse(result.usage_summary["available"])
             self.assertIsNone(result.usage_summary["total_model_tokens"])
             payload = json.loads(output_path.read_text(encoding="utf-8"))
-            self.assertEqual(payload["contract_version"], "dci-mvp-v1")
+            self.assertEqual(payload["contract_version"], "dci-mvp-v2")
             self.assertEqual(payload["pi_result_version"], "dci-pi-final-v1")
             self.assertTrue(payload["started_at"].endswith("Z"))
             self.assertTrue(payload["completed_at"].endswith("Z"))

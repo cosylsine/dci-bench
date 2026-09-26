@@ -62,18 +62,23 @@ def recall_at_k(ranked_doc_ids: Sequence[str], qrels: Mapping[str, float], k: in
     return len(relevant.intersection(retrieved)) / len(relevant)
 
 
+def precision_at_k(ranked_doc_ids: Sequence[str], qrels: Mapping[str, float], k: int = TOP_K) -> float:
+    """Use the returned prefix length, up to k, as the precision denominator."""
+    window = ranked_doc_ids[:k]
+    if not window:
+        return 0.0
+    relevant = {doc_id for doc_id, score in qrels.items() if float(score) > 0}
+    return len(relevant.intersection(window)) / len(window)
+
+
 def f1_at_k(
     ranked_doc_ids: Sequence[str],
     qrels: Mapping[str, float],
     k: int = TOP_K,
 ) -> float:
-    """Return the harmonic mean of precision@k and recall@k."""
-    relevant = {doc_id for doc_id, score in qrels.items() if float(score) > 0}
-    if not relevant:
-        return 0.0
-    true_positives = len(relevant.intersection(ranked_doc_ids[:k]))
-    precision = true_positives / k
-    recall = true_positives / len(relevant)
+    """Harmonic mean over the returned prefix of at most k documents."""
+    precision = precision_at_k(ranked_doc_ids, qrels, k)
+    recall = recall_at_k(ranked_doc_ids, qrels, k)
     if precision + recall == 0:
         return 0.0
     return 2 * precision * recall / (precision + recall)

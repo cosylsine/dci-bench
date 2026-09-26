@@ -13,6 +13,7 @@ from typing import Any
 from dci_bench.protocol.contracts import (
     BENCHMARK_CONTRACT_VERSION,
     MAX_AGENT_STEPS,
+    MAX_TOTAL_MODEL_TOKENS,
     PI_FINAL_RESULT_VERSION,
     SAMPLE_TIMEOUT_SECONDS,
 )
@@ -60,6 +61,8 @@ def run_pi_dci(
     model: str = "inspect",
     timeout_seconds: int = SAMPLE_TIMEOUT_SECONDS,
     max_agent_steps: int = MAX_AGENT_STEPS,
+    context_window: int = MAX_TOTAL_MODEL_TOKENS,
+    task_instruction: str = "",
     extra_env: dict[str, str] | None = None,
 ) -> PiRunResult:
     workspace = workspace.resolve()
@@ -73,6 +76,13 @@ def run_pi_dci(
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".txt", delete=False) as handle:
         handle.write(query)
         query_file = Path(handle.name)
+    instruction_file: Path | None = None
+    if task_instruction.strip():
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", suffix=".txt", delete=False
+        ) as handle:
+            handle.write(task_instruction.strip())
+            instruction_file = Path(handle.name)
 
     try:
         command = [
@@ -99,9 +109,13 @@ def run_pi_dci(
             openai_api_key,
             "--max-agent-steps",
             str(max_agent_steps),
+            "--context-window",
+            str(context_window),
         ]
         if mock_script is not None:
             command.extend(["--mock-script", str(mock_script)])
+        if instruction_file is not None:
+            command.extend(["--task-instruction-file", str(instruction_file)])
 
         env = os.environ.copy()
         env.update(
@@ -182,3 +196,5 @@ def run_pi_dci(
         )
     finally:
         query_file.unlink(missing_ok=True)
+        if instruction_file is not None:
+            instruction_file.unlink(missing_ok=True)

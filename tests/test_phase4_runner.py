@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from dci_bench.backends.manifest import build_sglang_manifest, write_json_atomic
-from dci_bench.results.phase4_runner import execute_phase4, preflight_bridge_ports
+from dci_bench.results.phase4_runner import data_audit, execute_phase4, preflight_bridge_ports
 
 
 def _metrics(value: float = 1.0):
@@ -43,9 +43,10 @@ class Phase4RunnerTest(unittest.TestCase):
         (metadata / "manifest.json").write_text(
             json.dumps(
                 {
-                    "dataset": "test/data",
-                    "revision": "requested",
-                    "resolved_revision": "resolved",
+                    "task": "LLMPublicHealthQA",
+                    "dataset": "mteb/llm-eval-public-health-qa",
+                    "revision": "b05938525381",
+                    "resolved_revision": "b05938525381-resolved",
                     "corpus_hash": "a" * 64,
                     "source_parquet_hash": "b" * 64,
                 }
@@ -106,6 +107,8 @@ class Phase4RunnerTest(unittest.TestCase):
 
     def _fake_eval(self, *, with_usage=True):
         def evaluate(task, **kwargs):
+            self.assertEqual(task["model_context_window"], 32768)
+            self.assertIn("public-health questions", task["task_instruction"])
             output = Path(task["output_dir"])
             sample_dir = output / "Q1"
             sample_dir.mkdir(parents=True)
@@ -119,7 +122,7 @@ class Phase4RunnerTest(unittest.TestCase):
             (sample_dir / "final.json").write_text(
                 json.dumps(
                     {
-                        "contract_version": "dci-mvp-v1",
+                        "contract_version": "dci-mvp-v2",
                         "valid_output": True,
                         "failure_reason": None,
                         "failure": None,
@@ -175,6 +178,33 @@ class Phase4RunnerTest(unittest.TestCase):
 
         return evaluate
 
+    def test_data_audit_rejects_empty_resolved_revision(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            args = self._fixture(root)
+            manifest_path = args.metadata_root / args.task / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["resolved_revision"] = None
+            manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "non-empty"):
+                data_audit(args.metadata_root, args.task)
+
+    def test_data_audit_accepts_legacy_manifest_without_instruction(self):
+        with tempfile.TemporaryDirectory() as temp:
+            args = self._fixture(Path(temp))
+            audit = data_audit(args.metadata_root, args.task)
+            self.assertEqual(audit["dataset"], "mteb/llm-eval-public-health-qa")
+
+    def test_data_audit_rejects_mismatched_manifest_instruction(self):
+        with tempfile.TemporaryDirectory() as temp:
+            args = self._fixture(Path(temp))
+            manifest_path = args.metadata_root / args.task / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["task_instruction"] = "stale instruction"
+            manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "does not match"):
+                data_audit(args.metadata_root, args.task)
+
     @staticmethod
     def _task_factory(**kwargs):
         return kwargs
@@ -199,6 +229,10 @@ class Phase4RunnerTest(unittest.TestCase):
             task_result = json.loads((execution.run_dir / "task-result.json").read_text())
             self.assertEqual(task_result["counts"]["valid"], 1)
             self.assertEqual(task_result["usage"]["total_tokens"]["sum"], 15.0)
+            run_manifest = json.loads((execution.run_dir / "run-manifest.json").read_text())
+            task_context = run_manifest["benchmark_contract"]["task_context"]
+            self.assertEqual(task_context["task_name"], "LLMPublicHealthQA")
+            self.assertIn("public-health questions", task_context["instruction"])
             index = json.loads((root / "results" / "MiniCPM5-2B" / "LLMPublicHealthQA" / "index.json").read_text())
             self.assertEqual(index["runs"][0]["status"], "complete")
             self.assertNotIn("SECRET_TEST_KEY", json.dumps(task_result))

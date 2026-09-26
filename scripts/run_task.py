@@ -341,7 +341,10 @@ def run_batch(
         all_queries=bool(args.all_queries),
     )
     metric_ks = normalize_metric_ks(args.metric_ks)
+    task_spec = get_task(args.task)
     manifest = _load_backend_manifest(args.backend_manifest)
+    backend = _backend_section(manifest)
+    model_context_window = int(backend.get("context_length", 128000))
     run_id, run_dir = _resolve_run_dir(args)
     run_dir.mkdir(parents=True, exist_ok=True)
     log_dir = args.log_dir or run_dir / "artifacts" / "inspect"
@@ -357,6 +360,8 @@ def run_batch(
         metric_ks=metric_ks,
         bridge_port=args.bridge_port,
         max_concurrency=args.max_concurrency,
+        model_context_window=model_context_window,
+        task_instruction=task_spec.task_instruction,
     )
     if inspect_eval_fn is None:
         from inspect_ai import eval as inspect_eval_fn  # type: ignore[assignment]

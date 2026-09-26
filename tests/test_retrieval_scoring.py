@@ -6,6 +6,7 @@ from dci_bench.scoring.retrieval import (
     f1_at_k,
     ndcg_at_k,
     normalize_metric_ks,
+    precision_at_k,
     recall_at_k,
     score_query,
     score_run,
@@ -32,13 +33,28 @@ class RetrievalScoringTest(unittest.TestCase):
         self.assertEqual(ndcg_at_k(["d1", "d2", "d3"], qrels, k=10), 1.0)
         self.assertEqual(recall_at_k(["d1", "d2", "d3"], qrels, k=10), 1.0)
         self.assertEqual(f1_at_k(["d1", "d2", "d3"], qrels, k=3), 1.0)
+        self.assertEqual(precision_at_k(["d1", "d2", "d3"], qrels, k=10), 1.0)
+        self.assertEqual(f1_at_k(["d1", "d2", "d3"], qrels, k=10), 1.0)
         self.assertEqual(ndcg_at_k(["x", "y"], qrels, k=10), 0.0)
         self.assertEqual(recall_at_k(["x", "y"], qrels, k=10), 0.0)
+        self.assertEqual(precision_at_k(["x", "y"], qrels, k=10), 0.0)
         self.assertEqual(f1_at_k(["x", "y"], qrels, k=10), 0.0)
 
         reversed_score = ndcg_at_k(["d3", "d2", "d1"], qrels, k=10)
         self.assertGreater(reversed_score, 0.0)
         self.assertLess(reversed_score, 1.0)
+
+    def test_f1_uses_actual_returned_window(self):
+        qrels = {"d1": 1.0, "d2": 1.0, "d3": 1.0}
+        ranked = ["d1", "x", "d2"]
+        self.assertEqual(precision_at_k(ranked, qrels, k=2), 0.5)
+        self.assertEqual(recall_at_k(ranked, qrels, k=2), 1 / 3)
+        self.assertAlmostEqual(f1_at_k(ranked, qrels, k=2), 0.4)
+        self.assertAlmostEqual(precision_at_k(ranked, qrels, k=10), 2 / 3)
+        self.assertAlmostEqual(recall_at_k(ranked, qrels, k=10), 2 / 3)
+        self.assertAlmostEqual(f1_at_k(ranked, qrels, k=10), 2 / 3)
+        self.assertEqual(precision_at_k([], qrels, k=10), 0.0)
+        self.assertEqual(f1_at_k([], qrels, k=10), 0.0)
 
     def test_score_query_reports_invalid_output_without_throwing(self):
         result = score_query('{"ranked_doc_ids":["d1","d1"]}', {"d1": 1.0})
@@ -105,4 +121,4 @@ class RetrievalScoringTest(unittest.TestCase):
         self.assertEqual(result["invalid_outputs"], 1)
         self.assertTrue(math.isclose(result["mean_ndcg_at_10"], 0.5))
         self.assertTrue(math.isclose(result["mean_recall_at_10"], 0.5))
-        self.assertTrue(math.isclose(result["mean_f1_at_10"], 1 / 11))
+        self.assertTrue(math.isclose(result["mean_f1_at_10"], 0.5))

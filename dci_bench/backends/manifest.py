@@ -154,6 +154,56 @@ def build_sglang_manifest(
     return payload
 
 
+def build_vllm_manifest(
+    *,
+    model_key: str,
+    model_path: Path,
+    served_model_name: str,
+    base_url: str,
+    vllm_version: str,
+    tool_call_parser: str,
+    reasoning_parser: str | None,
+    language_model_only: bool,
+    tensor_parallel_size: int,
+    context_length: int,
+    dtype: str,
+    max_num_seqs: int,
+    gpu_memory_utilization: float,
+    generation_config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build the same audited backend contract for a vLLM OpenAI endpoint."""
+
+    if max_num_seqs < 1 or not 0 < gpu_memory_utilization < 1:
+        raise ValueError("vLLM max_num_seqs and gpu_memory_utilization are out of range")
+
+    payload = build_sglang_manifest(
+        model_key=model_key,
+        model_path=model_path,
+        served_model_name=served_model_name,
+        base_url=base_url,
+        sglang_version=vllm_version,
+        sglang_git_revision=None,
+        tool_call_parser=tool_call_parser,
+        sampling_backend="auto",
+        tensor_parallel_size=tensor_parallel_size,
+        context_length=context_length,
+        dtype=dtype,
+        generation_config=generation_config,
+    )
+    payload["backend"].update(
+        kind="vllm",
+        openai_service="vllm",
+        reasoning_parser=reasoning_parser,
+        language_model_only=language_model_only,
+        max_num_seqs=max_num_seqs,
+        gpu_memory_utilization=gpu_memory_utilization,
+    )
+    payload["manifest_sha256"] = _canonical_sha256(
+        {key: value for key, value in payload.items() if key != "manifest_sha256"}
+    )
+    return payload
+
+
 def validate_backend_manifest(payload: dict[str, Any]) -> None:
     if payload.get("schema_version") != BACKEND_MANIFEST_SCHEMA_VERSION:
         raise ValueError(f"unsupported backend manifest schema: {payload.get('schema_version')!r}")
@@ -217,8 +267,14 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--model-path", type=Path, required=True)
     parser.add_argument("--served-model-name", required=True)
     parser.add_argument("--base-url", required=True)
-    parser.add_argument("--sglang-version", required=True)
+    versions = parser.add_mutually_exclusive_group(required=True)
+    versions.add_argument("--sglang-version")
+    versions.add_argument("--vllm-version")
     parser.add_argument("--sglang-git-revision")
+    parser.add_argument("--reasoning-parser")
+    parser.add_argument("--language-model-only", action="store_true")
+    parser.add_argument("--max-num-seqs", type=int)
+    parser.add_argument("--gpu-memory-utilization", type=float)
     parser.add_argument("--tool-call-parser", required=True)
     parser.add_argument("--sampling-backend", required=True)
     parser.add_argument("--tensor-parallel-size", type=int, required=True)
@@ -229,19 +285,34 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = _parse_args()
-    manifest = build_sglang_manifest(
+    common = dict(
         model_key=args.model_key,
         model_path=args.model_path,
         served_model_name=args.served_model_name,
         base_url=args.base_url,
-        sglang_version=args.sglang_version,
-        sglang_git_revision=args.sglang_git_revision,
         tool_call_parser=args.tool_call_parser,
-        sampling_backend=args.sampling_backend,
         tensor_parallel_size=args.tensor_parallel_size,
         context_length=args.context_length,
         dtype=args.dtype,
     )
+    if args.vllm_version:
+        if args.max_num_seqs is None or args.gpu_memory_utilization is None:
+            raise SystemExit("vLLM manifest requires --max-num-seqs and --gpu-memory-utilization")
+        manifest = build_vllm_manifest(
+            **common,
+            vllm_version=args.vllm_version,
+            reasoning_parser=args.reasoning_parser,
+            language_model_only=args.language_model_only,
+            max_num_seqs=args.max_num_seqs,
+            gpu_memory_utilization=args.gpu_memory_utilization,
+        )
+    else:
+        manifest = build_sglang_manifest(
+            **common,
+            sglang_version=args.sglang_version,
+            sglang_git_revision=args.sglang_git_revision,
+            sampling_backend=args.sampling_backend,
+        )
     write_json_atomic(args.output, manifest)
     print(args.output)
 

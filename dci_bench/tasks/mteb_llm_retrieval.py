@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,8 +17,8 @@ from inspect_ai.scorer import Score, Target, mean, scorer
 from inspect_ai.solver import Generate, TaskState, solver
 
 from dci_bench.agents.pi_agent import run_pi_dci
-from dci_bench.data.registry import TASKS
-from dci_bench.protocol.contracts import MAX_AGENT_STEPS, SAMPLE_TIMEOUT_SECONDS
+from dci_bench.data.registry import TASKS, get_task
+from dci_bench.protocol.contracts import MAX_AGENT_STEPS, MAX_TOTAL_MODEL_TOKENS, SAMPLE_TIMEOUT_SECONDS
 from dci_bench.scoring.retrieval import normalize_metric_ks, score_query, zero_metrics
 
 
@@ -213,11 +213,18 @@ class BridgePortPool:
             raise ValueError("bridge port pool must fit in TCP port range 1..65535")
         self._semaphore = anyio.Semaphore(self.max_concurrency)
         self._lock = anyio.Lock()
+        self._startup_lock = anyio.Lock()
         self._in_use: set[int] = set()
 
     @property
     def ports(self) -> tuple[int, ...]:
         return tuple(self.base_port + offset for offset in range(self.max_concurrency))
+
+    @property
+    def startup_lock(self) -> anyio.Lock:
+        """Serialize bridge startup while Inspect prepares shared local tools."""
+
+        return self._startup_lock
 
     @asynccontextmanager
     async def lease(self):
@@ -249,12 +256,27 @@ async def _bridge_port_lease(pool: BridgePortPool | None, fallback_port: int):
             yield port
 
 
+@asynccontextmanager
+async def _serialized_bridge_start(pool: BridgePortPool | None, bridge_context: Any):
+    """Enter bridge contexts one at a time, then allow model work in parallel."""
+
+    async with AsyncExitStack() as stack:
+        if pool is None:
+            bridge = await stack.enter_async_context(bridge_context)
+        else:
+            async with pool.startup_lock:
+                bridge = await stack.enter_async_context(bridge_context)
+        yield bridge
+
+
 @solver
 def pi_dci_solver(
     output_dir: str = "results/phase3",
     bridge_port: int = 13131,
     include_task_dir: bool = True,
     bridge_port_pool: BridgePortPool | None = None,
+    model_context_window: int = MAX_TOTAL_MODEL_TOKENS,
+    task_instruction: str = "",
 ) -> Any:
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         task_name = str(state.metadata["task"])
@@ -266,7 +288,7 @@ def pi_dci_solver(
         output_path = sample_dir / "final.json"
         trace_path = sample_dir / "trace.json"
         async with _bridge_port_lease(bridge_port_pool, bridge_port) as sample_bridge_port:
-            async with sandbox_agent_bridge(
+            bridge_context = sandbox_agent_bridge(
                 model="inspect",
                 sandbox="local",
                 port=sample_bridge_port,
@@ -274,7 +296,8 @@ def pi_dci_solver(
                 code_execution=False,
                 client_mcp_servers=False,
                 forward_generation_config=False,
-            ):
+            )
+            async with _serialized_bridge_start(bridge_port_pool, bridge_context):
                 result = await anyio.to_thread.run_sync(
                     lambda: run_pi_dci(
                         query=state.input_text,
@@ -286,6 +309,8 @@ def pi_dci_solver(
                         model="inspect",
                         timeout_seconds=SAMPLE_TIMEOUT_SECONDS,
                         max_agent_steps=MAX_AGENT_STEPS,
+                        context_window=model_context_window,
+                        task_instruction=task_instruction,
                     )
                 )
         state.output.completion = json.dumps(
@@ -365,14 +390,23 @@ def mteb_llm_retrieval_single(
     metadata_root: str = "data/metadata",
     output_dir: str = "results/phase3",
     metric_ks: Sequence[int] | None = None,
+    task_instruction: str | None = None,
 ) -> Task:
     ks = normalize_metric_ks(metric_ks)
     if task_name not in TASKS:
         raise ValueError(f"Unknown task {task_name!r}. Available: {sorted(TASKS)}")
+    task_spec = get_task(task_name)
+    effective_task_instruction = (
+        task_spec.task_instruction if task_instruction is None else task_instruction
+    )
     sample = _make_sample(task_name, query_id, Path(metadata_root), Path(workspace_root))
     return Task(
         dataset=MemoryDataset([sample], name=f"{task_name}-{sample.id}"),
-        solver=pi_dci_solver(output_dir=output_dir, include_task_dir=True),
+        solver=pi_dci_solver(
+            output_dir=output_dir,
+            include_task_dir=True,
+            task_instruction=effective_task_instruction,
+        ),
         scorer=dci_retrieval_scorer(
             task_name=task_name,
             metadata_root=metadata_root,
@@ -384,6 +418,7 @@ def mteb_llm_retrieval_single(
             "inspect_sandbox": "local",
             "tool_sandbox": "bubblewrap",
             "task_name": task_name,
+            "task_instruction": effective_task_instruction,
             "metric_ks": list(ks),
         },
     )
@@ -400,6 +435,8 @@ def mteb_llm_retrieval(
     metric_ks: Sequence[int] | None = None,
     bridge_port: int = 13131,
     max_concurrency: int = 1,
+    model_context_window: int = MAX_TOTAL_MODEL_TOKENS,
+    task_instruction: str | None = None,
 ) -> Task:
     """Build one Inspect task containing the complete selected query batch.
 
@@ -415,6 +452,14 @@ def mteb_llm_retrieval(
         raise ValueError("max_concurrency must be an integer")
     if max_concurrency < 1:
         raise ValueError("max_concurrency must be at least 1")
+    if isinstance(model_context_window, bool) or not isinstance(model_context_window, int):
+        raise ValueError("model_context_window must be an integer")
+    if model_context_window < 1:
+        raise ValueError("model_context_window must be at least 1")
+    task_spec = get_task(task_name)
+    effective_task_instruction = (
+        task_spec.task_instruction if task_instruction is None else task_instruction
+    )
     pool = BridgePortPool(base_port=bridge_port, max_concurrency=max_concurrency)
     selected_ids = _select_query_ids(
         task_name,
@@ -438,6 +483,8 @@ def mteb_llm_retrieval(
             bridge_port=bridge_port,
             include_task_dir=False,
             bridge_port_pool=pool,
+            model_context_window=model_context_window,
+            task_instruction=effective_task_instruction,
         ),
         scorer=dci_retrieval_scorer(
             task_name=task_name,
@@ -450,11 +497,13 @@ def mteb_llm_retrieval(
             "inspect_sandbox": "local",
             "tool_sandbox": "bubblewrap",
             "task_name": task_name,
+            "task_instruction": effective_task_instruction,
             "query_ids": selected_ids,
             "all_queries": all_queries,
             "metric_ks": list(ks),
             "max_concurrency": max_concurrency,
             "bridge_ports": list(pool.ports),
+            "model_context_window": model_context_window,
         },
     )
 

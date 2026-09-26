@@ -80,7 +80,7 @@ MODEL_KEY="${MODEL_KEY:-MiniCPM5-2B}"
 SGLANG_HOST="${SGLANG_HOST:-127.0.0.1}"
 SGLANG_PORT="${SGLANG_PORT:-30000}"
 TP_SIZE="${TP_SIZE:-1}"
-CONTEXT_LENGTH="${CONTEXT_LENGTH:-32768}"
+CONTEXT_LENGTH="${CONTEXT_LENGTH:-65536}"
 DTYPE="${DTYPE:-bfloat16}"
 TOOL_CALL_PARSER="${TOOL_CALL_PARSER:-minicpm5}"
 # The environment's FlashInfer sampling extension may require a runtime JIT
@@ -140,6 +140,25 @@ source "${CONDA_SH}"
 conda activate "${SGLANG_ENV}"
 set -u
 log "stage=sglang-env activated; python=$(command -v python) sglang=$(command -v sglang || printf 'not-found')"
+
+python - "${TP_SIZE}" <<'PY'
+import sys
+
+import torch
+
+tp_size = int(sys.argv[1])
+device_count = torch.cuda.device_count()
+print(
+    "[DCI] torch CUDA preflight: "
+    f"available={torch.cuda.is_available()} device_count={device_count} tp_size={tp_size}"
+)
+if not torch.cuda.is_available():
+    raise SystemExit("[DCI] PyTorch cannot access CUDA in the SGLang environment")
+if device_count < tp_size:
+    raise SystemExit(
+        f"[DCI] TP_SIZE={tp_size} exceeds the {device_count} CUDA devices visible to PyTorch"
+    )
+PY
 
 resolve_compiler() {
   local candidate="$1"
@@ -371,4 +390,10 @@ if [[ "${DRY_RUN}" == "1" ]]; then
 fi
 
 log "stage=sglang-serve exec; run_log=${RUN_LOG}"
-exec "${CMD[@]}"
+# This wrapper uses SGLANG_PORT for the public HTTP endpoint, while SGLang
+# itself interprets the same environment variable as the base of an internal
+# ZMQ port range. With TP > 1 that internal listener can claim the HTTP port
+# before Uvicorn starts. The explicit --port argument above preserves the
+# requested endpoint, so hide only the conflicting environment variable from
+# the SGLang process.
+exec env -u SGLANG_PORT "${CMD[@]}"
