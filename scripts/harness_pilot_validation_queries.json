@@ -1,0 +1,282 @@
+{
+  "description": "selection validation: fixed ten IDs per task selected from query metadata after excluding both diagnostic and round-2 holdout IDs; no qrels or score filtering; frozen stable/selective contracts; historical full evaluations may include these IDs",
+  "excluded_query_ids": {
+    "LLMAILAStatutes": [
+      "00002",
+      "00003",
+      "00007",
+      "00009",
+      "00011",
+      "00012",
+      "00014",
+      "00021",
+      "00023",
+      "00025",
+      "00026",
+      "00031",
+      "00032",
+      "00033",
+      "00034",
+      "00037",
+      "00041",
+      "00045",
+      "00046",
+      "00048"
+    ],
+    "LLMFQuADRetrieval": [
+      "100",
+      "11",
+      "112",
+      "144",
+      "19",
+      "199",
+      "202",
+      "220",
+      "221",
+      "226",
+      "253",
+      "257",
+      "269",
+      "344",
+      "35",
+      "355",
+      "357",
+      "37",
+      "370",
+      "379"
+    ],
+    "LLMHC3FinanceRetrieval": [
+      "00013",
+      "00016",
+      "00023",
+      "00028",
+      "00035",
+      "00047",
+      "00052",
+      "00081",
+      "00083",
+      "00114",
+      "00135",
+      "00140",
+      "00273",
+      "00301",
+      "00341",
+      "00359",
+      "00366",
+      "00379",
+      "00380",
+      "00396"
+    ],
+    "LLMLegalBenchConsumerContractsQA": [
+      "00003",
+      "00015",
+      "00022",
+      "00028",
+      "00044",
+      "00107",
+      "00117",
+      "00137",
+      "00140",
+      "00142",
+      "00176",
+      "00183",
+      "00236",
+      "00301",
+      "00346",
+      "00364",
+      "00366",
+      "00375",
+      "00380",
+      "00383"
+    ],
+    "LLMPublicHealthQA": [
+      "Q1",
+      "Q101",
+      "Q102",
+      "Q103",
+      "Q118",
+      "Q13",
+      "Q135",
+      "Q139",
+      "Q141",
+      "Q16",
+      "Q161",
+      "Q170",
+      "Q171",
+      "Q23",
+      "Q25",
+      "Q34",
+      "Q39",
+      "Q5",
+      "Q85",
+      "Q97"
+    ],
+    "LLMTwitterHjerneRetrieval": [
+      "0",
+      "102",
+      "108",
+      "142",
+      "145",
+      "185",
+      "195",
+      "214",
+      "218",
+      "221",
+      "225",
+      "231",
+      "234",
+      "239",
+      "255",
+      "287",
+      "29",
+      "52",
+      "8",
+      "84"
+    ]
+  },
+  "excluded_sha256": {
+    "LLMAILAStatutes": "9e2d2c2f2c0b9743e00d4c1969f087af2ba3d23c1f335b25f87ba40cc9408732",
+    "LLMFQuADRetrieval": "4501815ca7bbcb45d37afc93b467369da55fbe6ee8cbeab326c4c75ac37bf855",
+    "LLMHC3FinanceRetrieval": "80b6746b39a4d6a5bbf32dda39f57d3416fefa0548ee1efec78db003e923a1cb",
+    "LLMLegalBenchConsumerContractsQA": "b470d6a2d9b7e04603f5dbcb9d4ed9cff554bf03a0a0289872b69c781785edb5",
+    "LLMPublicHealthQA": "ef4d756ba16b64a0e8b1e7dcd8114d2246aec189226bc1e80300b3bce3ce3058",
+    "LLMTwitterHjerneRetrieval": "7f566d857dcd8456306ddb21958df7a55f924128b2d295836e27a971fff36f96"
+  },
+  "excluded_suites": {
+    "diagnostic": {
+      "path": "scripts/harness_pilot_queries.json",
+      "sha256": "95bbed1e260966b86ce6ff0e119fe85e6a83a98ba9bc21fbf097ee0827e0d4c0"
+    },
+    "holdout": {
+      "path": "scripts/harness_pilot_holdout_queries.json",
+      "sha256": "542ee08d4774804a4dd9bf50e633e8eea478a36cc0ceb8ea7139ac30847587fc"
+    }
+  },
+  "profile_contract_sha256": {
+    "budgeted-selective": "c6f4a9e46de4f0ebf9b21aca6f73c86a7b1dfd726783362bc3c476807be6419f",
+    "budgeted-stable": "e155daec787f39c79ce6f3a6b18383ca792f452b863ec5ef819ea346ac0d12e9"
+  },
+  "profile_plan": {
+    "path": "scripts/harness_selection_round3_plan.json",
+    "sha256": "4805f806705b84393d137e7a009c012f9fefcd72831f8b0109e8e48eafc1f9f5"
+  },
+  "query_ids": {
+    "LLMAILAStatutes": [
+      "00008",
+      "00028",
+      "00020",
+      "00024",
+      "00042",
+      "00015",
+      "00036",
+      "00005",
+      "00038",
+      "00019"
+    ],
+    "LLMFQuADRetrieval": [
+      "50",
+      "79",
+      "85",
+      "272",
+      "140",
+      "224",
+      "205",
+      "62",
+      "261",
+      "304"
+    ],
+    "LLMHC3FinanceRetrieval": [
+      "00357",
+      "00051",
+      "00332",
+      "00258",
+      "00274",
+      "00181",
+      "00321",
+      "00015",
+      "00189",
+      "00309"
+    ],
+    "LLMLegalBenchConsumerContractsQA": [
+      "00125",
+      "00361",
+      "00274",
+      "00185",
+      "00181",
+      "00136",
+      "00311",
+      "00071",
+      "00308",
+      "00040"
+    ],
+    "LLMPublicHealthQA": [
+      "Q31",
+      "Q89",
+      "Q27",
+      "Q144",
+      "Q36",
+      "Q126",
+      "Q96",
+      "Q162",
+      "Q150",
+      "Q18"
+    ],
+    "LLMTwitterHjerneRetrieval": [
+      "57",
+      "47",
+      "60",
+      "38",
+      "69",
+      "119",
+      "89",
+      "161",
+      "328",
+      "209"
+    ]
+  },
+  "schema_version": "dci-harness-pilot-validation-v1",
+  "seed": "dci-selection-validation-v1",
+  "selected_sha256": {
+    "LLMAILAStatutes": "f22a09301ab3596b4f00149522285ed246138be3f89a31f3f646e7cfb238a7a7",
+    "LLMFQuADRetrieval": "5437a683e5ac60df2868ea5639d8d1bcaa1d2776abe8373c412cc23b698c2b6f",
+    "LLMHC3FinanceRetrieval": "2b1785502600472a417e3246389e108b40aafb7b960c0bc87ff81b7b54e3e56c",
+    "LLMLegalBenchConsumerContractsQA": "a3178cfbf0a724f39e7f2b4b36330866a151e730d4f45d5bfbfd432eb95672bb",
+    "LLMPublicHealthQA": "3eac7d6f7bc43ec1573ae7735d7c51d3131fcb03086f201c2126f2a975e13e09",
+    "LLMTwitterHjerneRetrieval": "b2e8763da61d756d3deaf9de5955bea8dcbc0428113c2a9004277f53dbf74bb3"
+  },
+  "selection_method": "sha256(seed + ':' + task + ':' + query_id)",
+  "source_queries": {
+    "LLMAILAStatutes": {
+      "count": 50,
+      "path": "data/metadata/LLMAILAStatutes/queries.jsonl",
+      "sha256": "fb14f0569f9a207eb0ef1285ecc5db71ccaebd99ff9d93ffa8c13a735848c179"
+    },
+    "LLMFQuADRetrieval": {
+      "count": 100,
+      "path": "data/metadata/LLMFQuADRetrieval/queries.jsonl",
+      "sha256": "3a95e39984fdb9795cefafd06c464706ee08a088520bfe66f7978bae4678f0b8"
+    },
+    "LLMHC3FinanceRetrieval": {
+      "count": 100,
+      "path": "data/metadata/LLMHC3FinanceRetrieval/queries.jsonl",
+      "sha256": "c374882f1833926621156c5f3d11888f8d7aed1018911f71dc8489e2eb7485c9"
+    },
+    "LLMLegalBenchConsumerContractsQA": {
+      "count": 100,
+      "path": "data/metadata/LLMLegalBenchConsumerContractsQA/queries.jsonl",
+      "sha256": "e19eaf91e9e19e3b40cedcfc1f1ebccf9b7f20dc164b63fd78d774aa4413995d"
+    },
+    "LLMPublicHealthQA": {
+      "count": 100,
+      "path": "data/metadata/LLMPublicHealthQA/queries.jsonl",
+      "sha256": "2a7acca90b0f81ace93f2442acaa9bab7d416f91634b00a853be69b3031eafa6"
+    },
+    "LLMTwitterHjerneRetrieval": {
+      "count": 77,
+      "path": "data/metadata/LLMTwitterHjerneRetrieval/queries.jsonl",
+      "sha256": "f69229b08047097df4793f951ea688dd93e8c648ded7762384a40325c84847a1"
+    }
+  },
+  "suite": "validation",
+  "take": 10
+}

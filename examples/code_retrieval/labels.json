@@ -1,0 +1,153 @@
+{
+  "schema_version": "dci-code-labels-v1",
+  "queries": {
+    "demo-trace": {
+      "repository": "synthetic/arithmetic-demo",
+      "base_commit": "0000000000000000000000000000000000000000",
+      "task": "trace2code",
+      "files": {
+        "src/arithmetic.py": {
+          "sha256": "f8fe1a17a9257471dab462a3d602c34752c71b2529327d304ea397d87bd5165a",
+          "line_count": 6,
+          "content_tokens": 24
+        },
+        "tests/test_arithmetic.py": {
+          "sha256": "475bc142e7b33d04d308a0eceea6f3c1b684341eb66600e4ced58677c85cbb9b",
+          "line_count": 5,
+          "content_tokens": 21
+        }
+      },
+      "gold_files": [
+        "src/arithmetic.py"
+      ],
+      "tokenizer": "regex_code_tokenizer_v1",
+      "gold_spans": [
+        {
+          "path": "src/arithmetic.py",
+          "start_line": 5,
+          "end_line": 6
+        }
+      ],
+      "gold_functions": [
+        {
+          "function_id": "arithmetic.divide",
+          "spans": [
+            {
+              "path": "src/arithmetic.py",
+              "start_line": 5,
+              "end_line": 6
+            }
+          ]
+        }
+      ],
+      "gold_functionalities": [
+        {
+          "functionality_id": "division",
+          "evidence_sets": [
+            [
+              {
+                "path": "src/arithmetic.py",
+                "start_line": 5,
+                "end_line": 6
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    "demo-missing": {
+      "repository": "synthetic/arithmetic-demo",
+      "base_commit": "0000000000000000000000000000000000000000",
+      "task": "code2test",
+      "files": {
+        "src/arithmetic.py": {
+          "sha256": "f8fe1a17a9257471dab462a3d602c34752c71b2529327d304ea397d87bd5165a",
+          "line_count": 6,
+          "content_tokens": 24
+        },
+        "tests/test_arithmetic.py": {
+          "sha256": "475bc142e7b33d04d308a0eceea6f3c1b684341eb66600e4ced58677c85cbb9b",
+          "line_count": 5,
+          "content_tokens": 21
+        }
+      },
+      "gold_files": [
+        "tests/test_arithmetic.py"
+      ],
+      "tokenizer": "regex_code_tokenizer_v1",
+      "gold_spans": [
+        {
+          "path": "tests/test_arithmetic.py",
+          "start_line": 4,
+          "end_line": 5
+        }
+      ],
+      "gold_functions": [
+        {
+          "function_id": "test_arithmetic.test_divide",
+          "spans": [
+            {
+              "path": "tests/test_arithmetic.py",
+              "start_line": 4,
+              "end_line": 5
+            }
+          ]
+        }
+      ],
+      "gold_functionalities": [
+        {
+          "functionality_id": "division-test",
+          "evidence_sets": [
+            [
+              {
+                "path": "tests/test_arithmetic.py",
+                "start_line": 4,
+                "end_line": 5
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    "demo-natural": {
+      "repository": "synthetic/arithmetic-demo",
+      "base_commit": "0000000000000000000000000000000000000000",
+      "task": "trace2code",
+      "files": {
+        "src/arithmetic.py": {
+          "sha256": "f8fe1a17a9257471dab462a3d602c34752c71b2529327d304ea397d87bd5165a",
+          "line_count": 6,
+          "content_tokens": 24
+        },
+        "tests/test_arithmetic.py": {
+          "sha256": "475bc142e7b33d04d308a0eceea6f3c1b684341eb66600e4ced58677c85cbb9b",
+          "line_count": 5,
+          "content_tokens": 21
+        }
+      },
+      "tokenizer": "regex_code_tokenizer_v1",
+      "gold_files": [],
+      "no_gold_kind": "natural"
+    },
+    "demo-counterfactual": {
+      "repository": "synthetic/arithmetic-demo",
+      "base_commit": "0000000000000000000000000000000000000000",
+      "task": "trace2code",
+      "files": {
+        "src/arithmetic.py": {
+          "sha256": "f8fe1a17a9257471dab462a3d602c34752c71b2529327d304ea397d87bd5165a",
+          "line_count": 6,
+          "content_tokens": 24
+        },
+        "tests/test_arithmetic.py": {
+          "sha256": "475bc142e7b33d04d308a0eceea6f3c1b684341eb66600e4ced58677c85cbb9b",
+          "line_count": 5,
+          "content_tokens": 21
+        }
+      },
+      "tokenizer": "regex_code_tokenizer_v1",
+      "gold_files": [],
+      "no_gold_kind": "counterfactual"
+    }
+  }
+}

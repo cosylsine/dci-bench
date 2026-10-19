@@ -1,7 +1,11 @@
 import importlib.util
 import json
+import os
+import signal
+import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -49,6 +53,48 @@ class Phase5RegistryTest(unittest.TestCase):
 
 
 class Phase5RunAllTest(unittest.TestCase):
+    def test_sigterm_cleans_task_and_detached_pi_session(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            ready = root / "ready"
+            child = root / "child.py"
+            child.write_text(
+                "import subprocess, sys, time\n"
+                "from pathlib import Path\n"
+                "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'], start_new_session=True)\n"
+                f"Path({str(ready)!r}).write_text(str(p.pid))\n"
+                "time.sleep(60)\n"
+            )
+            parent = root / "parent.py"
+            script = Path(__file__).resolve().parents[1] / "scripts" / "run_all.py"
+            parent.write_text(
+                "import runpy, sys\nfrom pathlib import Path\n"
+                f"m = runpy.run_path({str(script)!r})\n"
+                f"m['_run_task_process']([sys.executable, {str(child)!r}], cwd=Path({str(root)!r}))\n"
+            )
+            process = subprocess.Popen([sys.executable, str(parent)], start_new_session=True)
+            detached = None
+            try:
+                deadline = time.monotonic() + 15
+                while not ready.exists() and time.monotonic() < deadline:
+                    time.sleep(0.05)
+                self.assertTrue(ready.exists())
+                detached = int(ready.read_text())
+                process.send_signal(signal.SIGTERM)
+                self.assertEqual(process.wait(timeout=10), 143)
+                stat = Path(f"/proc/{detached}/stat")
+                # A short-lived orphan zombie is already terminated.
+                self.assertTrue(not stat.exists() or stat.read_text().rsplit(")", 1)[1].split()[0] == "Z")
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                process.wait()
+                if detached is not None:
+                    try:
+                        os.killpg(detached, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+
     def _args(self, module, root: Path):
         manifest = root / "backend.json"
         manifest.write_text("{}\n", encoding="utf-8")

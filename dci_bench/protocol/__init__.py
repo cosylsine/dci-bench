@@ -20,7 +20,7 @@ from dci_bench.protocol.contracts import (
     TERMINATION_CONDITION,
     TOOL_ALLOWLIST,
     TOOL_DEFINITIONS,
-    TOOL_RESULT_MAX_CHARS,
+    TOOL_RESULT_MAX_BYTES,
     TOP_K,
     protocol_contract,
 )
@@ -47,7 +47,7 @@ __all__ = [
     "TERMINATION_CONDITION",
     "TOOL_ALLOWLIST",
     "TOOL_DEFINITIONS",
-    "TOOL_RESULT_MAX_CHARS",
+    "TOOL_RESULT_MAX_BYTES",
     "TOP_K",
     "protocol_contract",
 ]

@@ -1,0 +1,47 @@
+Use case: infographic-diagram
+Asset type: Chinese educational retrieval walkthrough, panel 02 of a coordinated two-image set for the DCI document retrieval protocol. Produce one polished high-resolution landscape image about 3000x2200. Simplified Chinese text and code must be sharp and accurately typeset.
+Primary request: Illustrate exactly how budgeted-selective works using a concrete fictional Atlas document-search example. This is a teaching example, never a real benchmark trace. White / pale warm-gray background, dark navy typography, blue runtime accents, teal relevant evidence, amber selective stage, muted red excluded weak match. Flat document, terminal, lock icons, plenty of spacing; no robot cartoons.
+Title: "从检索命中，到有证据的排序"
+Subtitle: "SELECTIVE 检索示例 · 教学示例，非真实 benchmark 结果"
+Small context strip: "pi-dci 调度工具  ↔  Inspect 路由与计量  ↔  Model 做决策"
+Layout: five clearly numbered steps in a vertical visual narrative, with the evidence cards as the centerpiece. A slim right-side rail holds two important protocol caveats. Use horizontal rows for the main stages, easy to scan top to bottom.
+STEP 1: "1  明确查询"
+Large query bubble: "Atlas 任务失败后如何自动重试？哪些错误不应重试？"
+Small text: "输入：query + 任务指令 + 冻结 corpus"
+STEP 2: "2  搜索定位"
+A terminal card with exact code: "rg -n '重试|失败' corpus/"
+Caption: "bash 调用；rg 默认按路径排序，再受输出上限约束"
+Arrow to three candidate document thumbnails, labeled "D017.md" / "D042.md" / "D088.md".
+Small amber label: "关键词命中 ≠ 相关性结论"
+STEP 3: "3  read 核验证据"
+Exact tool-call card: 'read({"path":"corpus/D017.md","offset":0,"limit":600})'
+Caption: "随后也读取 D042.md、D088.md；本例共读 3 篇"
+Three equally-sized document evidence cards:
+Teal card A header: 'doc_id: "D017"'
+Body: "临时故障采用指数退避；最多重试三次。"
+Verdict: "✓ 保留：回答如何重试"
+Teal card B header: 'doc_id: "D042"'
+Body: "鉴权失败与参数错误直接终止，不进入重试队列。"
+Verdict: "✓ 保留：回答何时停止"
+Muted red card C header: 'doc_id: "D088"'
+Body: "重试按钮的图标可在界面主题中修改。"
+Verdict: "× 排除：只有关键词重合"
+A short line under the cards: "read 返回精确 doc_id 与正文；收据记录路径、范围和哈希"
+STEP 4: "4  SELECTIVE 收尾"
+Amber controller pill: "本例假设控制器因预算触发收尾 → tools disabled"
+A funnel graphic visually retains D017 and D042 and drops D088.
+Main text: "Model 对照查询与已读证据筛选、排序"
+Supporting text: "保留多篇相关文档；不为凑满 10 篇加入弱匹配"
+A clear output code block with EXACT contents:
+{"ranked_doc_ids":["D017","D042"]}
+Caption: "复制原始 ID；最终只输出 JSON"
+STEP 5: "5  校验与评分"
+Flow: "pi-dci：read 门槛 + JSON / ID 校验" → "Host Scorer：使用隐藏 qrels 评分"
+Separate locked qrels icon ONLY beside host scorer, never feeding the model. Add "Recall / F1 / nDCG · token / 耗时 · trace"
+Small repair loop branching from validation back to the final stage: "格式或 ID 无效 → 预算内修复". Make it clear this loop is this tools-disabled-finalization example.
+RIGHT RAIL:
+Card "硬门槛" text: "每题至少一次非空正文 read；不要求每个返回 ID 都逐篇 read。"
+Card "SELECTIVE 提示" text: "筛选由模型完成；host 不做相关性过滤。"
+Card "覆盖范围" text: "收尾提示用于控制器触发的 final / repair；自然 final 可直接提交。"
+Footer: "此例展示协议行为，不代表模型必然正确；满足格式与 read 门槛仍可能检索失误。"
+Constraints: All Atlas snippets and IDs are fictional and must remain labeled as a teaching example. Do not invent real task results or numeric scores. Do not let qrels leak to Model. Do not draw extra model judge/reranker. D017 and D042 are retained, D088 is excluded. Output is a ranked document ID list, not an answer to the query. Do not add an abstain field or empty-output permission. Prefer legible Chinese text, meaningful whitespace, consistent colors and unambiguous arrows.

@@ -1,0 +1,62 @@
+{
+  "v3-temp1": {
+    "generation_config": {
+      "temperature": 1
+    }
+  },
+  "budgeted": {
+    "budget_control": "_budget_policy"
+  },
+  "budgeted-calibrated": {
+    "budget_control": "_budget_policy",
+    "budget_control_overrides": {
+      "version": "budgeted-finalize-v6-calibrated",
+      "forecast_bytes_per_token": 2,
+      "forecast_request_safety_tokens": 1024
+    }
+  },
+  "budgeted-temp1": {
+    "generation_config": {
+      "temperature": 1
+    },
+    "budget_control": "_budget_policy"
+  },
+  "budgeted-stable": {
+    "benchmark_contract_version": "dci-mvp-v3.4-pilot",
+    "budget_control": "_budget_policy",
+    "search_policy": "_stable_search"
+  },
+  "budgeted-selective": {
+    "benchmark_contract_version": "dci-mvp-v3.4-pilot",
+    "budget_control": "_budget_policy",
+    "search_policy": "_stable_search",
+    "budget_control_overrides": {
+      "version": "budgeted-finalize-v7-selective",
+      "final_prompt": "The search phase is now complete: {reason}. The remaining cumulative model-token budget is {remaining_tokens}. Tools are disabled. Before submitting, review the inspected evidence against the query and task instruction. Keep each document that provides evidence relevant to the requested information; shared keywords, a similar topic, or a successful read alone are insufficient. Retain multiple relevant documents when supported; do not reduce the answer to one merely for brevity. Remove unsupported candidates and rank the retained documents by relevance. Return only a JSON object with ranked_doc_ids containing 1 to 10 unique original document IDs. Copy original doc_id values exactly; filenames are not IDs (l%27exemple.md maps to l'exemple; report.md.md maps to report.md). Do not fill unused slots or include your review in the output.",
+      "final_repair_prompt": "The previous final response cannot be accepted: {reason}. Tools remain disabled. Using only the inspected evidence, review each candidate against the query and task instruction: retain documents supported as relevant to the requested information, and remove candidates supported only by shared keywords, a similar topic, or the fact that they were read. Keep multiple relevant documents when supported; do not reduce the answer to one merely for brevity. Copy exact original doc_id values from read results or filename mappings in the validation feedback. Return only a JSON object with ranked_doc_ids containing 1 to 10 unique original document IDs, ranked by relevance. Do not fill unused slots or include your review in the output."
+    }
+  },
+  "_stable_search": {
+    "search_policy": {
+      "version": "stable-rg-v1",
+      "ripgrep_config": "--sort=path\n",
+      "prompt": "Search environment (stable-rg-v1): rg defaults to --sort=path, ordering files by path before output truncation or head. Line order within each file is preserved. Explicit rg flags such as --sort=none or --no-config may override this default; other shell commands retain their normal behavior."
+    }
+  },
+  "_budget_policy": {
+    "policy": {
+      "version": "budgeted-finalize-v5",
+      "reserve_tokens": 32000,
+      "repeat_threshold": 3,
+      "max_search_turns_without_read": 6,
+      "max_required_read_turns": 2,
+      "initial_prompt": "Execution budget: at most 128000 cumulative input plus output model tokens for this query. Replaying the conversation on each request also spends this budget. Stop searching once the inspected evidence supports your answer. Avoid repeating identical tool calls. The harness may end the search phase when the remaining budget is low or identical calls repeat; any final answer must still satisfy the read-evidence and JSON rules.",
+      "loop_prompt": "The same tool call has repeated without changing its arguments. Do not repeat it again. Change the search terms or inspect a candidate with read. A nonempty corpus read is still required before final submission.",
+      "read_prompt": "Remaining cumulative token budget: {remaining_tokens}. Inspect a relevant candidate with read now; final submission requires a nonempty read receipt. Search is paused and only read is available for at most two responses. Use an exact corpus filename, including .md and literal percent escapes, or /workspace/corpus/<filename>. If a read fails, correct the path using the error feedback rather than repeating it. Do not call bash or return final JSON yet. After a nonempty read, search may resume if the token reserve permits. Copy the exact doc_id from the read result when submitting the final answer.",
+      "final_prompt": "The search phase is now complete: {reason}. The remaining cumulative model-token budget is {remaining_tokens}. Tools are disabled for the final response. Use the corpus evidence already inspected and return only the final JSON object with ranked_doc_ids, at most 10 unique original IDs. Copy doc_id values from read results exactly. Filenames are not IDs: e.g. l%27exemple.md maps to l'exemple, and report.md.md maps to report.md. Do not add documents merely to fill slots.",
+      "final_repair_prompt": "The previous final response cannot be accepted: {reason}. Tools remain disabled. Use only the corpus evidence already inspected. Copy the exact original doc_id values from read results or the filename mappings in the validation feedback. Return only a JSON object with ranked_doc_ids containing 1 to 10 unique original document IDs, ranked by relevance. Do not add documents merely to fill slots.",
+      "resume_prompt": "The required nonempty corpus read is complete. Remaining cumulative token budget: {remaining_tokens}. Both read and bash are available again. A successful read proves that text was inspected, not that this document answers the query. Verify the most promising candidates and, if needed, search further for missing relevant documents. Stop and submit ranked_doc_ids when the evidence is sufficient. Include only documents supported by the inspected evidence as relevant to this query; do not add loosely related candidates to fill slots. Copy original doc_id values exactly.",
+      "wall_time_policy": "hard_timeout_only; no time-based search or finalization decisions"
+    }
+  }
+}

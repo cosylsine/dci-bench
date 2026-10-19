@@ -1,0 +1,73 @@
+{
+  "plan_version": "dci-selection-round3-v1",
+  "status": "frozen candidate for a development pilot; not a protocol freeze",
+  "rationale": "The previous calibrated reserve increased search cost with uncertain quality gains. Keep the conservative v5 budget, stabilize default ripgrep traversal, then compare only final relevance-selection prompts.",
+  "profiles": {
+    "budgeted-stable": {
+      "role": "control: v5 budget plus stable-rg-v1",
+      "base_contract_sha256": "e155daec787f39c79ce6f3a6b18383ca792f452b863ec5ef819ea346ac0d12e9"
+    },
+    "budgeted-selective": {
+      "role": "candidate: same search and v5 budget; final and final-repair relevance review only",
+      "base_contract_sha256": "c6f4a9e46de4f0ebf9b21aca6f73c86a7b1dfd726783362bc3c476807be6419f"
+    }
+  },
+  "shared_settings": {
+    "default_model_path": "/mnt/afs/share/Qwen3.8-27B",
+    "dtype": "bfloat16",
+    "tensor_parallel_size": 4,
+    "max_concurrency": 4,
+    "context_length": 65536,
+    "max_total_model_tokens": 128000,
+    "max_model_output_tokens": 1024,
+    "sample_timeout_seconds": 600,
+    "temperature": 0,
+    "seed": 0,
+    "enable_thinking": false,
+    "reserve_floor_tokens": 32000,
+    "forecast_bytes_per_token": 1,
+    "forecast_request_safety_tokens": 4096,
+    "repeat_threshold": 3,
+    "search_policy": "stable-rg-v1",
+    "profile_order": "alternating",
+    "warmup": "existing synthetic serving warmup, excluded from query metrics"
+  },
+  "data_scope": {
+    "query_suite": "diagnostic",
+    "suite_file": "scripts/harness_pilot_queries.json",
+    "suite_file_sha256": "95bbed1e260966b86ce6ff0e119fe85e6a83a98ba9bc21fbf097ee0827e0d4c0",
+    "tasks": ["LLMAILAStatutes", "LLMFQuADRetrieval", "LLMHC3FinanceRetrieval", "LLMLegalBenchConsumerContractsQA", "LLMPublicHealthQA", "LLMTwitterHjerneRetrieval"],
+    "queries_per_task_per_profile": 10,
+    "paired_queries": 60,
+    "model_evaluations": 120,
+    "retrieval_corpus": "all documents in each task's existing corpus; no candidate prefilter or qrels-based selection",
+    "interpretation": "Development diagnostic only. Both previously evaluated diagnostic and round-2 holdout suites informed this candidate; neither is a new independent holdout. Preserve existing query IDs, corpus and qrels."
+  },
+  "command": "CUDA_VISIBLE_DEVICES=0,1,2,3 TP_SIZE=4 MAX_CONCURRENCY=4 bash scripts/run_harness_pilot.sh --profiles budgeted-stable budgeted-selective --query-suite diagnostic --profile-order alternating",
+  "required_analysis": [
+    "Completion markers; all planned query IDs; source archive including stable-rg.conf; result/final/trace hashes; same query, corpus, qrels, model, backend and generation settings across arms.",
+    "Valid-output and failure-kind counts per task and arm; all-sample and valid_only Recall, Precision, F1 and nDCG at 10 using actual returned window lengths.",
+    "Paired quality differences and wins/ties/losses; gold hits, returned non-gold documents, and queries retrieving all golds with no extras. Respect the existing top-10 cap when interpreting queries with more than 10 gold documents.",
+    "Task-stratified paired bootstrap of mean F1 and Recall differences: resample query pairs within each task, 10000 replicates, seed 20261013, percentile 95 percent intervals. Treat these as exploratory development results.",
+    "Mean/p50/p95/max cumulative input-plus-output tokens and wall time; per-task elapsed time; finalization reasons, reserve components, unused budget, repeat calls, unique reads and repair counts.",
+    "Verify actual final and repair prompt delivery, disabled tools and absence of extra model review calls. Report natural finals separately because they do not receive the new finalization prompt.",
+    "Compare same-command tool outputs and pre-finalization trace prefixes. Record explicit sort overrides and alternate commands; do not claim arbitrary bash or model trajectories are deterministic.",
+    "Audit recall losses and reduced extra-document cases from inspected evidence; a read receipt is not a relevance label. Keep failed outputs in all-sample metrics."
+  ],
+  "criteria_for_next_step": {
+    "scope": "Development go/no-go for an independently selected validation run; not automatic adoption or protocol freezing.",
+    "valid_outputs_per_arm": "60/60; zero infrastructure, token, context, timeout or evidence-gate failures",
+    "candidate_minus_control_all_sample_f1": "> 0",
+    "candidate_minus_control_all_sample_recall": ">= 0",
+    "candidate_returned_non_gold_count": "< control, with no reduction in total gold hits",
+    "candidate_to_control_mean_token_ratio": "<= 1.10; a predeclared engineering ceiling, not a statistical result",
+    "latency": "Report p50/p95 and per-task elapsed time; no new wall-time stopping rule.",
+    "decision": "If gates fail, retain the conservative control and analyze the tradeoff. If intervals include zero, call the quality gain inconclusive. Do not retune repeatedly on these two suites or promote from this pilot alone. Select independent validation queries only after reviewing this run, without qrels/score filtering."
+  },
+  "exclusions": [
+    "No changes to old profile contracts, qrels, source IDs, task instructions, scoring, hard budgets, read gate or output schema.",
+    "No new model request, mandatory extra reading, host relevance filter, external retrieval service or task-specific prompt exception.",
+    "This two-arm comparison estimates the final-prompt effect under shared sorted search; it does not separately estimate the quality or latency effect of sorting relative to old budgeted runs.",
+    "No full-benchmark launch or GPU evaluation as part of implementation acceptance."
+  ]
+}

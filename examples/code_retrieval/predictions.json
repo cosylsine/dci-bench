@@ -1,0 +1,40 @@
+{
+  "demo-trace": {
+    "repository": "synthetic/arithmetic-demo",
+    "base_commit": "0000000000000000000000000000000000000000",
+    "corpus_sha256": "4f54f5b0c4348b194ef04add8a79badb0fece4e443923da3f031cf2bc8c2ae2a",
+    "output": {
+      "ranked_files": [
+        "src/arithmetic.py"
+      ],
+      "abstain": false,
+      "spans": [
+        {
+          "path": "src/arithmetic.py",
+          "start_line": 5,
+          "end_line": 6
+        }
+      ]
+    }
+  },
+  "demo-natural": {
+    "repository": "synthetic/arithmetic-demo",
+    "base_commit": "0000000000000000000000000000000000000000",
+    "corpus_sha256": "4f54f5b0c4348b194ef04add8a79badb0fece4e443923da3f031cf2bc8c2ae2a",
+    "output": {
+      "ranked_files": [],
+      "abstain": true
+    }
+  },
+  "demo-counterfactual": {
+    "repository": "synthetic/arithmetic-demo",
+    "base_commit": "0000000000000000000000000000000000000000",
+    "corpus_sha256": "4f54f5b0c4348b194ef04add8a79badb0fece4e443923da3f031cf2bc8c2ae2a",
+    "output": {
+      "ranked_files": [
+        "src/arithmetic.py"
+      ],
+      "abstain": false
+    }
+  }
+}

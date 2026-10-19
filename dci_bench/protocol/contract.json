@@ -1,12 +1,11 @@
 {
-  "benchmark_contract_version": "dci-mvp-v2",
+  "benchmark_contract_version": "dci-mvp-v3.3",
   "pi_final_result_version": "dci-pi-final-v1",
   "trajectory_schema_version": "dci-trajectory-v1",
   "top_k": 10,
   "max_agent_steps": 1200,
   "max_final_repair_turns": 3,
   "sample_timeout_seconds": 600,
-  "tool_result_max_chars": 20000,
   "max_scratch_bytes": 20000000,
   "max_total_model_tokens": 128000,
   "max_final_output_tokens": 1024,
@@ -18,7 +17,7 @@
   "tool_definitions": [
     {
       "name": "read",
-      "description": "Read UTF-8 text from a file under the mounted workspace.",
+      "description": "Read UTF-8 corpus text, prefixed with a JSON doc_id field containing the exact original ID. Copy that doc_id in the final answer. offset and limit count source Unicode code points (not lines, bytes or the metadata prefix). A nonempty body read is required before final submission. Output including metadata and truncation markers is capped at 20000 UTF-8 bytes. Path accepts an exact corpus filename (including .md and literal percent escapes), corpus/<filename>, or /workspace/corpus/<filename>. Shell cd does not change read paths.",
       "input_schema": {
         "type": "object",
         "additionalProperties": false,
@@ -27,25 +26,28 @@
         ],
         "properties": {
           "path": {
-            "type": "string"
+            "type": "string",
+            "description": "Exact corpus filename, optionally prefixed with ./, corpus/, or /workspace/corpus/. Do not URL-decode filenames."
           },
           "offset": {
             "type": "integer",
             "minimum": 0,
-            "default": 0
+            "default": 0,
+            "description": "Zero-based Unicode code point offset."
           },
           "limit": {
             "type": "integer",
             "minimum": 1,
-            "default": 20000
+            "default": 20000,
+            "description": "Maximum Unicode code points before the shared UTF-8 byte cap."
           }
         }
       },
-      "result_max_chars": 20000
+      "result_max_bytes": 20000
     },
     {
       "name": "bash",
-      "description": "Run a local shell command without network access.",
+      "description": "Run a local shell command without network access. Search with bash, then verify a candidate using read. Bash output does not satisfy the evidence gate. Combined stdout/stderr and status are capped at 20000 UTF-8 bytes; overflowing commands are terminated.",
       "input_schema": {
         "type": "object",
         "additionalProperties": false,
@@ -64,7 +66,7 @@
           }
         }
       },
-      "result_max_chars": 20000
+      "result_max_bytes": 20000
     }
   ],
   "disabled_capabilities": [
@@ -100,10 +102,13 @@
   "context_policy": {
     "compaction": "disabled",
     "max_total_model_tokens": 128000,
-    "max_final_output_tokens": 1024
+    "max_final_output_tokens": 1024,
+    "max_model_output_tokens": 1024,
+    "cumulative_limit_semantics": "After each completed assistant turn, input plus output at or above the limit fails, including final and repair turns; no further model request is made.",
+    "timeout_scope": "Inspect sample wall time includes bridge startup and waiting. Pi receives only the remaining time and a shared absolute deadline covering Node startup, tools and model requests. Cancellation cleanup grace is not generation time. Wall time is a hard failure boundary only; it never triggers early finalization."
   },
   "termination_condition": {
-    "success": "first assistant message that parses as the final answer JSON schema",
+    "success": "first valid final JSON containing exact existing corpus IDs after at least one nonempty read receipt, below cumulative token limit and within deadline",
     "failure": "timeout, max_agent_steps, max_total_model_tokens, usage_unavailable, tool error exhaustion, or model stop without a valid final answer"
   },
   "inspect_output_contract": {
@@ -155,8 +160,56 @@
     "agent_error",
     "infrastructure_error"
   ],
-  "system_prompt": "You are the DCI-Bench retrieval agent.\n\nYour task is to search the local corpus for documents relevant to the user's query.\nThe corpus is available as markdown files under /workspace/corpus. You may inspect\nfiles with the provided read and bash tools. Do not use network access, web search,\nexternal retrievers, embeddings, hidden labels, memory, skills, MCP tools, or\nsub-agents.\n\nYou must inspect corpus document content before giving the final answer. A list of\nfilenames or file ids is not evidence. First use rg -l -i over important query\nkeywords and synonyms to identify candidate files. Then use bounded searches such\nas rg -n -i -m 10 --max-columns 500 --max-columns-preview on selected files and\nread the most promising documents. Avoid commands that print the entire corpus.\n\nReturn only JSON matching this schema:\n{\"ranked_doc_ids\":[\"doc_id_1\",\"doc_id_2\",\"doc_id_3\"]}\n\nRules:\n- Aim to retrieve all relevant documents while avoiding irrelevant documents.\n- Return at most 10 unique document ids. If more than 10 documents are\n  relevant, return the 10 most relevant.\n- Do not add irrelevant documents just to reach 10 results.\n- Rank the most relevant document first.\n- Use the original document id, recovered from the corpus filename by removing\n  the .md suffix and URL percent-decoding it when needed.\n- Do not include explanations, markdown fences, scores, or extra keys.\n",
-  "query_prompt_template": "Query:\n{query}\n\n{task_instruction_block}Use bash or read to inspect /workspace/corpus before answering. You must inspect\ndocument content before giving the final answer; a filename listing alone is not\nevidence. Start with rg -l -i to find candidate filenames, then run bounded rg\nsearches and read selected files to verify relevance. Do not print the whole\ncorpus or infer document ids from ls/find ordering.\n\nAim to retrieve all relevant documents while avoiding irrelevant documents.\nReturn at most 10 unique document ids, ranked by relevance. If more than 10\ndocuments are relevant, return the 10 most relevant. Do not add irrelevant\ndocuments just to reach 10 results.\n\nReturn the relevant document ids as JSON only, with exactly this key:\nranked_doc_ids. Do not use top_documents, doc_ids, scores, explanations, or .md\nfilename suffixes.",
+  "system_prompt": "You are the DCI-Bench retrieval agent.\n\nYour task is to search the local corpus for documents relevant to the user's query.\nThe corpus is available as markdown files under /workspace/corpus. You may inspect\nfiles with the provided read and bash tools. Do not use network access, web search,\nexternal retrievers, embeddings, hidden labels, memory, skills, MCP tools, or\nsub-agents.\n\nYou must inspect corpus document content before giving the final answer. A list of\nfilenames or file ids is not evidence. First use rg -l -i over important query\nkeywords and synonyms to identify candidate files. Then use bounded searches such\nas rg -n -i -m 10 --max-columns 500 --max-columns-preview on selected files and\nread the most promising documents. Avoid commands that print the entire corpus.\n\nReturn only JSON matching this schema:\n{\"ranked_doc_ids\":[\"doc_id_1\",\"doc_id_2\",\"doc_id_3\"]}\n\nRules:\n- Aim to retrieve all relevant documents while avoiding irrelevant documents.\n- Return at most 10 unique document ids. If more than 10 documents are\n  relevant, return the 10 most relevant.\n- Do not add irrelevant documents just to reach 10 results.\n- Rank the most relevant document first.\n- Use the original document id, recovered from the corpus filename by removing\n  the .md suffix and URL percent-decoding it when needed.\n- Do not include explanations, markdown fences, scores, or extra keys.\n\nBefore submitting the final answer, you must obtain nonempty document text with the read tool. Bash searches and filename listings do not satisfy this requirement. Return original document IDs exactly; do not encode, decode, or strip them again once recovered from filenames.\nThe read result starts with a doc_id field: copy that exact value into ranked_doc_ids. Every submitted ID must exist in the corpus; unknown IDs will be rejected for repair. Do not submit the filesystem filename. For example, l%27exemple.md has original ID l'exemple, while report.md.md has original ID report.md.\n",
+  "query_prompt_template": "Query:\n{query}\n\n{task_instruction_block}Use bash or read to inspect /workspace/corpus before answering. You must inspect\ndocument content before giving the final answer; a filename listing alone is not\nevidence. Start with rg -l -i to find candidate filenames, then run bounded rg\nsearches and read selected files to verify relevance. Do not print the whole\ncorpus or infer document ids from ls/find ordering.\n\nAim to retrieve all relevant documents while avoiding irrelevant documents.\nReturn at most 10 unique document ids, ranked by relevance. If more than 10\ndocuments are relevant, return the 10 most relevant. Do not add irrelevant\ndocuments just to reach 10 results.\n\nReturn the relevant document ids as JSON only, with exactly this key:\nranked_doc_ids. Do not use top_documents, doc_ids, scores, or explanations.\nRemove only the filesystem-added .md suffix when recovering an ID; retain any\n.md suffix or percent characters that belong to the original document ID.\nBefore submitting the final answer, you must obtain nonempty document text with the read tool. Bash searches and filename listings do not satisfy this requirement. Return original document IDs exactly; do not encode, decode, or strip them again once recovered from filenames.\nThe read result starts with a doc_id field: copy that exact value into ranked_doc_ids. Every submitted ID must exist in the corpus; unknown IDs will be rejected for repair. Do not submit the filesystem filename. For example, l%27exemple.md has original ID l'exemple, while report.md.md has original ID report.md.\n",
   "task_instruction_template": "Task-aware retrieval guidance:\n{task_instruction}\n\nUse this only as search strategy. It does not reveal relevance labels, replace\ncorpus inspection, or relax the final JSON schema.\n\n",
-  "repair_prompt_template": "The previous answer cannot be accepted: {reason}.\n\nContinue the same retrieval task. Inspect /workspace/corpus now: use rg -l -i to\nfind candidates, then bounded rg output and read on the most promising files.\nReturn only valid JSON with ranked_doc_ids. Do not guess from filename lists or\nreturn an empty list unless you have exhausted reasonable content searches."
+  "repair_prompt_template": "The previous answer cannot be accepted: {reason}.\n\nContinue the same retrieval task. Inspect /workspace/corpus now: use rg -l -i to\nfind candidates, then bounded rg output and read on the most promising files.\nReturn only valid JSON with ranked_doc_ids. Do not guess from filename lists or\nreturn an empty list; the final schema requires at least one document ID.\nBefore submitting the final answer, you must obtain nonempty document text with the read tool. Bash searches and filename listings do not satisfy this requirement. Return original document IDs exactly; do not encode, decode, or strip them again once recovered from filenames.\nThe read result starts with a doc_id field: copy that exact value into ranked_doc_ids. Every submitted ID must exist in the corpus; unknown IDs will be rejected for repair. Do not submit the filesystem filename. For example, l%27exemple.md has original ID l'exemple, while report.md.md has original ID report.md.\n",
+  "tool_result_max_bytes": 20000,
+  "max_model_output_tokens": 1024,
+  "generation_config": {
+    "temperature": 0,
+    "max_tokens": 1024,
+    "seed": 0,
+    "enable_thinking": false
+  },
+  "evidence_policy": {
+    "version": "nonempty-read-v2",
+    "minimum_nonempty_reads": 1,
+    "bash_counts_as_evidence": false,
+    "receipt_fields": [
+      "path",
+      "doc_id",
+      "offset_codepoints",
+      "returned_codepoints",
+      "returned_bytes",
+      "content_sha256"
+    ]
+  },
+  "output_adapters": {
+    "version": "dci-output-adapters-v2",
+    "document_ids": "exact_original_id_no_normalization",
+    "top_documents_alias": true,
+    "text_json_tool_calls": true,
+    "strip_thinking_tags": true
+  },
+  "tool_output_policy": {
+    "unit": "utf8_bytes",
+    "max_bytes_including_status_and_marker": 20000,
+    "read_offset_unit": "unicode_codepoints",
+    "read_limit_unit": "unicode_codepoints",
+    "bash_overflow": "terminate_process_group_and_return_bounded_prefix",
+    "read_metadata": "JSON doc_id prefix; counts toward byte cap but never body evidence"
+  },
+  "document_id_policy": {
+    "version": "exact-corpus-id-v1",
+    "read_metadata": "doc_id derived by decoding the corpus filename exactly once",
+    "submission": "exact original corpus ID membership required; no automatic normalization",
+    "unknown_ids": "reject and repair with exact filename-to-ID hints, without relevance labels"
+  },
+  "read_path_policy": {
+    "version": "corpus-filename-path-v1",
+    "bare_filenames": "Exact literal .md filenames, optionally prefixed with ./, resolve inside corpus only.",
+    "other_paths": "Relative paths resolve from /workspace; /workspace/corpus absolute paths are accepted. Bash cd never changes read resolution.",
+    "security": "No filename decoding. Canonical corpus containment, no symlinks, no hard-linked files."
+  }
 }

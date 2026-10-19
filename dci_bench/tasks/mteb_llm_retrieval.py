@@ -15,10 +15,12 @@ from inspect_ai.agent import sandbox_agent_bridge
 from inspect_ai.dataset import MemoryDataset, Sample
 from inspect_ai.scorer import Score, Target, mean, scorer
 from inspect_ai.solver import Generate, TaskState, solver
+from inspect_ai.util import LimitExceededError, sample_limits
 
 from dci_bench.agents.pi_agent import run_pi_dci
 from dci_bench.data.registry import TASKS, get_task
 from dci_bench.protocol.contracts import MAX_AGENT_STEPS, MAX_TOTAL_MODEL_TOKENS, SAMPLE_TIMEOUT_SECONDS
+from dci_bench.results.protocol import sample_directory_name
 from dci_bench.scoring.retrieval import normalize_metric_ks, score_query, zero_metrics
 
 
@@ -269,6 +271,28 @@ async def _serialized_bridge_start(pool: BridgePortPool | None, bridge_context: 
         yield bridge
 
 
+def _remaining_pi_timeout_seconds() -> float:
+    time_limit = sample_limits().time
+    remaining = time_limit.remaining
+    if remaining is None:
+        return float(SAMPLE_TIMEOUT_SECONDS)
+    if remaining <= 0:
+        limit = getattr(time_limit, "limit", None)
+        if limit is None:
+            limit = float(SAMPLE_TIMEOUT_SECONDS)
+        usage = getattr(time_limit, "usage", limit)
+        if usage is None:
+            usage = limit
+        value = max(float(limit), float(usage))
+        raise LimitExceededError(
+            "time",
+            value=value,
+            limit=float(limit),
+            source=time_limit,
+        )
+    return min(float(SAMPLE_TIMEOUT_SECONDS), float(remaining))
+
+
 @solver
 def pi_dci_solver(
     output_dir: str = "results/phase3",
@@ -284,7 +308,7 @@ def pi_dci_solver(
         sample_dir = Path(output_dir)
         if include_task_dir:
             sample_dir /= task_name
-        sample_dir /= query_id
+        sample_dir /= sample_directory_name(query_id)
         output_path = sample_dir / "final.json"
         trace_path = sample_dir / "trace.json"
         async with _bridge_port_lease(bridge_port_pool, bridge_port) as sample_bridge_port:
@@ -298,6 +322,7 @@ def pi_dci_solver(
                 forward_generation_config=False,
             )
             async with _serialized_bridge_start(bridge_port_pool, bridge_context):
+                timeout_seconds = _remaining_pi_timeout_seconds()
                 result = await anyio.to_thread.run_sync(
                     lambda: run_pi_dci(
                         query=state.input_text,
@@ -307,7 +332,7 @@ def pi_dci_solver(
                         openai_base_url=f"http://localhost:{sample_bridge_port}/v1",
                         openai_api_key="inspect",
                         model="inspect",
-                        timeout_seconds=SAMPLE_TIMEOUT_SECONDS,
+                        timeout_seconds=timeout_seconds,
                         max_agent_steps=MAX_AGENT_STEPS,
                         context_window=model_context_window,
                         task_instruction=task_instruction,

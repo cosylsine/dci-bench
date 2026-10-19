@@ -17,6 +17,7 @@ from dci_bench.results import (
     build_task_index,
     build_task_result,
     canonical_json,
+    compute_run_fingerprint,
     finalize_run,
     r7_p50,
     r7_p95,
@@ -175,6 +176,154 @@ class Phase4ResultsTest(unittest.TestCase):
             ],
         )
         self.assertTrue(validate_task_index(index))
+
+    def test_run_fingerprint_ignores_host_paths_but_includes_concurrency(self):
+        common = {
+            "model": {
+                "source_path": "/node-a/models/model",
+                "weights": {"files": [{"sha256": "a" * 64}]},
+            },
+            "backend": {
+                "kind": "sglang",
+                "base_url": "http://node-a:30000/v1",
+                "runtime": {
+                    "captured_at": "2026-10-01T00:00:00Z",
+                    "hostname": "node-a",
+                    "python": {
+                        "version": "3.12.14",
+                        "executable": "/node-a/env/bin/python",
+                    },
+                    "environment": {"envname": "dci-vllm"},
+                    "cuda": {
+                        "visible_devices": "0",
+                        "device_count": 1,
+                        "driver_versions": ["580.95"],
+                        "kernel_probe": {"status": "pass", "arch": "sm120"},
+                        "gpus": [
+                            {
+                                "index": 0,
+                                "name": "RTX 5090",
+                                "capability": "12.0",
+                                "total_memory_bytes": 34359738368,
+                            }
+                        ],
+                    },
+                },
+            },
+            "data": {"qrels_hash": "b" * 64},
+            "benchmark_contract": "dci-mvp-v3",
+            "metric_ks": [1, 10],
+            "query_ids": ["Q1"],
+            "code": {
+                "hostname": "node-a",
+                "environment": {
+                    "host_name": "node-a",
+                    "node": {"version": "v20.17.0", "sha256": "c" * 64},
+                    "python": {"version": "3.11"},
+                },
+                "max_concurrency": 2,
+            },
+        }
+        first = compute_run_fingerprint(**common)
+        changed_host = dict(common)
+        changed_host["model"] = {
+            **common["model"],
+            "source_path": "/node-b/other-location/model",
+        }
+        changed_host["code"] = {
+            **common["code"],
+            "hostname": "node-b",
+            "environment": {
+                "host_name": "node-b",
+                "node": common["code"]["environment"]["node"],
+                "python": {"version": "3.11"},
+            },
+        }
+        changed_host["backend"] = {
+            "kind": "sglang",
+            "base_url": "http://node-b:30000/v1",
+            "runtime": {
+                "captured_at": "2026-10-01T01:00:00Z",
+                "hostname": "node-b",
+                "python": {
+                    "version": "3.12.14",
+                    "executable": "/node-b/env/bin/python",
+                },
+                "environment": {"envname": "dci-vllm"},
+                "cuda": {
+                    "visible_devices": "0",
+                    "device_count": 1,
+                    "driver_versions": ["580.95"],
+                    "kernel_probe": {"status": "pass", "arch": "sm120"},
+                    "gpus": [
+                        {
+                            "index": 0,
+                            "name": "RTX 5090",
+                            "capability": "12.0",
+                            "total_memory_bytes": 34359738368,
+                        }
+                    ],
+                },
+            },
+        }
+        self.assertEqual(first, compute_run_fingerprint(**changed_host))
+        changed_concurrency = {**common, "code": {**common["code"], "max_concurrency": 3}}
+        self.assertNotEqual(first, compute_run_fingerprint(**changed_concurrency))
+        changed_node = {
+            **common,
+            "code": {
+                **common["code"],
+                "environment": {
+                    **common["code"]["environment"],
+                    "node": {"version": "v21.0.0", "sha256": "d" * 64},
+                },
+            },
+        }
+        self.assertNotEqual(first, compute_run_fingerprint(**changed_node))
+        changed_runtime = {
+            **common,
+            "backend": {
+                **common["backend"],
+                "runtime": {
+                    **common["backend"]["runtime"],
+                    "cuda": {
+                        **common["backend"]["runtime"]["cuda"],
+                        "driver_versions": ["581.0"],
+                    },
+                },
+            },
+        }
+        self.assertNotEqual(first, compute_run_fingerprint(**changed_runtime))
+
+    def test_v2_manifest_fingerprint_keeps_legacy_payload_shape(self):
+        inputs = {
+            "model": {"source_path": "/node-a/models/model", "revision": "abc"},
+            "backend": {"kind": "sglang", "base_url": "http://node-a:30000/v1"},
+            "data": {"source_manifest_path": "metadata/Task/manifest.json"},
+            "benchmark_contract": "dci-mvp-v2",
+            "metric_ks": [1, 10],
+            "query_ids": ["Q1"],
+            "code": {"hostname": "node-a"},
+        }
+        # This is the fingerprint emitted by the pre-v3 payload shape; keep
+        # it fixed so the test exercises compatibility rather than recomputing
+        # the expected value through the implementation under test.
+        expected = "2509e8f6ba7e93ae87a88a2b63f2ee3774ef73bdef914ea4ebb25101f928ee8c"
+        manifest = build_run_manifest(
+            run_id="legacy-run",
+            model_key="model",
+            task="Task",
+            query_ids=inputs["query_ids"],
+            model=inputs["model"],
+            backend=inputs["backend"],
+            data=inputs["data"],
+            benchmark_contract=inputs["benchmark_contract"],
+            metric_ks=inputs["metric_ks"],
+            code=inputs["code"],
+            created_at="2026-01-01T00:00:00Z",
+        )
+        self.assertEqual(manifest["run_fingerprint"], expected)
+        self.assertTrue(validate_run_manifest(manifest))
 
     def test_task_index_appends_and_updates_without_losing_history(self):
         with tempfile.TemporaryDirectory() as temp:

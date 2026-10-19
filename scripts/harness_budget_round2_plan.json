@@ -1,0 +1,97 @@
+{
+  "schema_version": "dci-budget-round2-plan-v1",
+  "status": "frozen_before_model_evaluation",
+  "objective": "Measure whether calibrated token reserve improves retrieval quality without losing valid outputs, under the same hard limits.",
+  "profiles": ["budgeted", "budgeted-calibrated"],
+  "base_contract_sha256": {
+    "budgeted": "e3cbd15c8014c3cd66b350237a6e9c1cdae369c5e1b6d78cf5a022d1b1a8a22d",
+    "budgeted-calibrated": "c95541a486bd6e0cf1bb9c002601e31d6c61fc65558be054e1405d70786a2ba5"
+  },
+  "candidate": {
+    "policy_version": "budgeted-finalize-v6-calibrated",
+    "forecast_bytes_per_token": 2,
+    "forecast_request_safety_tokens": 1024,
+    "reserve_floor_tokens": 32000,
+    "reserve_formula": "max(32000, 3*N + 29216), N = last_input + last_output + ceil(trailing_tool_utf8_bytes/2)",
+    "calibration_evidence": "results/analysis/token-budget-calibration-v1/summary.json",
+    "calibration_evidence_sha256": "5142a6127e0852e09262587b7ebab1fa38b3037efed054328e66e80b6126e377",
+    "calibration_run": "20261013T083704Z-1",
+    "observed_transitions": 805,
+    "observed_forecast_coverage": 1.0,
+    "coverage_is_not_a_future_guarantee": true
+  },
+  "fixed_conditions": {
+    "model_path": "/mnt/afs/share/Qwen3.8-27B",
+    "dtype": "bfloat16",
+    "tensor_parallel_size": 4,
+    "max_concurrency": 4,
+    "max_model_len": 65536,
+    "max_total_model_tokens": 128000,
+    "max_model_output_tokens": 1024,
+    "temperature": 0,
+    "seed": 0,
+    "enable_thinking": false,
+    "sample_timeout_seconds": 600,
+    "wall_time_policy": "hard_timeout_only",
+    "pre_dispatch_bytes_per_token": 1,
+    "pre_dispatch_safety_tokens": 4096,
+    "repeat_threshold": 3,
+    "max_search_turns_without_read": 6,
+    "max_required_read_turns": 2,
+    "tool_result_max_bytes": 20000,
+    "read_gate_and_exact_id_validation": "unchanged",
+    "prompts": "identical across profiles",
+    "warmup": "existing two synthetic rounds, same endpoint, excluded from sample budgets",
+    "profile_order": "alternating"
+  },
+  "stages": [
+    {
+      "stage": 1,
+      "query_suite": "diagnostic",
+      "suite_file": "scripts/harness_pilot_queries.json",
+      "suite_file_sha256": "95bbed1e260966b86ce6ff0e119fe85e6a83a98ba9bc21fbf097ee0827e0d4c0",
+      "tasks": 6,
+      "queries_per_task_per_profile": 10,
+      "model_evaluations": 120,
+      "purpose": "Regression and execution-stability check on the calibration queries; fresh paired control required.",
+      "advance_gate": "Both arms complete all 60 samples with valid outputs; all source/artifact/data pairing checks pass. Review any quality losses, but do not retune this candidate before the frozen holdout.",
+      "command": "CUDA_VISIBLE_DEVICES=0,1,2,3 TP_SIZE=4 MAX_CONCURRENCY=4 bash scripts/run_harness_pilot.sh --profiles budgeted budgeted-calibrated --query-suite diagnostic --profile-order alternating"
+    },
+    {
+      "stage": 2,
+      "query_suite": "holdout",
+      "suite_file": "scripts/harness_pilot_holdout_queries.json",
+      "suite_file_sha256": "542ee08d4774804a4dd9bf50e633e8eea478a36cc0ceb8ea7139ac30847587fc",
+      "tasks": 6,
+      "queries_per_task_per_profile": 10,
+      "model_evaluations": 120,
+      "purpose": "Evaluate the frozen candidate on queries excluded from this round's calibration. These queries may have historical full-benchmark results.",
+      "selection": "Sort non-diagnostic IDs by SHA256(UTF8('dci-budget-round2-v1:' + task + ':' + query_id)); take ten per task, with no qrels or score filtering.",
+      "command": "CUDA_VISIBLE_DEVICES=0,1,2,3 TP_SIZE=4 MAX_CONCURRENCY=4 bash scripts/run_harness_pilot.sh --profiles budgeted budgeted-calibrated --query-suite holdout --profile-order alternating"
+    }
+  ],
+  "required_analysis": [
+    "Completion markers, all planned sample IDs, source hashes, result/final/trace hashes, query/corpus/qrels identity, generation settings and model/backend identity.",
+    "Valid outputs and failure kinds per arm and per task; all-sample and valid_only Recall, Precision, F1 and nDCG at 10 using actual returned window lengths.",
+    "Paired query-level F1 and Recall differences, wins/ties/losses; keep the diagnostic and holdout results separate.",
+    "Holdout mean paired F1 difference with a task-stratified paired bootstrap interval: resample ten query pairs within each task, 10000 replicates, seed 20261013, percentile 95 percent interval. This small interval is exploratory, not a claim of benchmark-wide superiority.",
+    "Mean/p50/p95/max cumulative tokens, input/output breakdown, finalization reserve and unused budget, final and repair usage, control reason counts and natural stops.",
+    "Mean/p50/p95 wall time, per-task elapsed time, timeout and pre-dispatch guard failures; startup warmup reported separately.",
+    "For changed and zero-score cases: read evidence, exact submitted IDs and gold-document coverage; do not infer relevance solely from a read receipt."
+  ],
+  "criteria_for_larger_validation": {
+    "scope": "Engineering go/no-go for a larger evaluation, not automatic default promotion or statistical proof.",
+    "holdout_valid_per_profile": 60,
+    "candidate_token_context_timeout_failures": 0,
+    "holdout_all_sample_f1_delta": "> 0",
+    "holdout_all_sample_recall_delta": ">= 0",
+    "candidate_to_control_mean_token_ratio": "<= 2.0 (predeclared cost ceiling for this pilot)",
+    "latency": "Report p50/p95 wall time and task elapsed time; introduce no new time threshold or early-stop rule.",
+    "interpretation": "If validity regresses, diagnose before continuing. If quality or cost criteria fail, retain the control and report the tradeoff. If an uncertainty interval includes zero, label the gain inconclusive. Any parameter retuning requires a new profile/version and a new validation set."
+  },
+  "exclusions": [
+    "No changes to corpus, qrels, task instructions, retrieval scoring, prompts, temperature, read/loop gates or hard budgets.",
+    "Do not reuse the previous run as the only control, combine diagnostic scores with holdout scores, or label ten queries per task a full benchmark.",
+    "The two stages are separate invocations; stage 2 is launched only after stage 1 is reviewed."
+  ]
+}

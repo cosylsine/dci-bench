@@ -1,0 +1,48 @@
+{
+  "description": "calibration holdout: fixed ten IDs per task selected from metadata query records after excluding the diagnostic suite; not used for this round's calibration and may have appeared in historical full-corpus evaluation; not claimed absolutely unseen",
+  "excluded_query_ids": {
+    "LLMAILAStatutes": ["00002", "00034", "00007", "00021", "00014", "00003", "00025", "00011", "00031", "00023"],
+    "LLMFQuADRetrieval": ["100", "202", "19", "355", "253", "226", "144", "257", "112", "357"],
+    "LLMHC3FinanceRetrieval": ["00013", "00047", "00341", "00023", "00380", "00052", "00273", "00028", "00114", "00379"],
+    "LLMLegalBenchConsumerContractsQA": ["00003", "00015", "00044", "00183", "00022", "00301", "00107", "00346", "00383", "00028"],
+    "LLMPublicHealthQA": ["Q1", "Q103", "Q16", "Q171", "Q97", "Q139", "Q23", "Q25", "Q118", "Q5"],
+    "LLMTwitterHjerneRetrieval": ["0", "108", "145", "142", "214", "185", "29", "218", "8", "221"]
+  },
+  "excluded_sha256": {
+    "LLMAILAStatutes": "ad343bb2780597343394ae8915e42d8b989b53538751a8a2ba26328571cb0819",
+    "LLMFQuADRetrieval": "ae2aee943f0b2d1d915883aca23520d05f633c8064fa34fa1d937ae7f25a215a",
+    "LLMHC3FinanceRetrieval": "e4ba239545e5280e795ac5b7fffc8e775304c3888d1d2287ffbc7a9fbc6869fb",
+    "LLMLegalBenchConsumerContractsQA": "edc847b3ed3a19f54f90dfbf1573d1b305e3091b61b44ccb85e9cc550c361ba8",
+    "LLMPublicHealthQA": "703b85ef6af21916916c80ed8b098d9f58cca8edfce26888b8981eeb46188844",
+    "LLMTwitterHjerneRetrieval": "df1a5dbd9d4144349b55b51c4e33edcb4bd33c44dc9c1566911cd9956efc815f"
+  },
+  "query_ids": {
+    "LLMAILAStatutes": ["00032", "00009", "00046", "00041", "00048", "00037", "00033", "00012", "00026", "00045"],
+    "LLMFQuADRetrieval": ["11", "199", "37", "344", "35", "269", "379", "220", "221", "370"],
+    "LLMHC3FinanceRetrieval": ["00016", "00083", "00396", "00366", "00140", "00035", "00135", "00359", "00081", "00301"],
+    "LLMLegalBenchConsumerContractsQA": ["00380", "00375", "00140", "00176", "00117", "00366", "00142", "00137", "00236", "00364"],
+    "LLMPublicHealthQA": ["Q85", "Q161", "Q102", "Q34", "Q101", "Q135", "Q13", "Q141", "Q39", "Q170"],
+    "LLMTwitterHjerneRetrieval": ["225", "52", "239", "84", "255", "234", "102", "231", "287", "195"]
+  },
+  "schema_version": "dci-harness-pilot-holdout-v1",
+  "seed": "dci-budget-round2-v1",
+  "selected_sha256": {
+    "LLMAILAStatutes": "6976a1b0d49da4d95c251204835bd7d0bc409d737d3a79e9e724e8e7966786bd",
+    "LLMFQuADRetrieval": "3b0bce015c4af7c716dcb0089fad76cb904475109be4bc48ee9e1164e2278fa5",
+    "LLMHC3FinanceRetrieval": "223d1435ab0208bd1e8a64cf90d4e8b42e84bcb68f21851560e5d95cc7e77dab",
+    "LLMLegalBenchConsumerContractsQA": "4611dd5d60bc3e3841534c8231bd23d9ef1a5f5e6d91b302d8cc5af66bb0b694",
+    "LLMPublicHealthQA": "dd2fa75beb2cd48a9dd9b1fe030239ef62a884d5280b11bafcab025f4c9eafc1",
+    "LLMTwitterHjerneRetrieval": "14debe78b1be2059ac1d895ccea66e7e8d15337284d4c3e8fc4d1db86243b7c6"
+  },
+  "selection_method": "sha256(seed + ':' + task + ':' + query_id)",
+  "source_queries": {
+    "LLMAILAStatutes": {"count": 50, "path": "data/metadata/LLMAILAStatutes/queries.jsonl", "sha256": "fb14f0569f9a207eb0ef1285ecc5db71ccaebd99ff9d93ffa8c13a735848c179"},
+    "LLMFQuADRetrieval": {"count": 100, "path": "data/metadata/LLMFQuADRetrieval/queries.jsonl", "sha256": "3a95e39984fdb9795cefafd06c464706ee08a088520bfe66f7978bae4678f0b8"},
+    "LLMHC3FinanceRetrieval": {"count": 100, "path": "data/metadata/LLMHC3FinanceRetrieval/queries.jsonl", "sha256": "c374882f1833926621156c5f3d11888f8d7aed1018911f71dc8489e2eb7485c9"},
+    "LLMLegalBenchConsumerContractsQA": {"count": 100, "path": "data/metadata/LLMLegalBenchConsumerContractsQA/queries.jsonl", "sha256": "e19eaf91e9e19e3b40cedcfc1f1ebccf9b7f20dc164b63fd78d774aa4413995d"},
+    "LLMPublicHealthQA": {"count": 100, "path": "data/metadata/LLMPublicHealthQA/queries.jsonl", "sha256": "2a7acca90b0f81ace93f2442acaa9bab7d416f91634b00a853be69b3031eafa6"},
+    "LLMTwitterHjerneRetrieval": {"count": 77, "path": "data/metadata/LLMTwitterHjerneRetrieval/queries.jsonl", "sha256": "f69229b08047097df4793f951ea688dd93e8c648ded7762384a40325c84847a1"}
+  },
+  "suite": "holdout",
+  "take": 10
+}

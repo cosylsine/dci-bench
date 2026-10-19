@@ -1,0 +1,22 @@
+[
+  {
+    "query_id": "demo-trace",
+    "query": "Locate the implementation of division and select its complete function body.",
+    "workspace": "."
+  },
+  {
+    "query_id": "demo-missing",
+    "query": "Find the existing test covering division.",
+    "workspace": "."
+  },
+  {
+    "query_id": "demo-natural",
+    "query": "Locate the database connection pool implementation in this arithmetic repository.",
+    "workspace": "."
+  },
+  {
+    "query_id": "demo-counterfactual",
+    "query": "Locate an HTTP route dispatcher in this arithmetic repository.",
+    "workspace": "."
+  }
+]

@@ -16,6 +16,7 @@ from typing import Any, Callable, Sequence
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dci_bench.data.registry import TASKS, get_task
+from dci_bench.backends.manifest import inspect_generation_kwargs
 from dci_bench.results.phase4_runner import execute_phase4
 from dci_bench.scoring.retrieval import DEFAULT_METRIC_KS, normalize_metric_ks
 
@@ -280,7 +281,6 @@ def _inspect_eval_kwargs(
         "model_args": {"api_key": api_key, "responses_api": False},
         "log_dir": str(log_dir),
         "display": "plain",
-        "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
         # ``max_samples`` is the Inspect worker/concurrency cap used by the
         # pinned runner contract.  The dataset itself still contains all
         # selected samples; ``max_connections`` below controls the same cap on
@@ -289,6 +289,10 @@ def _inspect_eval_kwargs(
         "fail_on_error": False,
         "score_on_error": True,
     }
+    # Inspect 0.3.260 consumes these canonical generation kwargs.  Keep the
+    # provider-specific thinking flag in extra_body rather than inventing an
+    # unsupported Inspect field.
+    kwargs.update(inspect_generation_kwargs(backend))
     # Inspect currently calls this setting ``max_connections``.  The fallback
     # keeps the CLI usable with test doubles and older versions exposing the
     # clearer ``max_concurrency`` spelling.

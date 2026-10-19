@@ -1,0 +1,182 @@
+{
+  "schema_version": "dci-selective-infographic-sources-v1",
+  "checked_date": "2026-10-15",
+  "scope": "document retrieval; illustration of proposed freeze, no protocol mutation",
+  "protocol_profile": "budgeted-selective",
+  "benchmark_contract_version": "dci-mvp-v3.4-pilot",
+  "resolved_contract_sha256": "c6f4a9e46de4f0ebf9b21aca6f73c86a7b1dfd726783362bc3c476807be6419f",
+  "confirmation_contract_match": true,
+  "stable_selective_delta_verified": [
+    "protocol_profile",
+    "budget_control.version",
+    "budget_control.final_prompt",
+    "budget_control.final_repair_prompt"
+  ],
+  "current_context_length": 65536,
+  "generation_config": {
+    "temperature": 0,
+    "max_tokens": 1024,
+    "seed": 0,
+    "enable_thinking": false
+  },
+  "sources": [
+    {
+      "path": "dci_bench/protocol/contract.json",
+      "line_ranges_paired": [
+        5,
+        112,
+        175,
+        213
+      ],
+      "sha256": "7a9262f8f28dca47beb6faccbdd3b9cf67bc61803d3c113816a48dcbe9b0d902"
+    },
+    {
+      "path": "dci_bench/protocol/pilot_profiles.json",
+      "line_ranges_paired": [
+        24,
+        60
+      ],
+      "sha256": "0f0c84a83be1b1aae084d224119bb8136ef4fd0fecb73ab1966f3cb3d697ac7c"
+    },
+    {
+      "path": "dci_bench/protocol/stable-rg.conf",
+      "line_ranges_paired": [
+        1,
+        1
+      ],
+      "sha256": "d14567dbe258379cbe03daaaab6651aeaa4f9ec68f70281a9d62ebc37e683392"
+    },
+    {
+      "path": "docs/protocol.md",
+      "line_ranges_paired": [
+        32,
+        136,
+        177,
+        327
+      ],
+      "sha256": "fe15f1cf88a44872370823bd6ed0439f3bb33c9e899fb1c4c5fb4625bb1f693d"
+    },
+    {
+      "path": "dci_bench/protocol/contracts.py",
+      "line_ranges_paired": [
+        23,
+        46
+      ],
+      "sha256": "be3724e71c174146eda4618b1ef2bbd326fa08817b33d118555cb3eb7cc237e0"
+    },
+    {
+      "path": "pi-dci/scripts/dci-run.ts",
+      "line_ranges_paired": [
+        575,
+        683,
+        767,
+        851,
+        1492,
+        1607
+      ],
+      "sha256": "16b7a22b160b4b3e10001ba31e00a9597e479d918c62f94d99e8a9cfaafd7280"
+    },
+    {
+      "path": "dci_bench/tasks/mteb_llm_retrieval.py",
+      "line_ranges_paired": [
+        152,
+        167,
+        295,
+        406
+      ],
+      "sha256": "ff18d37f564c8a0f818359a75095fbeb4c61fd272095876517e0f4c9f0eaaaa5"
+    },
+    {
+      "path": "dci_bench/results/phase4_runner.py",
+      "line_ranges_paired": [
+        431,
+        473,
+        774,
+        849,
+        1051,
+        1085
+      ],
+      "sha256": "09e9e22dc56f6565cc684a80bb29b2ad6476676428401f4da8b99f97671d6c94"
+    },
+    {
+      "path": "results/harness-confirmations/20261015-selection-confirmation-v2/confirmation.json",
+      "line_ranges_paired": [],
+      "sha256": "e210390828accc6c821180b77fd7367a6e8bd2c12491b8f1740332fedeed69a3"
+    },
+    {
+      "path": "results/harness-confirmations/20261015-selection-confirmation-v2/expected-backend.json",
+      "line_ranges_paired": [],
+      "sha256": "3bab9fec42c52e524b5396231293b6945ff69657294ce50884420306578cc039"
+    },
+    {
+      "path": "results/analysis/harness-confirmation-20261015T023746Z/analysis.json",
+      "line_ranges_paired": [],
+      "sha256": "16b59560f7e02a0fd10ba03576a5c0515d3e31407349b76ea6f6705384f99b68"
+    }
+  ],
+  "example": {
+    "kind": "fictional teaching example, not a benchmark trace",
+    "query": "Atlas 任务失败后如何自动重试？哪些错误不应重试？",
+    "documents": {
+      "D017": "临时故障采用指数退避；最多重试三次。",
+      "D042": "鉴权失败与参数错误直接终止，不进入重试队列。",
+      "D088": "重试按钮的图标可在界面主题中修改。"
+    },
+    "illustrated_output": {
+      "ranked_doc_ids": [
+        "D017",
+        "D042"
+      ]
+    },
+    "illustrated_controller_phase": "tools-disabled finalization; budget-triggered in this teaching example"
+  },
+  "validation": {
+    "method": "Read-only code, profile, backend and confirmation cross-check; two bounded worker static audits; visual review of both final images; corrected the example validation/repair arrow before acceptance.",
+    "model_evaluation_launched": false,
+    "protocol_code_changed": false,
+    "visual_review": "passed"
+  },
+  "generation": {
+    "mode": "built-in image_gen",
+    "prompt_files": [
+      "01-protocol.prompt.txt",
+      "02-example.prompt.txt",
+      "02-example.edit.prompt.txt"
+    ],
+    "prompt_set": {
+      "01-protocol.prompt.txt": "Use case: infographic-diagram\nAsset type: Chinese technical protocol infographic, panel 01 of a coordinated two-image set, for a research repository. Produce one polished, high-resolution landscape image, about 3000x2200, with very legible Simplified Chinese and exact English/code labels. This is a finished explanatory graphic, not a UI screenshot.\nPrimary request: Explain the currently proposed-for-freeze DCI document retrieval harness, budgeted-selective, with pi-dci, Inspect and Model clearly visible. All facts below come from the current source. Prioritize correctness, hierarchy, restrained typography, readable arrows, and ample spacing. White or very pale warm-gray background. Dark navy text, blue for runtime, teal for corpus/evidence, amber for selective and budget, red only for rejection. Minimal flat document, terminal, lock and model-chip icons. No people or decorative robot.\nTitle text: \"SELECTIVE HARNESS\"\nSubtitle: \"拟冻结协议 · 文档检索轨\"\nSmall identity line: \"budgeted-selective  |  dci-mvp-v3.4-pilot  |  2026-10-15\"\nLayout: upper 45% architecture; lower 47% three aligned information cards; remaining space for header/footer. Use thin, precise arrows and clean orthogonal routing. Three cards are genuinely readable, not tiny paragraphs.\nARCHITECTURE:\nSection label \"01  谁负责什么\"\nA small input card \"Query + 任务指令\" points to the pi-dci card.\nThree main cards form a left-to-right bidirectional request/response path:\n1. \"pi-dci\" / \"Agent 循环 · 工具调度\" / \"预算控制 · 输出校验\"\n2. \"Inspect\" / \"Bridge · 模型调用\" / \"样本调度 · 600s 期限\" / \"统一生成参数 · usage / trace\"\n3. \"Model\" / \"生成搜索、阅读与排序决策\" / \"当前确认：Qwen3.8-27B / vLLM\"\nBetween pi-dci and Inspect label \"请求 / 响应\"; between Inspect and Model label \"模型 API\". Clearly show that model requests are routed through Inspect, not a direct pi-dci-to-model bypass.\nBelow pi-dci, a tool-execution branch connected in both directions: \"bash\" / \"Bubblewrap：无网络\" and \"read\" / \"独立 corpus 路径校验\". These both connect to a teal stack \"冻结 corpus/\" / \"只读文本\". Show a label on the return edge \"搜索片段 / 正文 + read 收据\". Do not imply read itself executes inside Bubblewrap.\nBelow Inspect, an output box \"Host Scorer\" / \"生成后读取 qrels\" / \"Recall · F1 · nDCG\". It receives an arrow from pi-dci labeled \"校验通过的 JSON\". A small locked \"qrels\" card connects ONLY to Host Scorer. Label \"标签对 agent / model 隐藏\". Do not connect qrels to model, corpus, or pi-dci.\nCARD A (blue header):\n\"02  硬约束\"\n\"仅 bash / read；corpus 只读\"\n\"禁用联网、外部检索器、MCP、子代理、记忆\"\n\"至少 1 次非空正文 read；bash 不算\"\n\"JSON：1–10 个唯一原始 doc_id\"\n\"每轮输出 ≤ 1,024 tokens；工具输出 ≤ 20,000 B\"\n\"标准路径：最多 1,200 步 / 3 轮修复\"\n\"temperature=0 · seed=0 · thinking=false\"\n\"不压缩历史；所有修复共用原预算\"\nCARD B (amber header):\n\"03  预算与收尾\"\n\"当前 context：65,536 tokens / 请求\"\n\"每题累计：128,000 tokens；600s\"\n\"input + output 累计；历史重放也计费\"\n\"达到 token 上限或超时 → 失败\"\n\"v5 动态预留 ≥ 32,000 tokens\"\n\"预估下一请求 + final + 1 次 repair\"\n\"相同调用连续 3 次：未读→read；已读→收尾\"\n\"6 轮未读→强制 read；最多 2 轮获取正文\"\n\"读后按预算恢复搜索或收尾\"\nCARD C (teal header with amber selective accent):\n\"04  SELECTIVE 特色\"\n\"rg 默认 --sort=path，再截断输出\"\n\"沿用 v5 预算；仅替换收尾 / 修复提示\"\n\"收尾关闭工具，按已读证据筛选和排序\"\n\"去掉弱关键词匹配；保留多篇相关文档\"\n\"不凑满 10 篇；无新增独立复核调用\"\n\"提示生效：控制器收尾及其修复\"\n\"自然 final 可直接提交\"\nFooter, two short clearly readable lines:\n\"read 收据只证明读过；不保证相关，也不要求逐篇 read。相关性筛选属于提示策略。\"\n\"32,000 是预留估计下限；context 依后端配置。rg 显式参数可覆盖排序。\"\nTiny source identity: \"契约指纹 c6f4a9e46de4…  ·  来源：当前 protocol contract / selective profile\"\nConstraints: Render all quoted text accurately. Do not invent benchmark gains, scores, guarantees, new stages, new limits or external resources. Do not label this as already formally frozen. Do not portray Inspect local sandbox as the security boundary. Read evidence is sample-level, not per-returned-document. Keep qrels strictly out of agent/model path. Avoid photorealism, gradients, 3D, illegible microtext, watermark, or clutter.\n",
+      "02-example.prompt.txt": "Use case: infographic-diagram\nAsset type: Chinese educational retrieval walkthrough, panel 02 of a coordinated two-image set for the DCI document retrieval protocol. Produce one polished high-resolution landscape image about 3000x2200. Simplified Chinese text and code must be sharp and accurately typeset.\nPrimary request: Illustrate exactly how budgeted-selective works using a concrete fictional Atlas document-search example. This is a teaching example, never a real benchmark trace. White / pale warm-gray background, dark navy typography, blue runtime accents, teal relevant evidence, amber selective stage, muted red excluded weak match. Flat document, terminal, lock icons, plenty of spacing; no robot cartoons.\nTitle: \"从检索命中，到有证据的排序\"\nSubtitle: \"SELECTIVE 检索示例 · 教学示例，非真实 benchmark 结果\"\nSmall context strip: \"pi-dci 调度工具  ↔  Inspect 路由与计量  ↔  Model 做决策\"\nLayout: five clearly numbered steps in a vertical visual narrative, with the evidence cards as the centerpiece. A slim right-side rail holds two important protocol caveats. Use horizontal rows for the main stages, easy to scan top to bottom.\nSTEP 1: \"1  明确查询\"\nLarge query bubble: \"Atlas 任务失败后如何自动重试？哪些错误不应重试？\"\nSmall text: \"输入：query + 任务指令 + 冻结 corpus\"\nSTEP 2: \"2  搜索定位\"\nA terminal card with exact code: \"rg -n '重试|失败' corpus/\"\nCaption: \"bash 调用；rg 默认按路径排序，再受输出上限约束\"\nArrow to three candidate document thumbnails, labeled \"D017.md\" / \"D042.md\" / \"D088.md\".\nSmall amber label: \"关键词命中 ≠ 相关性结论\"\nSTEP 3: \"3  read 核验证据\"\nExact tool-call card: 'read({\"path\":\"corpus/D017.md\",\"offset\":0,\"limit\":600})'\nCaption: \"随后也读取 D042.md、D088.md；本例共读 3 篇\"\nThree equally-sized document evidence cards:\nTeal card A header: 'doc_id: \"D017\"'\nBody: \"临时故障采用指数退避；最多重试三次。\"\nVerdict: \"✓ 保留：回答如何重试\"\nTeal card B header: 'doc_id: \"D042\"'\nBody: \"鉴权失败与参数错误直接终止，不进入重试队列。\"\nVerdict: \"✓ 保留：回答何时停止\"\nMuted red card C header: 'doc_id: \"D088\"'\nBody: \"重试按钮的图标可在界面主题中修改。\"\nVerdict: \"× 排除：只有关键词重合\"\nA short line under the cards: \"read 返回精确 doc_id 与正文；收据记录路径、范围和哈希\"\nSTEP 4: \"4  SELECTIVE 收尾\"\nAmber controller pill: \"本例假设控制器因预算触发收尾 → tools disabled\"\nA funnel graphic visually retains D017 and D042 and drops D088.\nMain text: \"Model 对照查询与已读证据筛选、排序\"\nSupporting text: \"保留多篇相关文档；不为凑满 10 篇加入弱匹配\"\nA clear output code block with EXACT contents:\n{\"ranked_doc_ids\":[\"D017\",\"D042\"]}\nCaption: \"复制原始 ID；最终只输出 JSON\"\nSTEP 5: \"5  校验与评分\"\nFlow: \"pi-dci：read 门槛 + JSON / ID 校验\" → \"Host Scorer：使用隐藏 qrels 评分\"\nSeparate locked qrels icon ONLY beside host scorer, never feeding the model. Add \"Recall / F1 / nDCG · token / 耗时 · trace\"\nSmall repair loop branching from validation back to the final stage: \"格式或 ID 无效 → 预算内修复\". Make it clear this loop is this tools-disabled-finalization example.\nRIGHT RAIL:\nCard \"硬门槛\" text: \"每题至少一次非空正文 read；不要求每个返回 ID 都逐篇 read。\"\nCard \"SELECTIVE 提示\" text: \"筛选由模型完成；host 不做相关性过滤。\"\nCard \"覆盖范围\" text: \"收尾提示用于控制器触发的 final / repair；自然 final 可直接提交。\"\nFooter: \"此例展示协议行为，不代表模型必然正确；满足格式与 read 门槛仍可能检索失误。\"\nConstraints: All Atlas snippets and IDs are fictional and must remain labeled as a teaching example. Do not invent real task results or numeric scores. Do not let qrels leak to Model. Do not draw extra model judge/reranker. D017 and D042 are retained, D088 is excluded. Output is a ranked document ID list, not an answer to the query. Do not add an abstain field or empty-output permission. Prefer legible Chinese text, meaningful whitespace, consistent colors and unambiguous arrows.\n",
+      "02-example.edit.prompt.txt": "Use case: infographic-diagram edit.\nInput image: the existing Chinese SELECTIVE retrieval teaching infographic is the edit target.\nMake one localized correction ONLY to the bottom STEP 5 row (\"5 校验与评分\"), fixing the validation/repair flow. Preserve the complete title, steps 1–4, right-side caveat cards, all example documents and JSON, all typography, colors, canvas dimensions, and footer exactly.\nIn STEP 5, keep the left pi-dci validation card and the Host Scorer card. Keep a single clean blue arrow from pi-dci to Host Scorer and label that arrow \"有效结果\".\nDELETE the current long blue loop above the row, DELETE the red arrow pointing toward Host Scorer, and DELETE the dashed red box at the right. Nothing about invalid results or repairs may have an arrow into the normal Host Scorer path.\nIn the freed right-hand area, add a simple small text-only amber note (no diagram arrows connecting to Host Scorer), with three exact readable lines:\n\"无效 → 预算内修复\"\n\"修复后重新校验\"\n\"修复耗尽 → 失败\"\nUnder the note, small caption \"本例修复仍禁用工具\".\nUnder the pi-dci and Host Scorer cards, retain the metrics label \"Recall / F1 / nDCG · token / 耗时 · trace\".\nThe bottom row must now unambiguously show: pi-dci validates; valid results go to host scoring; invalid responses are repaired and revalidated, or fail if repair is exhausted. Do not change any other region, wording, ID, example, color or layout.\n"
+    }
+  },
+  "interpretation_notes": [
+    "Current source remains dci-mvp-v3.4-pilot; the images describe the proposed freeze and do not change protocol state.",
+    "65536 is the context length of the current confirmation backend; 128000 is the cumulative per-query acceptance limit.",
+    "The v5 reserve has a 32000-token floor and forecasts a next search/read, final and one repair; the system permits up to three repairs within the original shared budgets.",
+    "Only controller finalization and its repair path disable tools and use the selective prompts; ordinary repair of a natural final can continue searching.",
+    "A nonempty read receipt is a sample-level gate. It is not a relevance proof and does not require every returned document to be individually read.",
+    "read is a host Node corpus-only operation; bash is executed inside Bubblewrap. Inspect local transport is not the security boundary.",
+    "qrels are host-only, available for host preflight and post-generation scoring, never exposed to the agent or model.",
+    "The illustrated Atlas query, documents, decisions and final ranking are fictional teaching material, not saved benchmark observations."
+  ],
+  "images": [
+    {
+      "file": "01-protocol.png",
+      "dimensions": [
+        1464,
+        1074
+      ],
+      "format": "PNG",
+      "sha256": "1b2667db02ffa782b9fa4552472f39e8682b19943889b969633064708d3da8a7"
+    },
+    {
+      "file": "02-example.png",
+      "dimensions": [
+        1463,
+        1075
+      ],
+      "format": "PNG",
+      "sha256": "4566004dfe03467130c052307cf7e430211dab01eb552155e97bf863e27ce00a"
+    }
+  ]
+}

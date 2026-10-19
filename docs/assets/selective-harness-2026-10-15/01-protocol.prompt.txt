@@ -1,0 +1,52 @@
+Use case: infographic-diagram
+Asset type: Chinese technical protocol infographic, panel 01 of a coordinated two-image set, for a research repository. Produce one polished, high-resolution landscape image, about 3000x2200, with very legible Simplified Chinese and exact English/code labels. This is a finished explanatory graphic, not a UI screenshot.
+Primary request: Explain the currently proposed-for-freeze DCI document retrieval harness, budgeted-selective, with pi-dci, Inspect and Model clearly visible. All facts below come from the current source. Prioritize correctness, hierarchy, restrained typography, readable arrows, and ample spacing. White or very pale warm-gray background. Dark navy text, blue for runtime, teal for corpus/evidence, amber for selective and budget, red only for rejection. Minimal flat document, terminal, lock and model-chip icons. No people or decorative robot.
+Title text: "SELECTIVE HARNESS"
+Subtitle: "拟冻结协议 · 文档检索轨"
+Small identity line: "budgeted-selective  |  dci-mvp-v3.4-pilot  |  2026-10-15"
+Layout: upper 45% architecture; lower 47% three aligned information cards; remaining space for header/footer. Use thin, precise arrows and clean orthogonal routing. Three cards are genuinely readable, not tiny paragraphs.
+ARCHITECTURE:
+Section label "01  谁负责什么"
+A small input card "Query + 任务指令" points to the pi-dci card.
+Three main cards form a left-to-right bidirectional request/response path:
+1. "pi-dci" / "Agent 循环 · 工具调度" / "预算控制 · 输出校验"
+2. "Inspect" / "Bridge · 模型调用" / "样本调度 · 600s 期限" / "统一生成参数 · usage / trace"
+3. "Model" / "生成搜索、阅读与排序决策" / "当前确认：Qwen3.8-27B / vLLM"
+Between pi-dci and Inspect label "请求 / 响应"; between Inspect and Model label "模型 API". Clearly show that model requests are routed through Inspect, not a direct pi-dci-to-model bypass.
+Below pi-dci, a tool-execution branch connected in both directions: "bash" / "Bubblewrap：无网络" and "read" / "独立 corpus 路径校验". These both connect to a teal stack "冻结 corpus/" / "只读文本". Show a label on the return edge "搜索片段 / 正文 + read 收据". Do not imply read itself executes inside Bubblewrap.
+Below Inspect, an output box "Host Scorer" / "生成后读取 qrels" / "Recall · F1 · nDCG". It receives an arrow from pi-dci labeled "校验通过的 JSON". A small locked "qrels" card connects ONLY to Host Scorer. Label "标签对 agent / model 隐藏". Do not connect qrels to model, corpus, or pi-dci.
+CARD A (blue header):
+"02  硬约束"
+"仅 bash / read；corpus 只读"
+"禁用联网、外部检索器、MCP、子代理、记忆"
+"至少 1 次非空正文 read；bash 不算"
+"JSON：1–10 个唯一原始 doc_id"
+"每轮输出 ≤ 1,024 tokens；工具输出 ≤ 20,000 B"
+"标准路径：最多 1,200 步 / 3 轮修复"
+"temperature=0 · seed=0 · thinking=false"
+"不压缩历史；所有修复共用原预算"
+CARD B (amber header):
+"03  预算与收尾"
+"当前 context：65,536 tokens / 请求"
+"每题累计：128,000 tokens；600s"
+"input + output 累计；历史重放也计费"
+"达到 token 上限或超时 → 失败"
+"v5 动态预留 ≥ 32,000 tokens"
+"预估下一请求 + final + 1 次 repair"
+"相同调用连续 3 次：未读→read；已读→收尾"
+"6 轮未读→强制 read；最多 2 轮获取正文"
+"读后按预算恢复搜索或收尾"
+CARD C (teal header with amber selective accent):
+"04  SELECTIVE 特色"
+"rg 默认 --sort=path，再截断输出"
+"沿用 v5 预算；仅替换收尾 / 修复提示"
+"收尾关闭工具，按已读证据筛选和排序"
+"去掉弱关键词匹配；保留多篇相关文档"
+"不凑满 10 篇；无新增独立复核调用"
+"提示生效：控制器收尾及其修复"
+"自然 final 可直接提交"
+Footer, two short clearly readable lines:
+"read 收据只证明读过；不保证相关，也不要求逐篇 read。相关性筛选属于提示策略。"
+"32,000 是预留估计下限；context 依后端配置。rg 显式参数可覆盖排序。"
+Tiny source identity: "契约指纹 c6f4a9e46de4…  ·  来源：当前 protocol contract / selective profile"
+Constraints: Render all quoted text accurately. Do not invent benchmark gains, scores, guarantees, new stages, new limits or external resources. Do not label this as already formally frozen. Do not portray Inspect local sandbox as the security boundary. Read evidence is sample-level, not per-returned-document. Keep qrels strictly out of agent/model path. Avoid photorealism, gradients, 3D, illegible microtext, watermark, or clutter.

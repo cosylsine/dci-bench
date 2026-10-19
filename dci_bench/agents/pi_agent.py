@@ -4,18 +4,23 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import subprocess
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from dci_bench.protocol.contracts import (
     BENCHMARK_CONTRACT_VERSION,
+    CONTRACT_SHA256,
     MAX_AGENT_STEPS,
     MAX_TOTAL_MODEL_TOKENS,
     PI_FINAL_RESULT_VERSION,
+    PROTOCOL_PROFILE,
     SAMPLE_TIMEOUT_SECONDS,
+    TRAJECTORY_SCHEMA_VERSION,
 )
 
 
@@ -39,6 +44,7 @@ class PiRunResult:
     failure_kind: str | None
     failure: dict[str, Any] | None
     usage_summary: dict[str, Any]
+    code_output: dict[str, Any] | None = None
 
 
 def repo_root() -> Path:
@@ -59,12 +65,26 @@ def run_pi_dci(
     openai_base_url: str = "http://localhost:13131/v1",
     openai_api_key: str = "inspect",
     model: str = "inspect",
-    timeout_seconds: int = SAMPLE_TIMEOUT_SECONDS,
+    timeout_seconds: float = SAMPLE_TIMEOUT_SECONDS,
     max_agent_steps: int = MAX_AGENT_STEPS,
     context_window: int = MAX_TOTAL_MODEL_TOKENS,
     task_instruction: str = "",
     extra_env: dict[str, str] | None = None,
+    _code_runtime: dict[str, Any] | None = None,
+    _code_files_path: Path | None = None,
 ) -> PiRunResult:
+    # Code calls enter through code_agent.run_pi_code. Ordinary callers retain
+    # the document contract, even if unrelated code-mode env vars are present.
+    expected_version = BENCHMARK_CONTRACT_VERSION
+    expected_hash = CONTRACT_SHA256
+    expected_profile = PROTOCOL_PROFILE
+    if _code_runtime is not None:
+        from dci_bench.protocol.code_runtime import runtime_contract_sha256
+        if _code_files_path is None:
+            raise ValueError("code runtime requires a host candidate manifest")
+        expected_version = _code_runtime["benchmark_contract_version"]
+        expected_profile = _code_runtime["protocol_profile"]
+        expected_hash = runtime_contract_sha256(_code_runtime)
     workspace = workspace.resolve()
     output_path = output_path.resolve()
     trace_path = trace_path.resolve() if trace_path is not None else None
@@ -86,11 +106,8 @@ def run_pi_dci(
 
     try:
         command = [
-            "npm",
-            "--prefix",
-            str(pi_dci_root()),
-            "exec",
-            "--",
+            "node",
+            "--import",
             "tsx",
             "scripts/dci-run.ts",
             "--query-file",
@@ -111,11 +128,15 @@ def run_pi_dci(
             str(max_agent_steps),
             "--context-window",
             str(context_window),
+            "--timeout-seconds",
+            str(timeout_seconds),
         ]
         if mock_script is not None:
             command.extend(["--mock-script", str(mock_script)])
         if instruction_file is not None:
             command.extend(["--task-instruction-file", str(instruction_file)])
+        if _code_files_path is not None:
+            command.extend(["--code-files", str(_code_files_path)])
 
         env = os.environ.copy()
         env.update(
@@ -127,29 +148,104 @@ def run_pi_dci(
         )
         if extra_env:
             env.update(extra_env)
+        if _code_runtime is None and env.get("DCI_PROTOCOL_PROFILE", "v3") != PROTOCOL_PROFILE:
+            raise ValueError("Pi subprocess profile must match the parent protocol profile")
+        env["DCI_EVALUATION_TRACK"] = "code" if _code_runtime is not None else "document"
+        if _code_runtime is None:
+            env.pop("DCI_CODE_RUNTIME_CONTRACT", None)
+        env["DCI_PROTOCOL_PROFILE"] = expected_profile
+        env["DCI_PROTOCOL_CONTRACT_SHA256"] = expected_hash
 
-        completed = subprocess.run(
+        # Pass the same deadline to Pi before Node/tsx startup. Import/preflight
+        # time must not grant the agent a new timeout window.
+        command.extend(["--deadline-at-ms", str(time.time() * 1000 + timeout_seconds * 1000)])
+        process = subprocess.Popen(
             command,
             cwd=pi_dci_root(),
             env=env,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            timeout=timeout_seconds,
-            check=False,
+            start_new_session=True,
         )
-        if completed.returncode not in (0, 2):
+        timed_out = False
+        try:
+            stdout, stderr = process.communicate(timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            # The sample owns this process group. Give Pi time to abort its
+            # HTTP/tool request and publish the partial trace before escalation.
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            try:
+                stdout, stderr = process.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                stdout, stderr = process.communicate()
+        finally:
+            # Also reap descendants that outlived the process group leader.
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        if timed_out:
+            trace_file = trace_path or output_path.with_suffix(".trace.json")
+            try:
+                partial = json.loads(trace_file.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                partial = {"events": [], "messages": [], "trace_unavailable": "timeout before first snapshot"}
+            failure = {"kind": "timeout", "message": f"sample wall deadline reached ({timeout_seconds}s)"}
+            partial.update(
+                schema_version=TRAJECTORY_SCHEMA_VERSION, failure=failure, partial=True,
+                contract_version=expected_version,
+                protocol_profile=expected_profile, base_contract_sha256=expected_hash,
+            )
+            temporary = trace_file.with_suffix(".timeout.tmp")
+            temporary.write_text(json.dumps(partial, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            temporary.replace(trace_file)
+            # Preserve any orderly final fields, but never accept an answer
+            # that arrived during cancellation grace after the deadline.
+            try:
+                payload = json.loads(output_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                payload = {}
+            payload.update(
+                contract_version=expected_version,
+                protocol_profile=expected_profile,
+                base_contract_sha256=expected_hash,
+                control_events=partial.get("control_events", payload.get("control_events", [])),
+                pi_result_version=PI_FINAL_RESULT_VERSION,
+                ranked_doc_ids=[], valid_output=False, failure=failure,
+                failure_reason=failure["message"],
+                usage_summary=partial.get("usage_summary", {"available": False}),
+                body_evidence=partial.get("body_evidence", payload.get("body_evidence", {})),
+                inspect_sandbox=partial.get("inspect_sandbox", "unavailable"),
+                tool_sandbox=partial.get("tool_sandbox", "unavailable"),
+            )
+            if _code_runtime is not None:
+                payload.update(evaluation_track="code", code_output=None)
+            temporary = output_path.with_suffix(".timeout.tmp")
+            temporary.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            temporary.replace(output_path)
+        elif process.returncode not in (0, 2):
             raise RuntimeError(
                 "pi-dci runner failed with exit code "
-                f"{completed.returncode}\nSTDOUT:\n{completed.stdout}\nSTDERR:\n{completed.stderr}"
+                f"{process.returncode}\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}"
             )
 
         payload: dict[str, Any] = json.loads(output_path.read_text(encoding="utf-8"))
+        if payload.get("base_contract_sha256") != expected_hash:
+            raise RuntimeError("Pi runner returned a different resolved protocol contract digest")
         contract_version = payload.get("contract_version")
-        if contract_version != BENCHMARK_CONTRACT_VERSION:
+        if contract_version != expected_version:
             raise RuntimeError(
                 "Pi runner returned an unsupported protocol contract: "
-                f"expected {BENCHMARK_CONTRACT_VERSION!r}, got {contract_version!r}"
+                f"expected {expected_version!r}, got {contract_version!r}"
             )
         pi_result_version = payload.get("pi_result_version")
         if pi_result_version != PI_FINAL_RESULT_VERSION:
@@ -159,7 +255,7 @@ def run_pi_dci(
             )
         inspect_sandbox = payload.get("inspect_sandbox")
         tool_sandbox = payload.get("tool_sandbox")
-        if inspect_sandbox != "local" or tool_sandbox != "bubblewrap":
+        if not timed_out and (inspect_sandbox != "local" or tool_sandbox != "bubblewrap"):
             raise RuntimeError(
                 "Pi runner did not attest the required sandbox boundary: "
                 f"inspect_sandbox={inspect_sandbox!r}, tool_sandbox={tool_sandbox!r}"
@@ -193,6 +289,7 @@ def run_pi_dci(
             ),
             failure=failure_payload,
             usage_summary=usage_payload,
+            code_output=payload.get("code_output") if _code_runtime is not None else None,
         )
     finally:
         query_file.unlink(missing_ok=True)

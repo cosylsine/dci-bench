@@ -150,23 +150,44 @@ def _process_group_exists(pgid: int) -> bool:
     return True
 
 
+def _descendant_groups(root_pid: int) -> set[int]:
+    """Include Pi's separate sessions before terminating their parent task."""
+    records: dict[int, tuple[int, int]] = {}
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            fields = (entry / "stat").read_text().rsplit(")", 1)[1].split()
+            records[int(entry.name)] = (int(fields[1]), int(fields[2]))
+        except (OSError, ValueError, IndexError):
+            continue
+    descendants = {root_pid}
+    while True:
+        added = {pid for pid, (parent, _) in records.items() if parent in descendants}
+        if added <= descendants:
+            break
+        descendants.update(added)
+    return {group for pid, (_, group) in records.items() if pid in descendants}
+
+
 def _stop_process_group(pgid: int, *, grace_seconds: float = 5.0) -> None:
     """Clean up only descendants of one isolated task process group."""
 
-    if not _process_group_exists(pgid):
-        return
-    try:
-        os.killpg(pgid, signal.SIGTERM)
-    except ProcessLookupError:
-        return
+    groups = _descendant_groups(pgid) | {pgid}
+    groups.discard(os.getpgrp())
+    for group in groups:
+        try:
+            os.killpg(group, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
     deadline = time.monotonic() + grace_seconds
     while time.monotonic() < deadline:
-        if not _process_group_exists(pgid):
+        if not any(_process_group_exists(group) for group in groups):
             return
         time.sleep(0.1)
-    if _process_group_exists(pgid):
+    for group in groups:
         try:
-            os.killpg(pgid, signal.SIGKILL)
+            os.killpg(group, signal.SIGKILL)
         except ProcessLookupError:
             pass
 
@@ -174,11 +195,24 @@ def _stop_process_group(pgid: int, *, grace_seconds: float = 5.0) -> None:
 def _run_task_process(command: Sequence[str], *, cwd: Path, check: bool = False):
     """Run a task in its own session so leaked bridge children can be contained."""
 
-    process = subprocess.Popen(command, cwd=cwd, start_new_session=True)
+    def terminate(signum, _frame):
+        raise SystemExit(128 + signum)
+
+    previous = {sig: signal.signal(sig, terminate) for sig in (signal.SIGTERM, signal.SIGINT)}
+    process = None
     try:
+        process = subprocess.Popen(command, cwd=cwd, start_new_session=True)
         return_code = process.wait()
     finally:
-        _stop_process_group(process.pid)
+        for sig in previous:
+            signal.signal(sig, signal.SIG_IGN)
+        try:
+            if process is not None:
+                _stop_process_group(process.pid)
+                process.wait()
+        finally:
+            for sig, handler in previous.items():
+                signal.signal(sig, handler)
     if check and return_code:
         raise subprocess.CalledProcessError(return_code, command)
     return subprocess.CompletedProcess(command, return_code)

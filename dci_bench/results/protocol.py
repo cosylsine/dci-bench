@@ -20,6 +20,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Final
+from urllib.parse import urlsplit, urlunsplit
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError, ValidationError
@@ -261,11 +262,22 @@ _SECRET_KEY_PARTS = (
     "private_key",
     "client_secret",
 )
+_RELEVANCE_DIGEST_KEYS = frozenset(
+    {
+        "qrels_hash",
+        "qrels_hash_expected",
+        "qrels_sha256",
+        "expected_qrels_hash",
+    }
+)
 
 
 def _key_is_forbidden(key: str) -> str | None:
     normalized = re.sub(r"[^a-z0-9]+", "_", key.lower()).strip("_")
-    if "qrel" in normalized or "gold" in normalized:
+    # Hashes identify the host-only relevance file without embedding labels;
+    # permit those audit digests while continuing to reject qrels/gold data.
+    is_digest = normalized in _RELEVANCE_DIGEST_KEYS
+    if ("qrel" in normalized or "gold" in normalized) and not is_digest:
         return "qrels/gold fields are host-only and must not be stored"
     if any(part in normalized for part in _SECRET_KEY_PARTS):
         return "credential/secret fields must not be stored"
@@ -979,14 +991,14 @@ def build_task_result(
             "status": sample["status"],
             "valid_output": sample["valid_output"],
             "result": {
-                "path": f"{sample['query_id']}/result.json",
+                "path": f"{sample_directory_name(sample['query_id'])}/result.json",
                 "sha256": sha256_json(sample),
             },
             "trace": {
                 "path": str(
                     sample.get("artifacts", {})
                     .get("trace", {})
-                    .get("path", f"{sample['query_id']}/trace.json")
+                    .get("path", f"{sample_directory_name(sample['query_id'])}/trace.json")
                 ),
                 "sha256": sample.get("artifacts", {}).get("trace", {}).get("sha256"),
             },
@@ -1148,6 +1160,60 @@ def is_valid_task_result(value: Any) -> bool:
     return True
 
 
+_FINGERPRINT_IGNORED_KEYS = frozenset(
+    {
+        "source_path",
+        "source_dir",
+        "workspace_dir",
+        "metadata_dir",
+        "captured_at",
+        "hostname",
+        "host_name",
+        "node_hostname",
+        "node_name",
+        "machine_id",
+        "model_path",
+        "python_executable",
+        "executable",
+        "cuda_home",
+        "ld_library_path",
+    }
+)
+
+
+def _fingerprint_value(value: Any, *, key: str | None = None) -> Any:
+    """Drop host-local provenance fields while retaining reproducibility data."""
+
+    if isinstance(value, Mapping):
+        return {
+            str(raw_key): _fingerprint_value(child, key=str(raw_key).lower())
+            for raw_key, child in value.items()
+            if str(raw_key).lower() not in _FINGERPRINT_IGNORED_KEYS
+        }
+    if isinstance(value, (list, tuple)):
+        return [_fingerprint_value(child, key=key) for child in value]
+    if key == "base_url" and isinstance(value, str):
+        parsed = urlsplit(value)
+        if parsed.scheme and parsed.hostname:
+            try:
+                port = f":{parsed.port}" if parsed.port is not None else ""
+            except ValueError:
+                return value
+            return urlunsplit((parsed.scheme, f"<host>{port}", parsed.path, "", ""))
+    return value
+
+
+_V3_FINGERPRINT_CONTRACT = "dci-mvp-v3"
+
+
+def _uses_v3_fingerprint(benchmark_contract: Mapping[str, Any] | str | None) -> bool:
+    if isinstance(benchmark_contract, Mapping):
+        version = benchmark_contract.get("benchmark_contract_version")
+    else:
+        version = benchmark_contract
+    return version in {_V3_FINGERPRINT_CONTRACT, "dci-mvp-v3.1-pilot"}
+
+
 def compute_run_fingerprint(
     *,
     model: Mapping[str, Any] | None = None,
@@ -1157,17 +1223,58 @@ def compute_run_fingerprint(
     metric_ks: Sequence[int] | None = None,
     query_ids: Sequence[str] = (),
     code: Mapping[str, Any] | None = None,
+    max_concurrency: int | None = None,
 ) -> str:
     """Fingerprint only reproducibility inputs, excluding run timestamps."""
 
+    if not _uses_v3_fingerprint(benchmark_contract):
+        # Preserve the v1/v2 payload shape so existing run manifests retain
+        # their original fingerprint and remain readable after the v3 audit
+        # fields were introduced.
+        payload = {
+            "model": {} if model is None else dict(model),
+            "backend": {} if backend is None else dict(backend),
+            "data": {} if data is None else dict(data),
+            "benchmark_contract": benchmark_contract,
+            "metric_ks": list(normalize_metric_ks(metric_ks)),
+            "query_ids": [str(query_id) for query_id in query_ids],
+            "code": {} if code is None else dict(code),
+        }
+        validate_no_sensitive_fields(payload)
+        return sha256_json(payload)
+
+    model_info = _fingerprint_value({} if model is None else dict(model))
+    backend_info = _fingerprint_value({} if backend is None else dict(backend))
+    data_info = _fingerprint_value({} if data is None else dict(data))
+    code_info = _fingerprint_value({} if code is None else dict(code))
+    # The execution value is kept outside ``code`` so callers can supply it
+    # explicitly while the manifest still records it inside the code audit.
+    raw_code = {} if code is None else dict(code)
+    code_max_concurrency = raw_code.get("max_concurrency")
+    if max_concurrency is not None:
+        if isinstance(max_concurrency, bool) or not isinstance(max_concurrency, int) or max_concurrency < 1:
+            raise ResultValidationError("max_concurrency must be a positive integer")
+        if code_max_concurrency is not None and code_max_concurrency != max_concurrency:
+            raise ResultValidationError("code.max_concurrency disagrees with max_concurrency")
+        code_max_concurrency = max_concurrency
+        code_info["max_concurrency"] = max_concurrency
+    if code_max_concurrency is not None:
+        if (
+            isinstance(code_max_concurrency, bool)
+            or not isinstance(code_max_concurrency, int)
+            or code_max_concurrency < 1
+        ):
+            raise ResultValidationError("code.max_concurrency must be a positive integer")
+
     payload = {
-        "model": {} if model is None else dict(model),
-        "backend": {} if backend is None else dict(backend),
-        "data": {} if data is None else dict(data),
-        "benchmark_contract": benchmark_contract,
+        "model": model_info,
+        "backend": backend_info,
+        "data": data_info,
+        "benchmark_contract": _fingerprint_value(benchmark_contract),
         "metric_ks": list(normalize_metric_ks(metric_ks)),
         "query_ids": [str(query_id) for query_id in query_ids],
-        "code": {} if code is None else dict(code),
+        "code": code_info,
+        "execution": {"max_concurrency": code_max_concurrency},
     }
     validate_no_sensitive_fields(payload)
     return sha256_json(payload)
@@ -1189,6 +1296,7 @@ def build_run_manifest(
     created_at: str | None = None,
     run_fingerprint: str | None = None,
     max_total_model_tokens: int = DEFAULT_MAX_TOTAL_MODEL_TOKENS,
+    max_concurrency: int | None = None,
 ) -> dict[str, Any]:
     run_id = _require_string(run_id, "run_id")
     model_key = _require_string(model_key, "model_key")
@@ -1203,6 +1311,14 @@ def build_run_manifest(
     backend_info = {} if backend is None else dict(_require_mapping(backend, "backend"))
     data_info = {} if data is None else dict(_require_mapping(data, "data"))
     code_info = {} if code is None else dict(_require_mapping(code, "code"))
+    if max_concurrency is not None:
+        if isinstance(max_concurrency, bool) or not isinstance(max_concurrency, int) or max_concurrency < 1:
+            raise ResultValidationError("max_concurrency must be a positive integer")
+        existing_max = code_info.get("max_concurrency")
+        if existing_max is not None and existing_max != max_concurrency:
+            raise ResultValidationError("code.max_concurrency disagrees with max_concurrency")
+        if _uses_v3_fingerprint(benchmark_contract):
+            code_info["max_concurrency"] = max_concurrency
     computed_fingerprint = compute_run_fingerprint(
         model=model_info,
         backend=backend_info,
@@ -1211,6 +1327,7 @@ def build_run_manifest(
         metric_ks=ks,
         query_ids=selected_query_ids,
         code=code_info,
+        max_concurrency=max_concurrency,
     )
     if run_fingerprint is not None:
         _validate_sha256(run_fingerprint, "run_fingerprint")
@@ -1368,6 +1485,21 @@ def _safe_component(value: str, name: str) -> str:
     return value
 
 
+def sample_directory_name(query_id: str) -> str:
+    """Map an original query ID to one collision-free artifact directory.
+
+    Existing ordinary IDs keep their paths. Escape the reserved prefix as well
+    as unsafe IDs so a literal ID cannot collide with an encoded ID. Only the
+    filesystem path changes; query IDs in samples, labels and manifests do not.
+    """
+    query_id = _require_string(query_id, "query_id")
+    prefix = "~q~"
+    if (query_id in {".", ".."} or query_id.startswith(prefix)
+            or any(char in query_id for char in ("/", "\\", "\x00"))):
+        return prefix + query_id.encode("utf-8").hex()
+    return query_id
+
+
 def run_directory(
     results_root: str | os.PathLike[str],
     *,
@@ -1413,7 +1545,7 @@ def write_sample_result(
     """
 
     validate_sample_result(sample)
-    query_dir = query_directory or str(sample["query_id"])
+    query_dir = query_directory or sample_directory_name(str(sample["query_id"]))
     query_dir = _safe_component(query_dir, "query_directory")
     destination = Path(run_root) / query_dir / "result.json"
     return _write_new_json(destination, sample)
@@ -1517,7 +1649,7 @@ update_run_in_index = update_task_index_run
 
 
 def _read_sample_result_path(run_root: Path, query_id: str) -> tuple[Path, Mapping[str, Any]]:
-    query_dir = _safe_component(query_id, "query_id")
+    query_dir = sample_directory_name(query_id)
     result_path = run_root / query_dir / "result.json"
     payload = read_json(result_path)
     validate_sample_result(payload)
@@ -1554,7 +1686,7 @@ def finalize_run(
         result_path, sample = _read_sample_result_path(root, query_id)
         index_entry = indexed[query_id]
         result_ref = index_entry["result"]
-        expected_path = f"{query_id}/result.json"
+        expected_path = f"{sample_directory_name(query_id)}/result.json"
         if result_ref["path"] != expected_path:
             raise ResultIntegrityError(
                 f"sample result path mismatch for {query_id}: {result_ref['path']}"

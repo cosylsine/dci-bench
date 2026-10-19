@@ -1,0 +1,12 @@
+Use case: infographic-diagram edit.
+Input image: the existing Chinese SELECTIVE retrieval teaching infographic is the edit target.
+Make one localized correction ONLY to the bottom STEP 5 row ("5 校验与评分"), fixing the validation/repair flow. Preserve the complete title, steps 1–4, right-side caveat cards, all example documents and JSON, all typography, colors, canvas dimensions, and footer exactly.
+In STEP 5, keep the left pi-dci validation card and the Host Scorer card. Keep a single clean blue arrow from pi-dci to Host Scorer and label that arrow "有效结果".
+DELETE the current long blue loop above the row, DELETE the red arrow pointing toward Host Scorer, and DELETE the dashed red box at the right. Nothing about invalid results or repairs may have an arrow into the normal Host Scorer path.
+In the freed right-hand area, add a simple small text-only amber note (no diagram arrows connecting to Host Scorer), with three exact readable lines:
+"无效 → 预算内修复"
+"修复后重新校验"
+"修复耗尽 → 失败"
+Under the note, small caption "本例修复仍禁用工具".
+Under the pi-dci and Host Scorer cards, retain the metrics label "Recall / F1 / nDCG · token / 耗时 · trace".
+The bottom row must now unambiguously show: pi-dci validates; valid results go to host scoring; invalid responses are repaired and revalidated, or fail if repair is exhausted. Do not change any other region, wording, ID, example, color or layout.

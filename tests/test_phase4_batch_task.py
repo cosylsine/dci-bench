@@ -9,18 +9,21 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import anyio
+from inspect_ai.util import LimitExceededError
 
 
 try:
     from dci_bench.tasks.mteb_llm_retrieval import (
         BridgePortPool,
         _make_samples,
+        pi_dci_solver,
         _select_query_ids,
         _serialized_bridge_start,
     )
 except (ImportError, OSError):
     BridgePortPool = None
     _make_samples = None
+    pi_dci_solver = None
     _select_query_ids = None
     _serialized_bridge_start = None
 
@@ -171,6 +174,92 @@ class Phase4BatchTaskTest(unittest.TestCase):
 
         anyio.run(exercise)
 
+    def test_pi_timeout_uses_remaining_sample_time_after_bridge_start(self):
+        async def exercise():
+            observed = {"bridge_ready": False}
+
+            @asynccontextmanager
+            async def ready_bridge():
+                observed["bridge_ready"] = True
+                yield object()
+
+            def fake_limits():
+                self.assertTrue(observed["bridge_ready"])
+                return SimpleNamespace(
+                    time=SimpleNamespace(remaining=37.5, limit=600.0, usage=562.5)
+                )
+
+            def fake_run(**kwargs):
+                observed["timeout_seconds"] = kwargs["timeout_seconds"]
+                raise RuntimeError("stop after timeout capture")
+
+            state = SimpleNamespace(
+                metadata={"task": "Task", "query_id": "Q1", "workspace": "/tmp/workspace"},
+                input_text="query",
+                output=SimpleNamespace(),
+            )
+            solve = pi_dci_solver(output_dir="/tmp/output")
+            with (
+                patch(
+                    "dci_bench.tasks.mteb_llm_retrieval.sandbox_agent_bridge",
+                    return_value=ready_bridge(),
+                ),
+                patch(
+                    "dci_bench.tasks.mteb_llm_retrieval.sample_limits",
+                    side_effect=fake_limits,
+                ),
+                patch(
+                    "dci_bench.tasks.mteb_llm_retrieval.run_pi_dci",
+                    side_effect=fake_run,
+                ),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "timeout capture"):
+                    await solve(state, None)
+
+            self.assertEqual(observed["timeout_seconds"], 37.5)
+
+        anyio.run(exercise)
+
+    def test_pi_timeout_limit_exhaustion_skips_pi_runner(self):
+        async def exercise():
+            observed = {"bridge_ready": False}
+
+            @asynccontextmanager
+            async def ready_bridge():
+                observed["bridge_ready"] = True
+                yield object()
+
+            def fake_limits():
+                self.assertTrue(observed["bridge_ready"])
+                return SimpleNamespace(
+                    time=SimpleNamespace(remaining=0.0, limit=600.0, usage=600.0)
+                )
+
+            state = SimpleNamespace(
+                metadata={"task": "Task", "query_id": "Q1", "workspace": "/tmp/workspace"},
+                input_text="query",
+                output=SimpleNamespace(),
+            )
+            solve = pi_dci_solver(output_dir="/tmp/output")
+            with patch(
+                "dci_bench.tasks.mteb_llm_retrieval.sandbox_agent_bridge",
+                return_value=ready_bridge(),
+            ), patch(
+                "dci_bench.tasks.mteb_llm_retrieval.sample_limits",
+                side_effect=fake_limits,
+            ), patch(
+                "dci_bench.tasks.mteb_llm_retrieval.run_pi_dci",
+            ) as run_pi:
+                with self.assertRaises(LimitExceededError) as raised:
+                    await solve(state, None)
+
+            self.assertEqual(raised.exception.type, "time")
+            self.assertGreaterEqual(raised.exception.value, raised.exception.limit)
+            self.assertEqual(raised.exception.limit, 600.0)
+            run_pi.assert_not_called()
+
+        anyio.run(exercise)
+
 
 @unittest.skipUnless(_make_samples is not None, "a working inspect_ai environment is required")
 class Phase4BatchCliTest(unittest.TestCase):
@@ -227,6 +316,13 @@ class Phase4BatchCliTest(unittest.TestCase):
             self.assertEqual(invocation.query_ids, ("Q2", "Q1"))
             self.assertEqual(calls[0][1]["max_samples"], 2)
             self.assertEqual(calls[0][1]["max_connections"], 2)
+            self.assertEqual(calls[0][1]["temperature"], 0)
+            self.assertEqual(calls[0][1]["max_tokens"], 1024)
+            self.assertEqual(calls[0][1]["seed"], 0)
+            self.assertEqual(
+                calls[0][1]["extra_body"],
+                {"chat_template_kwargs": {"enable_thinking": False}},
+            )
             self.assertEqual(make_task.call_args.kwargs["query_ids"], ["Q2", "Q1"])
             self.assertEqual(make_task.call_args.kwargs["model_context_window"], 128000)
             self.assertIn(
@@ -272,6 +368,9 @@ class Phase4BatchCliOfflineTest(unittest.TestCase):
                 self.assertEqual(invocation.query_ids, ("Q2", "Q1"))
                 self.assertEqual(calls[0][1]["max_samples"], 2)
                 self.assertEqual(calls[0][1]["max_connections"], 2)
+                self.assertEqual(calls[0][1]["temperature"], 0)
+                self.assertEqual(calls[0][1]["max_tokens"], 1024)
+                self.assertEqual(calls[0][1]["seed"], 0)
         finally:
             module._select_query_ids = original_selector
             module.mteb_llm_retrieval = original_task

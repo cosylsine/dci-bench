@@ -13,7 +13,7 @@ from dci_bench.results.protocol import compute_run_fingerprint
 
 class TaskInstructionContractTest(unittest.TestCase):
     def test_base_contract_stays_task_neutral(self):
-        self.assertEqual(BENCHMARK_CONTRACT_VERSION, "dci-mvp-v2")
+        self.assertEqual(BENCHMARK_CONTRACT_VERSION, "dci-mvp-v3.3")
         self.assertEqual(
             INSPECT_OUTPUT_CONTRACT["retrieval_scoring_version"],
             "dci-retrieval-scoring-v2",

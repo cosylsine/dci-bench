@@ -1,0 +1,12 @@
+[
+  {
+    "type": "tool_call", "name": "read", "id": "read_function",
+    "arguments": {"path": "src/arithmetic.py", "start_line": 5, "end_line": 6},
+    "usage": {"input": 100, "output": 10}
+  },
+  {
+    "type": "final",
+    "text": "{\"ranked_files\":[\"src/arithmetic.py\"],\"abstain\":false,\"spans\":[{\"path\":\"src/arithmetic.py\",\"start_line\":5,\"end_line\":6}]}",
+    "usage": {"input": 100, "output": 10}
+  }
+]

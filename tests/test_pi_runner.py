@@ -173,6 +173,12 @@ class PiRunnerTest(unittest.TestCase):
                             "usage": {"input": 1, "output": 1},
                         },
                         {
+                            "type": "tool_call",
+                            "name": "read",
+                            "arguments": {"path": "/workspace/corpus/doc_02.md"},
+                            "usage": {"input": 1, "output": 1},
+                        },
+                        {
                             "type": "final",
                             "text": '{"ranked_doc_ids":["doc_02"]}',
                             "usage": {"input": 1, "output": 1},
@@ -192,7 +198,7 @@ class PiRunnerTest(unittest.TestCase):
                 trace_path=trace_path,
                 mock_script=mock_script,
                 openai_api_key=api_secret,
-                max_agent_steps=8,
+                max_agent_steps=10,
             )
 
             trace = trace_path.read_text(encoding="utf-8")
@@ -271,7 +277,7 @@ class PiRunnerTest(unittest.TestCase):
             self.assertFalse(result.usage_summary["available"])
             self.assertIsNone(result.usage_summary["total_model_tokens"])
             payload = json.loads(output_path.read_text(encoding="utf-8"))
-            self.assertEqual(payload["contract_version"], "dci-mvp-v2")
+            self.assertEqual(payload["contract_version"], "dci-mvp-v3.3")
             self.assertEqual(payload["pi_result_version"], "dci-pi-final-v1")
             self.assertTrue(payload["started_at"].endswith("Z"))
             self.assertTrue(payload["completed_at"].endswith("Z"))

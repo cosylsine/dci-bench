@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import math
 import os
+import platform
 import re
 import secrets
 import shutil
@@ -18,7 +20,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
 
-from dci_bench.backends.manifest import load_backend_manifest
+from dci_bench.backends.manifest import (
+    inspect_generation_kwargs,
+    load_backend_manifest,
+    resolved_generation_config_record,
+)
 from dci_bench.data.registry import get_task, validate_task_manifest
 from dci_bench.protocol.contracts import (
     BENCHMARK_CONTRACT_VERSION,
@@ -37,6 +43,7 @@ from dci_bench.results.protocol import (
     finalize_run,
     read_json,
     run_directory,
+    sample_directory_name,
     sha256_bytes,
     sha256_file,
     sha256_json,
@@ -50,6 +57,47 @@ from dci_bench.results.protocol import (
     write_task_result,
 )
 from dci_bench.scoring.retrieval import normalize_metric_ks
+
+
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_ENVIRONMENT_PACKAGES = (
+    "dci-bench",
+    "inspect-ai",
+    "anyio",
+    "jsonschema",
+    "pydantic",
+    "pyarrow",
+)
+_LOCK_FILENAMES = frozenset(
+    {
+        "Pipfile.lock",
+        "poetry.lock",
+        "requirements.lock",
+        "requirements.txt",
+        "npm-shrinkwrap.json",
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        "yarn.lock",
+        "uv.lock",
+    }
+)
+_LOCK_AUDIT_PRUNED_DIRS = frozenset(
+    {
+        ".git",
+        ".mypy_cache",
+        ".nox",
+        ".pytest_cache",
+        ".tox",
+        ".venv",
+        "__pycache__",
+        "build",
+        "data",
+        "dist",
+        "node_modules",
+        "results",
+        "venv",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -82,6 +130,88 @@ def _package_version(name: str) -> str | None:
         return version(name)
     except PackageNotFoundError:
         return None
+
+
+def _binary_identity(command: str, *, version_args: Sequence[str] = ("--version",)) -> dict[str, Any]:
+    """Record a stable binary identity without persisting host paths."""
+
+    executable = shutil.which(command)
+    if executable is None:
+        return {"available": False, "version": None, "sha256": None}
+    path = Path(executable)
+    try:
+        digest = sha256_file(path)
+    except (OSError, FileNotFoundError):
+        digest = None
+    try:
+        completed = subprocess.run(
+            [executable, *version_args],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=5,
+        )
+        output = (completed.stdout or "").strip().splitlines()
+        binary_version = output[0][:256] if output else None
+    except (OSError, subprocess.TimeoutExpired):
+        binary_version = None
+    return {
+        "available": True,
+        "version": binary_version,
+        "sha256": digest,
+    }
+
+
+def _package_lock_audit(repo_root: Path) -> list[dict[str, str]]:
+    records: list[dict[str, str]] = []
+    # Do not recurse through corpus/results or installed JS/Python trees.  A
+    # repository can contain hundreds of thousands of corpus files, and none
+    # of those files can be a lockfile that identifies the runtime.
+    for current_root, dirnames, filenames in os.walk(repo_root, topdown=True):
+        dirnames[:] = sorted(
+            dirname for dirname in dirnames if dirname not in _LOCK_AUDIT_PRUNED_DIRS
+        )
+        root = Path(current_root)
+        for filename in sorted(filenames):
+            if filename not in _LOCK_FILENAMES:
+                continue
+            path = root / filename
+            if not path.is_file():
+                continue
+            records.append(
+                {
+                    "path": path.relative_to(repo_root).as_posix(),
+                    "sha256": sha256_file(path),
+                }
+            )
+    return records
+
+
+def environment_audit(repo_root: Path) -> dict[str, Any]:
+    """Return stable runtime identities used by the run fingerprint.
+
+    Absolute executable paths, hostnames, and interpreter paths are omitted so
+    that moving a checkout or scheduling it on another node does not create a
+    false configuration change.  Availability is explicit for CPU-only tests
+    where bubblewrap or ripgrep may not be installed.
+    """
+
+    return {
+        "python": {
+            "implementation": platform.python_implementation(),
+            "version": platform.python_version(),
+        },
+        "node": _binary_identity("node", version_args=("--version",)),
+        "binaries": {
+            "bwrap": _binary_identity("bwrap", version_args=("--version",)),
+            "rg": _binary_identity("rg", version_args=("--version",)),
+        },
+        "package_versions": {
+            package: _package_version(package) for package in _ENVIRONMENT_PACKAGES
+        },
+        "package_locks": _package_lock_audit(repo_root),
+    }
 
 
 def _git_audit(root: Path) -> dict[str, Any]:
@@ -141,6 +271,7 @@ def code_audit(repo_root: Path) -> dict[str, Any]:
         *sorted((repo_root / "schemas" / "results").glob("*.json")),
         repo_root / "scripts" / "run_task.py",
         repo_root / "scripts" / "run_all.py",
+        repo_root / "scripts" / "cluster_run_sync.py",
         repo_root / "scripts" / "run_phase5_with_sglang.sh",
         repo_root / "scripts" / "run_phase5_qwen38_vllm_node.sh",
         repo_root / "scripts" / "run_phase3_with_sglang.sh",
@@ -161,21 +292,56 @@ def code_audit(repo_root: Path) -> dict[str, Any]:
         "pi": pi_audit,
         "inspect_version": _package_version("inspect-ai"),
         "source_tree_fingerprint": sha256_json(source_hashes),
+        "environment": environment_audit(repo_root),
     }
+
+
+def _canonical_qrels(value: Any, *, path: Path) -> dict[str, dict[str, float]]:
+    """Normalize host-only qrels using the workspace builder hash semantics."""
+
+    if not isinstance(value, Mapping):
+        raise ValueError(f"qrels metadata must be an object: {path}")
+    canonical: dict[str, dict[str, float]] = {}
+    for raw_query_id, raw_docs in value.items():
+        query_id = str(raw_query_id)
+        if not query_id or not isinstance(raw_docs, Mapping) or not raw_docs:
+            raise ValueError(f"invalid qrels entry for {query_id!r}: {path}")
+        docs: dict[str, float] = {}
+        for raw_doc_id, raw_score in raw_docs.items():
+            doc_id = str(raw_doc_id)
+            if not doc_id or isinstance(raw_score, bool) or not isinstance(raw_score, (int, float)):
+                raise ValueError(f"invalid qrels score for {query_id}/{doc_id}: {path}")
+            score = float(raw_score)
+            if not math.isfinite(score):
+                raise ValueError(f"qrels score must be finite for {query_id}/{doc_id}: {path}")
+            docs[doc_id] = score
+        canonical[query_id] = dict(sorted(docs.items()))
+    return dict(sorted(canonical.items()))
 
 
 def data_audit(metadata_root: Path, task: str) -> dict[str, Any]:
     task_root = metadata_root / task
     manifest_path = task_root / "manifest.json"
     queries_path = task_root / "queries.jsonl"
-    if not manifest_path.is_file() or not queries_path.is_file():
-        raise FileNotFoundError(f"missing task metadata manifest or queries under {task_root}")
+    qrels_path = task_root / "qrels.json"
+    if not manifest_path.is_file() or not queries_path.is_file() or not qrels_path.is_file():
+        raise FileNotFoundError(f"missing task metadata manifest, queries, or qrels under {task_root}")
     source = read_json(manifest_path)
     if not isinstance(source, Mapping):
         raise ValueError(f"data manifest must be an object: {manifest_path}")
     task_spec = get_task(task)
     resolved_revision = validate_task_manifest(task_spec, source)
     requested_revision = source.get("revision")
+    qrels = _canonical_qrels(read_json(qrels_path), path=qrels_path)
+    actual_qrels_hash = sha256_json(qrels)
+    expected_qrels_hash = source.get("qrels_hash")
+    if expected_qrels_hash is not None:
+        if not isinstance(expected_qrels_hash, str) or not _SHA256_RE.fullmatch(expected_qrels_hash):
+            raise ValueError("data manifest qrels_hash must be a lowercase SHA-256 digest")
+        if expected_qrels_hash != actual_qrels_hash:
+            raise ValueError(
+                "data manifest qrels_hash does not match the actual host-side qrels.json"
+            )
     return {
         "dataset": source.get("dataset"),
         "requested_revision": requested_revision,
@@ -183,6 +349,8 @@ def data_audit(metadata_root: Path, task: str) -> dict[str, Any]:
         "source_manifest_path": manifest_path.relative_to(metadata_root.parent).as_posix(),
         "source_manifest_sha256": sha256_file(manifest_path),
         "queries_sha256": sha256_file(queries_path),
+        "qrels_hash": actual_qrels_hash,
+        "qrels_hash_expected": expected_qrels_hash,
         "corpus_sha256": source.get("corpus_hash"),
         "source_parquet_sha256": source.get("source_parquet_hash"),
     }
@@ -212,6 +380,9 @@ def _backend_audit(manifest: Mapping[str, Any]) -> tuple[dict[str, Any], dict[st
         raise ValueError("backend manifest requires model and backend objects")
     backend_info = dict(backend)
     backend_info["capabilities"] = dict(manifest.get("capabilities", {}))
+    # Keep the backend manifest's repeated settings and the actual Inspect
+    # authority visibly tied together in every run artifact.
+    backend_info["resolved_generation_config"] = resolved_generation_config_record(backend)
     return dict(model), backend_info
 
 
@@ -378,6 +549,73 @@ def _sample_error(sample: Any) -> str | None:
     return str(message if message is not None else error)
 
 
+_INSPECT_LIMIT_FAILURE_MAP = {
+    "time": "timeout",
+    "working": "timeout",
+    "token": "token_limit",
+    "context": "context_overflow",
+}
+
+
+def _sample_limit_info(sample: Any) -> tuple[str, float | None] | None:
+    """Return the terminal Inspect limit, when one is recorded.
+
+    ``EvalSample.limit`` is an Inspect model in production, while lightweight
+    tests and older callers may provide a mapping or no ``limit`` attribute at
+    all.  Keep the adapter permissive so the absence of this newer field does
+    not change the existing final/error classification path.
+    """
+
+    limit = getattr(sample, "limit", None)
+    if limit is None:
+        return None
+    if isinstance(limit, Mapping):
+        limit_type = limit.get("type")
+        limit_value = limit.get("limit")
+    else:
+        limit_type = getattr(limit, "type", None)
+        limit_value = getattr(limit, "limit", None)
+    if not isinstance(limit_type, str) or not limit_type:
+        return None
+    if isinstance(limit_value, bool) or not isinstance(limit_value, (int, float)):
+        limit_value = None
+    return limit_type, limit_value
+
+
+def _inspect_limit_failure(
+    sample: Any | None,
+    *,
+    secrets_to_remove: Sequence[str],
+) -> dict[str, str] | None:
+    info = _sample_limit_info(sample) if sample is not None else None
+    if info is None:
+        return None
+    limit_type, limit_value = info
+    kind = _INSPECT_LIMIT_FAILURE_MAP.get(limit_type, "agent_error")
+
+    # Preserve Inspect's more specific terminal event text when available;
+    # ``sample.limit`` remains the authority for deciding that a limit was hit.
+    message: str | None = None
+    events = getattr(sample, "events", None)
+    for event in events or ():
+        if isinstance(event, Mapping):
+            event_name = event.get("event")
+            event_type = event.get("type")
+            event_message = event.get("message")
+        else:
+            event_name = getattr(event, "event", None)
+            event_type = getattr(event, "type", None)
+            event_message = getattr(event, "message", None)
+        if event_name == "sample_limit" and event_type == limit_type and isinstance(event_message, str):
+            message = event_message
+            break
+    if not message:
+        message = f"Inspect sample {limit_type} limit exceeded"
+        if limit_value is not None:
+            message += f" ({limit_value:g})"
+    return {"kind": kind, "message": _redact(message, secrets_to_remove)}
+
+
 def _normalize_trajectory(
     *,
     path: Path,
@@ -389,7 +627,27 @@ def _normalize_trajectory(
 ) -> dict[str, Any]:
     payload, read_error = _load_object(path)
     if payload is None:
+        # A cancelled Pi subprocess can leave a truncated JSON trace.  Keep
+        # the bytes in the normalized envelope instead of replacing useful
+        # partial evidence with an empty trace.  The parent launcher is
+        # responsible for making the source file durable before this call.
+        partial_trace: str | None = None
+        if path.is_file():
+            try:
+                partial_trace = path.read_text(encoding="utf-8")
+            except OSError:
+                partial_trace = None
         payload = {"events": [], "messages": [], "trace_unavailable": read_error}
+        if partial_trace is not None:
+            payload["partial_trace"] = partial_trace
+        else:
+            sample_trace = getattr(sample, "trace", None) if sample is not None else None
+            if isinstance(sample_trace, Mapping):
+                payload.update(dict(sample_trace))
+            elif isinstance(sample_trace, Sequence) and not isinstance(
+                sample_trace, (str, bytes, bytearray)
+            ):
+                payload["events"] = list(sample_trace)
     payload["schema_version"] = "dci-trajectory-v1"
     payload["run_id"] = run_id
     payload["task"] = task
@@ -426,6 +684,12 @@ def _failure_for(
     usage: Mapping[str, Any],
     secrets_to_remove: Sequence[str],
 ) -> dict[str, str] | None:
+    inspect_limit_failure = _inspect_limit_failure(
+        inspect_sample,
+        secrets_to_remove=secrets_to_remove,
+    )
+    if inspect_limit_failure is not None:
+        return inspect_limit_failure
     if final is not None:
         failure = final.get("failure")
         if isinstance(failure, Mapping):
@@ -481,7 +745,7 @@ def build_and_publish_sample(
     inspect_artifact: Mapping[str, Any] | None,
     secrets_to_remove: Sequence[str] = (),
 ) -> dict[str, Any]:
-    staged = staging_root / query_id
+    staged = staging_root / sample_directory_name(query_id)
     staged.mkdir(parents=True, exist_ok=True)
     final_path = staged / "final.json"
     trace_path = staged / "trace.json"
@@ -592,7 +856,7 @@ def build_and_publish_sample(
         if name == "inspect_log":
             continue
         verify_artifact_record(record, root=staging_root)
-    destination = run_dir / query_id
+    destination = run_dir / sample_directory_name(query_id)
     if destination.exists():
         raise ResultIntegrityError(f"refusing to replace existing sample directory: {destination}")
     os.replace(staged, destination)
@@ -600,7 +864,7 @@ def build_and_publish_sample(
 
 
 def load_completed_sample(run_dir: Path, query_id: str) -> dict[str, Any] | None:
-    sample_dir = run_dir / query_id
+    sample_dir = run_dir / sample_directory_name(query_id)
     if not sample_dir.exists():
         return None
     result_path = sample_dir / "result.json"
@@ -668,6 +932,9 @@ def execute_phase4(
     model_info, backend_info = _backend_audit(backend_manifest)
     data_info = data_audit(Path(args.metadata_root), args.task)
     code_info = code_audit(repo_root)
+    # Concurrency changes scheduling and bridge-port allocation, so it is a
+    # first-class reproducibility input alongside code and environment.
+    code_info["max_concurrency"] = args.max_concurrency
     task_spec = get_task(args.task)
     contract = protocol_contract(
         task_name=task_spec.name,
@@ -701,6 +968,7 @@ def execute_phase4(
         code=code_info,
         run_fingerprint=fingerprint,
         max_total_model_tokens=MAX_TOTAL_MODEL_TOKENS,
+        max_concurrency=args.max_concurrency,
     )
     if args.resume_run:
         if not run_dir.is_dir() or (run_dir / "_COMPLETE").exists():
@@ -806,11 +1074,14 @@ def execute_phase4(
             "model_args": {"api_key": args.api_key, "responses_api": False},
             "log_dir": str(log_dir),
             "display": "plain",
-            "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
             "max_samples": args.max_concurrency,
             "fail_on_error": False,
             "score_on_error": True,
         }
+        # Inspect 0.3.260 owns the canonical generation kwargs.  The bridge
+        # deliberately keeps forward_generation_config=False, so these values
+        # are the single authority for backend-facing requests.
+        kwargs.update(inspect_generation_kwargs(backend))
         try:
             logs = list(inspect_eval_fn(task, **kwargs))
         except Exception as exc:  # retain per-sample infrastructure failures
@@ -828,7 +1099,7 @@ def execute_phase4(
                 "kind": "infrastructure_error",
                 "message": _redact(str(eval_error), [args.api_key]),
             }
-            sample_stage = staging_root / query_id
+            sample_stage = staging_root / sample_directory_name(query_id)
             sample_stage.mkdir(parents=True, exist_ok=True)
             _placeholder_final(sample_stage / "final.json", failure)
         produced[query_id] = build_and_publish_sample(
@@ -903,6 +1174,7 @@ __all__ = [
     "build_and_publish_sample",
     "code_audit",
     "data_audit",
+    "environment_audit",
     "execute_phase4",
     "inspect_usage",
     "load_completed_sample",

@@ -3,23 +3,36 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import hashlib
 import json
 import os
 import re
 import tempfile
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
+from dci_bench.protocol.contracts import GENERATION_CONFIG, MAX_MODEL_OUTPUT_TOKENS
+
 
 BACKEND_MANIFEST_SCHEMA_VERSION = "dci-backend-manifest-v1"
 _MODEL_KEY_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -63,6 +76,109 @@ def _model_revision(model_path: Path) -> tuple[str | None, str | None, dict[str,
     return None, None, {}
 
 
+def _resolved_generation_config(
+    generation_config: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Return the contract generation config, rejecting backend drift.
+
+    Inspect owns the generation settings for the model call.  A backend
+    manifest may repeat the settings for audit purposes, but it cannot invent
+    a second source of truth.  This check therefore runs both while building
+    and while loading a manifest.
+    """
+
+    expected = deepcopy(GENERATION_CONFIG)
+    if generation_config is not None:
+        try:
+            same = json.dumps(
+                dict(generation_config), sort_keys=True, separators=(",", ":")
+            ) == json.dumps(expected, sort_keys=True, separators=(",", ":"))
+        except (TypeError, ValueError) as exc:
+            raise ValueError("backend generation_config is not JSON-compatible") from exc
+        if not same:
+            raise ValueError(
+                "backend generation_config disagrees with the shared protocol contract"
+            )
+    return expected
+
+
+def resolve_generation_config(
+    backend: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Resolve and validate generation settings used by Inspect.
+
+    ``max_model_output_tokens`` is the contract name for the same output cap
+    that Inspect receives as its canonical ``max_tokens`` generation kwarg.
+    Provider-specific ``enable_thinking`` is carried through ``extra_body``;
+    it is intentionally not passed as an unknown Inspect generation field.
+    """
+
+    section = {} if backend is None else backend
+    if not isinstance(section, Mapping):
+        raise ValueError("backend generation settings must be an object")
+    generation_config = _resolved_generation_config(section.get("generation_config"))
+    recorded_max = section.get("max_model_output_tokens")
+    if recorded_max is not None and (
+        isinstance(recorded_max, bool)
+        or not isinstance(recorded_max, int)
+        or recorded_max != MAX_MODEL_OUTPUT_TOKENS
+    ):
+        raise ValueError(
+            "backend max_model_output_tokens disagrees with the shared protocol contract"
+        )
+    return {
+        "generation_config": generation_config,
+        "max_model_output_tokens": MAX_MODEL_OUTPUT_TOKENS,
+    }
+
+
+def inspect_generation_kwargs(
+    backend: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Return the actual Inspect ``eval`` generation kwargs.
+
+    Only fields understood by Inspect 0.3.260 are emitted as top-level
+    kwargs.  ``enable_thinking`` is an OpenAI-compatible provider extension
+    and is sent in ``extra_body.chat_template_kwargs``.
+    """
+
+    resolved = resolve_generation_config(backend)
+    config = resolved["generation_config"]
+    return {
+        "temperature": config["temperature"],
+        "max_tokens": config["max_tokens"],
+        "seed": config["seed"],
+        "extra_body": {
+            "chat_template_kwargs": {
+                "enable_thinking": config["enable_thinking"],
+            }
+        },
+    }
+
+
+def resolved_generation_config_record(
+    backend: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Return an audit record describing the resolved Inspect authority."""
+
+    resolved = resolve_generation_config(backend)
+    return {
+        "authority": "inspect.eval",
+        "generation_config": deepcopy(resolved["generation_config"]),
+        "max_model_output_tokens": resolved["max_model_output_tokens"],
+    }
+
+
+def _load_runtime_info(path: Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    path = path.resolve(strict=True)
+    if not path.is_file():
+        raise ValueError(f"runtime info must be a regular JSON file: {path}")
+    payload = _read_json(path)
+    return payload
+
+
 def _weight_manifest(model_path: Path, repo_metadata: dict[str, Any]) -> dict[str, Any]:
     metadata_by_name = {
         str(item.get("rfilename")): item
@@ -74,12 +190,23 @@ def _weight_manifest(model_path: Path, repo_metadata: dict[str, Any]) -> dict[st
         metadata = metadata_by_name.get(path.name, {})
         lfs = metadata.get("lfs") if isinstance(metadata.get("lfs"), dict) else {}
         digest = lfs.get("sha256")
+        if digest is not None and (not isinstance(digest, str) or not _SHA256_RE.fullmatch(digest)):
+            raise ValueError(f"invalid Hugging Face LFS SHA-256 for {path.name}")
+        recorded_size = lfs.get("size")
+        if recorded_size is not None:
+            if isinstance(recorded_size, bool) or not isinstance(recorded_size, int) or recorded_size < 0:
+                raise ValueError(f"invalid Hugging Face LFS size for {path.name}")
+            if path.stat().st_size != recorded_size:
+                raise ValueError(
+                    f"local model weight size differs from Hugging Face LFS metadata: {path.name}"
+                )
+        digest_source = "huggingface_lfs" if digest else "local_sha256"
         entries.append(
             {
                 "name": path.name,
                 "size_bytes": path.stat().st_size,
-                "sha256": str(digest) if digest else None,
-                "digest_source": "huggingface_lfs" if digest else None,
+                "sha256": str(digest) if digest else _sha256_file(path),
+                "digest_source": digest_source,
             }
         )
     if not entries:
@@ -105,6 +232,7 @@ def build_sglang_manifest(
     context_length: int,
     dtype: str,
     generation_config: dict[str, Any] | None = None,
+    runtime_info_path: Path | None = None,
 ) -> dict[str, Any]:
     if not _MODEL_KEY_RE.fullmatch(model_key):
         raise ValueError("model_key must match [A-Za-z0-9._-]+")
@@ -140,8 +268,8 @@ def build_sglang_manifest(
             "tensor_parallel_size": tensor_parallel_size,
             "context_length": context_length,
             "dtype": dtype,
-            "generation_config": generation_config
-            or {"temperature": 0, "max_tokens": 1024, "enable_thinking": False},
+            "generation_config": _resolved_generation_config(generation_config),
+            "max_model_output_tokens": MAX_MODEL_OUTPUT_TOKENS,
         },
         "capabilities": {
             "usage_tokens_required": True,
@@ -150,6 +278,9 @@ def build_sglang_manifest(
             "rate_limit_policy": None,
         },
     }
+    runtime_info = _load_runtime_info(runtime_info_path)
+    if runtime_info is not None:
+        payload["backend"]["runtime"] = runtime_info
     payload["manifest_sha256"] = _canonical_sha256(payload)
     return payload
 
@@ -170,6 +301,7 @@ def build_vllm_manifest(
     max_num_seqs: int,
     gpu_memory_utilization: float,
     generation_config: dict[str, Any] | None = None,
+    runtime_info_path: Path | None = None,
 ) -> dict[str, Any]:
     """Build the same audited backend contract for a vLLM OpenAI endpoint."""
 
@@ -189,6 +321,7 @@ def build_vllm_manifest(
         context_length=context_length,
         dtype=dtype,
         generation_config=generation_config,
+        runtime_info_path=runtime_info_path,
     )
     payload["backend"].update(
         kind="vllm",
@@ -204,7 +337,9 @@ def build_vllm_manifest(
     return payload
 
 
-def validate_backend_manifest(payload: dict[str, Any]) -> None:
+def validate_backend_manifest(
+    payload: dict[str, Any], *, generation_contract: Mapping[str, Any] | None = None,
+) -> None:
     if payload.get("schema_version") != BACKEND_MANIFEST_SCHEMA_VERSION:
         raise ValueError(f"unsupported backend manifest schema: {payload.get('schema_version')!r}")
     model = payload.get("model")
@@ -223,6 +358,7 @@ def validate_backend_manifest(payload: dict[str, Any]) -> None:
         "context_length",
         "dtype",
         "generation_config",
+        "max_model_output_tokens",
     )
     missing = [f"model.{key}" for key in required_model if key not in model]
     missing += [f"backend.{key}" for key in required_backend if key not in backend]
@@ -230,6 +366,36 @@ def validate_backend_manifest(payload: dict[str, Any]) -> None:
         raise ValueError(f"backend manifest missing fields: {', '.join(missing)}")
     if not _MODEL_KEY_RE.fullmatch(str(model["model_key"])):
         raise ValueError("backend manifest contains an unsafe model_key")
+    weights = model["weights"]
+    if not isinstance(weights, dict) or not isinstance(weights.get("files"), list) or not weights["files"]:
+        raise ValueError("backend manifest weights.files must be a non-empty array")
+    for index, entry in enumerate(weights["files"]):
+        if not isinstance(entry, dict):
+            raise ValueError(f"backend manifest weights.files[{index}] must be an object")
+        digest = entry.get("sha256")
+        if not isinstance(digest, str) or not _SHA256_RE.fullmatch(digest):
+            raise ValueError(f"backend manifest weights.files[{index}].sha256 must be SHA-256")
+        if entry.get("digest_source") not in {"huggingface_lfs", "local_sha256"}:
+            raise ValueError(
+                f"backend manifest weights.files[{index}].digest_source is unsupported"
+            )
+    all_digests_available = weights.get("all_digests_available")
+    if not isinstance(all_digests_available, bool) or all_digests_available is not True:
+        raise ValueError("backend manifest must contain SHA-256 for every model weight")
+    if weights.get("manifest_sha256") != _canonical_sha256(weights["files"]):
+        raise ValueError("backend manifest weight digest mismatch")
+    if "runtime" in backend and not isinstance(backend["runtime"], dict):
+        raise ValueError("backend manifest runtime must be a JSON object")
+    if generation_contract is None:
+        resolve_generation_config(backend)
+    else:
+        # An independent track can pin its own generation authority. The
+        # default document path still resolves the existing process profile.
+        for key in ("generation_config", "max_model_output_tokens"):
+            if json.dumps(backend[key], sort_keys=True, allow_nan=False) != json.dumps(
+                generation_contract[key], sort_keys=True, allow_nan=False
+            ):
+                raise ValueError(f"backend {key} differs from the selected track contract")
     sanitized = sanitize_base_url(str(backend["base_url"]))
     if sanitized != backend["base_url"]:
         raise ValueError("backend manifest base_url is not canonical")
@@ -280,6 +446,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--tensor-parallel-size", type=int, required=True)
     parser.add_argument("--context-length", type=int, required=True)
     parser.add_argument("--dtype", required=True)
+    parser.add_argument(
+        "--runtime-info",
+        type=Path,
+        help="optional serving-runtime.json to embed in the backend manifest",
+    )
     return parser.parse_args()
 
 
@@ -294,6 +465,7 @@ def main() -> None:
         tensor_parallel_size=args.tensor_parallel_size,
         context_length=args.context_length,
         dtype=args.dtype,
+        runtime_info_path=args.runtime_info,
     )
     if args.vllm_version:
         if args.max_num_seqs is None or args.gpu_memory_utilization is None:
