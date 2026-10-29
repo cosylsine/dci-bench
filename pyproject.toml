@@ -13,6 +13,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+pipeline-models = [
+  "numpy>=1.24",
+  "transformers>=4.45,<5",
+  "sentence-transformers>=3.0,<6",
+]
 test = [
   "pytest>=7",
 ]

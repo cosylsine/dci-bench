@@ -1,0 +1,112 @@
+{
+  "schema_version": "native-qa-gapfill-config-v1",
+  "raw_root": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data",
+  "eval_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data",
+  "research_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/source_research_20261023_round3/native_qa",
+  "quality_policy": {
+    "max_positive_per_query": null,
+    "exclude_review_required": false,
+    "drop_near_duplicates": false
+  },
+  "sources": [
+    {
+      "id": "gapfill_nativeqa_ru",
+      "connector": "generic_jsonl",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "genre": "native QA-derived paragraph retrieval",
+      "language": "ru",
+      "license": "unknown; the accessed DeepPavlov configuration and SberQuAD archive do not state a dataset license",
+      "revision": "sber_squad_clean-v1.1.tar.gz#sha256:5f5ba3e1a9344e72a60b701f8c30b52536df860810654a899dcf441714d0d40a",
+      "metadata": {
+        "source_family": "SberQuAD",
+        "source_scope": "complete train+dev source contexts; official dev queries only",
+        "task_origin": "source extractive QA converted to paragraph retrieval",
+        "query_translation_status": "native",
+        "corpus_language_policy": "same-language source contexts only; no translation or cross-language padding"
+      },
+      "options": {
+        "dataset": "DeepPavlov/SberQuADClean",
+        "archive_url": "https://files.deeppavlov.ai/datasets/sber_squad_clean-v1.1.tar.gz",
+        "archive_sha256": "5f5ba3e1a9344e72a60b701f8c30b52536df860810654a899dcf441714d0d40a",
+        "files": {
+          "documents": {"path": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_nativeqa_ru/canonical_input/documents.jsonl", "name": "data/documents.jsonl"},
+          "queries": {"path": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_nativeqa_ru/canonical_input/queries.jsonl", "name": "data/queries.jsonl"},
+          "qrels": {"path": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_nativeqa_ru/canonical_input/qrels.json", "name": "data/qrels.json"},
+          "evidence": {"path": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_nativeqa_ru/canonical_input/evidence.jsonl", "name": "data/evidence.jsonl"}
+        }
+      },
+      "selection": {"max_queries": null, "seed": 20261023}
+    },
+    {
+      "id": "gapfill_nativeqa_th",
+      "connector": "generic_jsonl",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "genre": "native QA-derived paragraph retrieval",
+      "language": "th",
+      "license": "CC-BY-NC-SA-3.0",
+      "revision": "61a4c4f36babcad721bb6bf9561fff4416a775ae",
+      "metadata": {
+        "source_family": "ThaiQA",
+        "source_scope": "complete train+dev source contexts; official dev queries only",
+        "task_origin": "source extractive QA converted to paragraph retrieval",
+        "query_translation_status": "native",
+        "corpus_language_policy": "same-language source contexts only; no translation or cross-language padding"
+      },
+      "options": {
+        "dataset": "PyThaiNLP/thaiqa_squad",
+        "archive_url": "https://raw.githubusercontent.com/PyThaiNLP/thaiqa_squad/61a4c4f36babcad721bb6bf9561fff4416a775ae/data.zip",
+        "archive_sha256": "6aa58c8a9b52862de166618b9b682d7094f56a1587f9681f3dd617bfd78f95c8",
+        "files": {
+          "documents": {"path": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_nativeqa_th/canonical_input/documents.jsonl", "name": "data/documents.jsonl"},
+          "queries": {"path": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_nativeqa_th/canonical_input/queries.jsonl", "name": "data/queries.jsonl"},
+          "qrels": {"path": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_nativeqa_th/canonical_input/qrels.json", "name": "data/qrels.json"},
+          "evidence": {"path": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_nativeqa_th/canonical_input/evidence.jsonl", "name": "data/evidence.jsonl"}
+        }
+      },
+      "selection": {"max_queries": null, "seed": 20261023}
+    },
+    {
+      "id": "gapfill_nativeqa_tr",
+      "connector": "generic_jsonl",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "genre": "native QA-derived paragraph retrieval",
+      "language": "tr",
+      "license": "unknown; the pinned repository has no explicit data license file",
+      "revision": "3bece60f62569182476fe00683793745ba92c32e",
+      "metadata": {
+        "source_family": "TQuAD",
+        "source_scope": "complete train+dev source contexts; official dev queries only",
+        "task_origin": "source extractive QA converted to paragraph retrieval",
+        "query_translation_status": "native",
+        "corpus_language_policy": "same-language source contexts only; no translation or cross-language padding"
+      },
+      "options": {
+        "dataset": "TQuad/turkish-nlp-qa-dataset",
+        "repository": "https://github.com/TQuad/turkish-nlp-qa-dataset",
+        "revision_commit": "3bece60f62569182476fe00683793745ba92c32e",
+        "files": {
+          "documents": {"path": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_nativeqa_tr/canonical_input/documents.jsonl", "name": "data/documents.jsonl"},
+          "queries": {"path": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_nativeqa_tr/canonical_input/queries.jsonl", "name": "data/queries.jsonl"},
+          "qrels": {"path": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_nativeqa_tr/canonical_input/qrels.json", "name": "data/qrels.json"},
+          "evidence": {"path": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_nativeqa_tr/canonical_input/evidence.jsonl", "name": "data/evidence.jsonl"}
+        }
+      },
+      "selection": {"max_queries": null, "seed": 20261023}
+    }
+  ],
+  "blocked_candidates": [
+    {
+      "id": "FQuAD_fr",
+      "status": "blocked_candidate",
+      "reason": "legacy official storage URLs returned HTTP 403 during a bounded probe; no unverified mirror used"
+    },
+    {
+      "id": "PIAF_fr",
+      "status": "candidate_not_downloaded",
+      "reason": "no stable, size-bounded official train+dev source file identified in this pass"
+    }
+  ]
+}

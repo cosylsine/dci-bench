@@ -1,0 +1,189 @@
+{
+  "schema_version": "dci-source-catalog-v1",
+  "raw_root": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data",
+  "eval_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data",
+  "quality_policy": {
+    "max_positive_per_query": null,
+    "exclude_review_required": false
+  },
+  "sources": [
+    {
+      "id": "domain_fiqa_test",
+      "connector": "beir",
+      "input_kind": "retrieval",
+      "domain": "financial",
+      "language": "en",
+      "revision": "beir-fiqa-20210302",
+      "license": "research-only/non-commercial (FiQA-2018 source terms)",
+      "options": {
+        "dataset": "FiQA-2018 / BEIR fiqa",
+        "archive": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/fiqa.zip",
+        "archive_md5": "17918ed23cd04fb15047f73e6c3bd9d9",
+        "archive_bytes": 17948027,
+        "split": "test",
+        "genre": "financial_question_answering",
+        "max_bytes": 157286400,
+        "max_member_bytes": 536870912,
+        "max_archive_bytes": 536870912,
+        "max_archive_files": 10000,
+        "max_compression_ratio": 100.0,
+        "timeout": 60,
+        "retries": 3
+      },
+      "metadata": {
+        "source_scope": "official BEIR fiqa archive; full corpus retained, test qrels selected",
+        "official_homepage": "https://sites.google.com/view/fiqa/home",
+        "beir_catalog": "https://github.com/beir-cellar/beir",
+        "archive_index": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/",
+        "expected_documents": 57638,
+        "expected_test_queries": 648,
+        "expected_test_relevance_per_query": 2.6,
+        "label_scope": "BEIR test qrels are seed relevance judgments and are not exhaustive negatives",
+        "coverage_limit": "English financial opinion/QA retrieval; does not represent all finance documents or tasks"
+      }
+    },
+    {
+      "id": "domain_nfcorpus_test",
+      "connector": "beir",
+      "input_kind": "retrieval",
+      "domain": "medical",
+      "language": "en",
+      "revision": "beir-nfcorpus-20210115",
+      "license": "CC-BY-SA-4.0 (NFCorpus/BEIR dataset card)",
+      "options": {
+        "dataset": "NFCorpus / BEIR nfcorpus",
+        "archive": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/nfcorpus.zip",
+        "archive_md5": "a89dba18a62ef92f7d323ec890a0d38d",
+        "archive_bytes": 2448432,
+        "split": "test",
+        "genre": "biomedical_nutrition_retrieval",
+        "max_bytes": 157286400,
+        "max_member_bytes": 536870912,
+        "max_archive_bytes": 536870912,
+        "max_archive_files": 10000,
+        "max_compression_ratio": 100.0,
+        "timeout": 60,
+        "retries": 3
+      },
+      "metadata": {
+        "source_scope": "official BEIR NFCorpus archive; full corpus retained, test qrels selected",
+        "official_homepage": "https://www.cl.uni-heidelberg.de/statnlpgroup/nfcorpus/",
+        "dataset_card": "https://huggingface.co/datasets/BeIR/nfcorpus",
+        "beir_catalog": "https://github.com/beir-cellar/beir",
+        "archive_index": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/",
+        "expected_documents": 3633,
+        "expected_test_queries": 323,
+        "expected_test_relevance_per_query": 38.2,
+        "label_scope": "BEIR test qrels are seed relevance judgments and are not exhaustive negatives",
+        "coverage_limit": "English nutrition/biomedical article retrieval; topic and source coverage are bounded by NFCorpus"
+      }
+    },
+    {
+      "id": "domain_scidocs_test",
+      "connector": "beir",
+      "input_kind": "retrieval",
+      "domain": "scientific",
+      "language": "en",
+      "revision": "beir-scidocs-20210301",
+      "license": "CC-BY-4.0 (AllenAI SciDocs repository)",
+      "options": {
+        "dataset": "SciDocs / BEIR scidocs",
+        "archive": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/scidocs.zip",
+        "archive_md5": "38121350fc3a4d2f48850f6aff52e4a9",
+        "archive_bytes": 142471588,
+        "split": "test",
+        "genre": "scientific_citation_prediction",
+        "max_bytes": 157286400,
+        "max_member_bytes": 536870912,
+        "max_archive_bytes": 1073741824,
+        "max_archive_files": 10000,
+        "max_compression_ratio": 100.0,
+        "timeout": 90,
+        "retries": 3
+      },
+      "metadata": {
+        "source_scope": "official BEIR SciDocs archive; full corpus retained, test qrels selected",
+        "official_homepage": "https://github.com/allenai/scidocs",
+        "license_source": "https://github.com/allenai/scidocs/blob/master/LICENSE",
+        "beir_catalog": "https://github.com/beir-cellar/beir",
+        "archive_index": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/",
+        "expected_documents": 25657,
+        "expected_test_queries": 1000,
+        "expected_test_relevance_per_query": 4.9,
+        "label_scope": "BEIR test qrels are citation-prediction judgments and are not exhaustive negatives",
+        "coverage_limit": "English scientific-paper metadata/citation retrieval; does not cover all disciplines or full paper text"
+      }
+    },
+    {
+      "id": "domain_arguana_test",
+      "connector": "beir",
+      "input_kind": "retrieval",
+      "domain": "argumentation",
+      "language": "en",
+      "revision": "beir-arguana-20210123",
+      "license": "BEIR archive; original ArguAna terms must be checked before redistribution",
+      "options": {
+        "dataset": "ArguAna / BEIR arguana",
+        "archive": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/arguana.zip",
+        "archive_md5": "8ad3e3c2a5867cdced806d6503f29b99",
+        "archive_bytes": 3773617,
+        "split": "test",
+        "genre": "argument_retrieval",
+        "max_bytes": 157286400,
+        "max_member_bytes": 536870912,
+        "max_archive_bytes": 536870912,
+        "max_archive_files": 10000,
+        "max_compression_ratio": 100.0,
+        "timeout": 60,
+        "retries": 3
+      },
+      "metadata": {
+        "source_scope": "official BEIR ArguAna archive; full corpus retained, test qrels selected",
+        "official_homepage": "https://argumentation.bplaced.net/arguana/",
+        "beir_catalog": "https://github.com/beir-cellar/beir",
+        "archive_index": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/",
+        "expected_documents": 8674,
+        "expected_test_queries": 1406,
+        "expected_test_relevance_per_query": 1.0,
+        "label_scope": "BEIR test qrels are argument-relevance judgments and are not exhaustive negatives",
+        "coverage_limit": "Argument retrieval from online debate content; this is legal-adjacent only and is not a legal corpus"
+      }
+    },
+    {
+      "id": "domain_qasper_dev_fullcorpus",
+      "connector": "qasper",
+      "input_kind": "evidence_qa",
+      "domain": "scientific",
+      "language": "en",
+      "revision": "v0.3-train-dev",
+      "license": "CC-BY-4.0 (existing QASPER source declaration)",
+      "options": {
+        "dataset": "QASPER",
+        "path": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/domain_qasper_dev_fullcorpus/input/qasper-full-v0.3.json",
+        "split": "dev_qrels",
+        "genre": "scientific_papers",
+        "max_bytes": 67108864,
+        "max_member_bytes": 134217728,
+        "max_archive_bytes": 268435456,
+        "max_archive_files": 1000,
+        "max_compression_ratio": 100.0,
+        "timeout": 60,
+        "retries": 3
+      },
+      "metadata": {
+        "source_scope": "official QASPER v0.3 train+dev corpus; train qas stripped from the derived input while dev qas/qrels are retained",
+        "archive_url": "https://qasper-dataset.s3.us-west-2.amazonaws.com/qasper-train-dev-v0.3.tgz",
+        "source_archive_bytes": 10835856,
+        "source_archive_sha256": "a28fdf966db827bcee3d873107d6b6669864fb7ca8fbf73a192f5e39191bdb5a",
+        "derived_input_sha256": "d30e470275b7a2929eb74c90d962394f5a60dbd1040009a3733e533bfc13ea3e",
+        "official_homepage": "https://qasper-dataset.github.io/",
+        "license_source": "https://github.com/allenai/qasper/blob/master/README.md",
+        "expected_documents": 1169,
+        "expected_test_queries": 465,
+        "expected_test_relevance_per_query": 1.0,
+        "label_scope": "Dev qrels come from the existing QASPER evidence policy; train qas are omitted from this view without synthesizing labels",
+        "coverage_limit": "English NLP scientific papers; dev query/qrels coverage remains 465 retained answerable textual-evidence questions"
+      }
+    }
+  ]
+}

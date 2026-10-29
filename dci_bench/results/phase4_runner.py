@@ -26,6 +26,7 @@ from dci_bench.backends.manifest import (
     resolved_generation_config_record,
 )
 from dci_bench.data.registry import get_task, validate_task_manifest
+from dci_bench.data.document_runtime import audit_document_ids
 from dci_bench.protocol.contracts import (
     BENCHMARK_CONTRACT_VERSION,
     MAX_TOTAL_MODEL_TOKENS,
@@ -332,16 +333,26 @@ def data_audit(metadata_root: Path, task: str) -> dict[str, Any]:
     task_spec = get_task(task)
     resolved_revision = validate_task_manifest(task_spec, source)
     requested_revision = source.get("revision")
-    qrels = _canonical_qrels(read_json(qrels_path), path=qrels_path)
+    raw_qrels = read_json(qrels_path)
+    qrels = _canonical_qrels(raw_qrels, path=qrels_path)
     actual_qrels_hash = sha256_json(qrels)
     expected_qrels_hash = source.get("qrels_hash")
     if expected_qrels_hash is not None:
         if not isinstance(expected_qrels_hash, str) or not _SHA256_RE.fullmatch(expected_qrels_hash):
             raise ValueError("data manifest qrels_hash must be a lowercase SHA-256 digest")
-        if expected_qrels_hash != actual_qrels_hash:
+        # Pool/export manifests hash the source JSON, which may use integer
+        # relevance grades. Older manifests hash float-normalized grades.
+        # Validate either declared representation while keeping result hashes
+        # canonical; both bind every query, document and relevance value.
+        if expected_qrels_hash not in {sha256_json(raw_qrels), actual_qrels_hash}:
             raise ValueError(
                 "data manifest qrels_hash does not match the actual host-side qrels.json"
             )
+    document_identity = audit_document_ids(task_root, dict(source))
+    pool_path = task_root / "candidate_pools.json"
+    if pool_path.exists():
+        document_identity["candidate_pools_sha256"] = sha256_file(pool_path)
+        document_identity["pool_completion_sha256"] = sha256_file(task_root / "_COMPLETE.json")
     return {
         "dataset": source.get("dataset"),
         "requested_revision": requested_revision,
@@ -353,6 +364,7 @@ def data_audit(metadata_root: Path, task: str) -> dict[str, Any]:
         "qrels_hash_expected": expected_qrels_hash,
         "corpus_sha256": source.get("corpus_hash"),
         "source_parquet_sha256": source.get("source_parquet_hash"),
+        **document_identity,
     }
 
 
@@ -402,7 +414,11 @@ def preflight_bridge_ports(base_port: int, max_concurrency: int) -> tuple[int, .
         for port in ports:
             listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
+                # Match the bridge server: a closed connection's TIME_WAIT
+                # must not block the next batch, but a live listener must.
+                listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 listener.bind(("127.0.0.1", port))
+                listener.listen(1)
             except OSError as exc:
                 listener.close()
                 raise ValueError(f"bridge port {port} is unavailable: {exc}") from exc
@@ -744,6 +760,7 @@ def build_and_publish_sample(
     inspect_sample: Any | None,
     inspect_artifact: Mapping[str, Any] | None,
     secrets_to_remove: Sequence[str] = (),
+    seal: bool = False,
 ) -> dict[str, Any]:
     staged = staging_root / sample_directory_name(query_id)
     staged.mkdir(parents=True, exist_ok=True)
@@ -816,6 +833,9 @@ def build_and_publish_sample(
     }
     if inspect_artifact is not None:
         artifacts["inspect_log"] = dict(inspect_artifact)
+    runtime_timing = staged / "runtime-timing.json"
+    if runtime_timing.is_file():
+        artifacts["runtime_timing"] = artifact_record(runtime_timing, root=staging_root)
     sample_result = build_sample_result(
         run_id=run_id,
         task=task,
@@ -856,6 +876,15 @@ def build_and_publish_sample(
         if name == "inspect_log":
             continue
         verify_artifact_record(record, root=staging_root)
+    if seal:
+        write_json_atomic(
+            staged / "_COMPLETE",
+            {
+                "schema_version": "dci-query-result-complete-v1",
+                "query_id": query_id,
+                "result_sha256": sha256_json(sample_result),
+            },
+        )
     destination = run_dir / sample_directory_name(query_id)
     if destination.exists():
         raise ResultIntegrityError(f"refusing to replace existing sample directory: {destination}")
@@ -863,7 +892,12 @@ def build_and_publish_sample(
     return sample_result
 
 
-def load_completed_sample(run_dir: Path, query_id: str) -> dict[str, Any] | None:
+def load_completed_sample(
+    run_dir: Path,
+    query_id: str,
+    *,
+    require_marker: bool = False,
+) -> dict[str, Any] | None:
     sample_dir = run_dir / sample_directory_name(query_id)
     if not sample_dir.exists():
         return None
@@ -878,6 +912,22 @@ def load_completed_sample(run_dir: Path, query_id: str) -> dict[str, Any] | None
         raise ResultIntegrityError(f"sample query identity mismatch: {result_path}")
     for record in payload["artifacts"].values():
         verify_artifact_record(record, root=run_dir)
+    marker_path = sample_dir / "_COMPLETE"
+    if marker_path.is_file():
+        marker = read_json(marker_path)
+        if not isinstance(marker, dict):
+            raise ResultIntegrityError(f"query completion marker is not an object: {marker_path}")
+        if marker.get("schema_version") != "dci-query-result-complete-v1":
+            raise ResultIntegrityError(f"query completion marker schema mismatch: {marker_path}")
+        if marker.get("query_id") != query_id:
+            raise ResultIntegrityError(f"query completion marker identity mismatch: {marker_path}")
+        expected = marker.get("result_sha256")
+        if not isinstance(expected, str) or not _SHA256_RE.fullmatch(expected):
+            raise ResultIntegrityError(f"query completion marker hash is invalid: {marker_path}")
+        if sha256_json(payload) != expected:
+            raise ResultIntegrityError(f"query result digest mismatch: {result_path}")
+    elif require_marker:
+        raise ResultIntegrityError(f"missing query completion marker: {marker_path}")
     return payload
 
 
@@ -939,6 +989,10 @@ def execute_phase4(
     contract = protocol_contract(
         task_name=task_spec.name,
         task_instruction=task_spec.task_instruction,
+    )
+    incremental_v2 = (
+        str(contract.get("protocol_profile", "")).startswith("document-pool-v2-")
+        or contract.get("benchmark_contract_version") == "dci-document-pool-v2"
     )
     fingerprint = compute_run_fingerprint(
         model=model_info,
@@ -1022,7 +1076,11 @@ def execute_phase4(
     existing: dict[str, dict[str, Any]] = {}
     pending: list[str] = []
     for query_id in selected_query_ids:
-        sample = load_completed_sample(run_dir, query_id)
+        sample = load_completed_sample(
+            run_dir,
+            query_id,
+            require_marker=bool(args.resume_run and incremental_v2),
+        )
         if sample is None:
             pending.append(query_id)
         else:
@@ -1038,13 +1096,19 @@ def execute_phase4(
     # directories with verified hashes are eligible for skipping.
     stale_staging = run_dir / ".staging"
     if args.resume_run and stale_staging.exists():
-        shutil.rmtree(stale_staging)
+        if str(contract.get("protocol_profile", "")).startswith("document-pool-v2-"):
+            interrupted = run_dir / "artifacts" / ("interrupted-staging-" + secrets.token_hex(8))
+            interrupted.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(stale_staging), str(interrupted))
+        else:
+            shutil.rmtree(stale_staging)
 
     query_texts = load_query_texts(Path(args.metadata_root), args.task)
     evaluation_started = time.monotonic()
     logs: list[Any] = []
     eval_error: Exception | None = None
     staging_root = run_dir / ".staging" / secrets.token_hex(8)
+    published: dict[str, dict[str, Any]] = {}
     if pending:
         staging_root.mkdir(parents=True)
         if task_factory is None:
@@ -1082,10 +1146,50 @@ def execute_phase4(
         # deliberately keeps forward_generation_config=False, so these values
         # are the single authority for backend-facing requests.
         kwargs.update(inspect_generation_kwargs(backend))
-        try:
-            logs = list(inspect_eval_fn(task, **kwargs))
-        except Exception as exc:  # retain per-sample infrastructure failures
-            eval_error = exc
+        if str(contract.get("protocol_profile", "")).startswith("document-pool-v2-"):
+            # An unrecorded provider retry spends money/tokens outside the trace.
+            kwargs.update(max_retries=0, retry_on_error=0)
+            kwargs["model_args"]["max_retries"] = 0
+        from dci_bench.tasks.mteb_llm_retrieval import workspace_prefetch_lifecycle
+
+        def publish_incremental(query_id: str, inspect_sample: Any) -> dict[str, Any]:
+            # The Inspect .eval file is shared and still mutable while a batch
+            # is running.  Query publication therefore records only the
+            # finalized per-query result and trajectory artifacts.
+            return build_and_publish_sample(
+                run_dir=run_dir,
+                staging_root=staging_root,
+                run_id=run_id,
+                task=args.task,
+                query_id=query_id,
+                query_text=query_texts[query_id],
+                metric_ks=metric_ks,
+                inspect_sample=inspect_sample,
+                inspect_artifact=None,
+                secrets_to_remove=[args.api_key],
+                seal=True,
+            )
+
+        if incremental_v2:
+            from dci_bench.results.incremental import incremental_publication
+
+            with incremental_publication(
+                expected_query_ids=pending,
+                publish=publish_incremental,
+            ) as publication:
+                try:
+                    with workspace_prefetch_lifecycle(task):
+                        logs = list(inspect_eval_fn(task, **kwargs))
+                except Exception as exc:  # retain per-sample infrastructure failures
+                    eval_error = exc
+                publication.raise_if_errors()
+            published = dict(publication.published)
+        else:
+            try:
+                with workspace_prefetch_lifecycle(task):
+                    logs = list(inspect_eval_fn(task, **kwargs))
+            except Exception as exc:  # retain per-sample infrastructure failures
+                eval_error = exc
     evaluation_elapsed = time.monotonic() - evaluation_started
 
     inspect_by_id = _inspect_sample_map(logs)
@@ -1093,6 +1197,15 @@ def execute_phase4(
     shared_inspect = inspect_records[0] if len(inspect_records) == 1 else None
     produced: dict[str, dict[str, Any]] = {}
     for query_id in pending:
+        if query_id in published:
+            # The sample-end hook already atomically moved this Qxx directory
+            # into the run.  Reuse the exact canonical bytes and never run the
+            # batch-end adapter over it again.
+            produced[query_id] = (
+                load_completed_sample(run_dir, query_id, require_marker=incremental_v2)
+                or published[query_id]
+            )
+            continue
         inspect_sample = inspect_by_id.get(query_id)
         if eval_error is not None and inspect_sample is None:
             failure = {
@@ -1113,6 +1226,7 @@ def execute_phase4(
             inspect_sample=inspect_sample,
             inspect_artifact=shared_inspect,
             secrets_to_remove=[args.api_key],
+            seal=incremental_v2,
         )
     if staging_root.exists():
         shutil.rmtree(staging_root)
@@ -1155,6 +1269,9 @@ def execute_phase4(
             },
         )
         write_task_result(run_dir, task_result)
+    if incremental_v2:
+        for query_id in selected_query_ids:
+            load_completed_sample(run_dir, query_id, require_marker=True)
     finalize_run(run_dir, manifest=manifest, task_result=task_result)
     update_task_index_run(index_path, run=_manifest_entry(manifest, "complete"))
     valid = sum(bool(sample["valid_output"]) for sample in ordered_samples)

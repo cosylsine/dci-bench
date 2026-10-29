@@ -1,0 +1,71 @@
+{
+  "schema_version": "document-pool-v1",
+  "scope": "dataset-neutral",
+  "id_policy": {
+    "version": "short-document-id-v1",
+    "filename_suffix": ".md",
+    "submission": "exact_alias_id_no_normalization",
+    "read_metadata": "doc_id derived by decoding the corpus filename exactly once",
+    "filename_to_id_example": "d000001.md -> d000001",
+    "aliases": [
+      "d000001"
+    ],
+    "declared_aliases": {
+      "d000001.md": "d000001"
+    }
+  },
+  "retriever": {
+    "kind": "embedding",
+    "model": "KaLM-embedding-multilingual-mini-instruct-v2_5",
+    "model_path": "/mnt/afs/share/embedding_models/KaLM-embedding-multilingual-mini-instruct-v2_5",
+    "trust_remote_code": true,
+    "offline": true,
+    "planning_only": true,
+    "load_model": false
+  },
+  "prompt_policy": {
+    "initial_prompt_template": "Execution budget: at most {max_total_model_tokens} cumulative input plus output model tokens for this query. Replaying the conversation on each request also spends this budget. Stop searching once the inspected evidence supports your answer. Avoid repeating identical tool calls. The harness may end the search phase when the remaining budget is low or identical calls repeat; any final answer must still satisfy the read-evidence and JSON rules.",
+    "final_prompt": "The search phase is now complete: {reason}. The remaining cumulative model-token budget is {remaining_tokens}. Tools are disabled for the final response. Before submitting, review the inspected evidence against the query and task instruction. Keep each document that provides evidence relevant to the requested information; shared keywords, a similar topic, or a successful read alone are insufficient. Retain multiple relevant documents when supported; do not reduce the answer to one merely for brevity. Remove unsupported candidates and rank the retained documents by relevance. Return only the final JSON object with ranked_doc_ids, at most 10 unique document IDs. Copy exact doc_id values from nonempty read results. Filenames are not IDs (d000001.md -> d000001). Do not add documents merely to fill slots.",
+    "final_repair_prompt": "The previous final response cannot be accepted: {reason}. Tools remain disabled. Use only the corpus evidence already inspected. Copy exact doc_id values from nonempty read results; every submitted ID must exist in the corpus. Filenames are not IDs (d000001.md -> d000001). Return only a JSON object with ranked_doc_ids containing 1 to 10 unique document IDs, ranked by relevance. Do not add documents merely to fill slots."
+  },
+  "profiles": {
+    "document-pool-v1-small": {
+      "tier": "small"
+    },
+    "document-pool-v1-medium": {
+      "tier": "medium"
+    },
+    "document-pool-v1-large": {
+      "tier": "large"
+    }
+  },
+  "tiers": {
+    "small": {
+      "capacity": 200,
+      "max_total_model_tokens": 96000,
+      "reserve_tokens": 24000,
+      "context_window": 65536,
+      "max_model_output_tokens": 1024,
+      "max_final_output_tokens": 1024,
+      "sample_timeout_seconds": 600
+    },
+    "medium": {
+      "capacity": 500,
+      "max_total_model_tokens": 128000,
+      "reserve_tokens": 32000,
+      "context_window": 65536,
+      "max_model_output_tokens": 1024,
+      "max_final_output_tokens": 1024,
+      "sample_timeout_seconds": 600
+    },
+    "large": {
+      "capacity": 1000,
+      "max_total_model_tokens": 192000,
+      "reserve_tokens": 48000,
+      "context_window": 65536,
+      "max_model_output_tokens": 1024,
+      "max_final_output_tokens": 1024,
+      "sample_timeout_seconds": 600
+    }
+  }
+}

@@ -10,7 +10,7 @@
 
 冻结完整 prompts/controller、128k 累计 token 预算及 reserve、输出/steps/time 上限、stable-rg、read/ID/sandbox 规则、生成设置和评分定义。至少一个非空 read 的规则保持原样；它不保证所有返回文档分别有 read receipt。ordinary repair 与 tools-disabled final repair 保留各自行为。
 
-协议采用记录：`results/protocol-freezes/20261015-selective-document-v1/release.json`。底层原始执行快照仍是 `results/protocol-freezes/20261015-selective-full-v1/runtime`。将来任何影响模型行为或评分的调整都另开版本，保留 v1 和既有结果。模型/权重与实际服务环境仍通过每次运行的 backend manifest 单独固定。
+协议采用记录：`releases/protocol-freezes/20261015-selective-document-v1/release.json`。底层原始执行快照仍是 `releases/protocol-freezes/20261015-selective-full-v1/runtime`。将来任何影响模型行为或评分的调整都另开版本，保留 v1 和既有结果。模型/权重与实际服务环境仍通过每次运行的 backend manifest 单独固定。
 
 ## 数据已准备好，无需重新下载或清洗
 
@@ -44,7 +44,7 @@
 
 WixQA 的原始 query ID 如 `expertwritten/0` 含斜杠。旧 runner 能加载它，却把原始 ID 直接当结果目录，发布/完成校验时会失败。新增 `sample_directory_name()` 只编码落盘目录；原始 query ID、qrels、Inspect metadata、查询文本和排序文档 ID 保持不变。普通 ID 保留旧路径，保留前缀也会被转义以避免碰撞。
 
-独立扩展执行快照位于 `results/expansion-runtimes/20261015-selective-document-v1`，其 `adapter.json` 和 `host-artifact-paths.patch` 固定三个 Python 文件的变更。Pi 和原 selective 契约继续引用不可变的原始快照。此项为 host 结果路径适配，不重新定义 selective 的检索行为。
+独立扩展执行快照位于 `releases/expansion-runtimes/20261015-selective-document-v1`，其 `adapter.json` 和 `host-artifact-paths.patch` 固定三个 Python 文件的变更。Pi 和原 selective 契约继续引用不可变的原始快照。此项为 host 结果路径适配，不重新定义 selective 的检索行为。
 
 49 项相关单元/回归测试通过，包括四类特殊 ID 的完整结果发布及恢复读取、旧目录兼容、数据分区闭合、已有输出拒绝覆盖及禁止替换 runtime 后改动冻结契约。验证没有调用模型。另核对全部 2,399 个查询的目录映射无冲突，原六任务 527 个目录名完全保持原样。
 
@@ -83,7 +83,7 @@ WixQA 的原始 query ID 如 `expertwritten/0` 含斜杠。旧 runner 能加载�
 
 ```bash
 /mnt/afs/250010100/miniconda/envs/dci-bench/bin/python -B \
-  results/expansion-runtimes/20261015-selective-document-v1/verify_snapshot.py \
+  releases/expansion-runtimes/20261015-selective-document-v1/verify_snapshot.py \
   --data-index /mnt/afs2/202609/embedding_models/dci-bench/eval_data/dci_protocol_20261015_v2
 ```
 

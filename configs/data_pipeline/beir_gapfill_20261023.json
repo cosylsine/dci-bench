@@ -1,0 +1,130 @@
+{
+  "schema_version": "dci-beir-gapfill-catalog-v2",
+  "raw_root": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data",
+  "eval_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data",
+  "research_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/source_research_20261023_round3/beir",
+  "download_limits": {
+    "per_source_bytes": 314572800,
+    "total_bytes": 629145600,
+    "direct_hf_retries": 0
+  },
+  "quality_policy": {
+    "max_positive_per_query": null,
+    "exclude_review_required": false
+  },
+  "sources": [
+    {
+      "id": "gapfill_beir_cqadupstack_android",
+      "connector": "generic_jsonl",
+      "input_kind": "retrieval",
+      "domain": "software",
+      "language": "en",
+      "genre": "duplicate_question_retrieval",
+      "revision": "MTEB/cqadupstack-retrieval@c48cee56fcdafa78803dfb8674c53b3a9752cef9",
+      "license": "CC-BY-SA-4.0 (BEIR card; underlying Stack Exchange terms may vary by post date)",
+      "metadata": {
+        "source_family": "CQADupStack",
+        "source_scope": "complete BEIR CQADupStack Android title-only sentence view from the pinned MTEB mirror; original corpus body text is unavailable in this view",
+        "task_origin": "BEIR duplicate-question retrieval; Android Stack Exchange forum",
+        "translation_status": "native",
+        "source_language": "en",
+        "source_forum": "android.stackexchange.com",
+        "source_catalog": "https://github.com/beir-cellar/beir/blob/main/README.md",
+        "source_dataset_card": "https://huggingface.co/datasets/BeIR/cqadupstack",
+        "source_qrels_card": "https://huggingface.co/datasets/BeIR/cqadupstack-qrels",
+        "source_qrels_file": "https://huggingface.co/datasets/BeIR/cqadupstack-qrels/blob/main/android/test.tsv",
+        "source_mirror": "https://www.modelscope.cn/datasets/MTEB/cqadupstack-retrieval",
+        "source_mirror_file": "data/android-00000-of-00001.json.gz",
+        "source_mirror_revision": "c48cee56fcdafa78803dfb8674c53b3a9752cef9",
+        "source_mirror_bytes": 555190,
+        "source_mirror_sha256": "b4e7db4c1c3879939404677876a363af2f14e0c94e21ad4455b49f790cd6bddf",
+        "expected_counts": {
+          "corpus_documents": 22998,
+          "test_queries": 699,
+          "test_positive_pairs": 1696
+        },
+        "label_scope": "Native BEIR test qrels; unjudged documents are not negatives",
+        "title_limit": "The MTEB mirror exposes sentence text and IDs, without a separate title field; title is retained as empty and this limitation is recorded per record.",
+        "official_fulltext": {
+          "source_scope": "complete official BEIR CQADupStack Android corpus with title+body text, native test queries, and test qrels",
+          "archive_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/cqadupstack.zip",
+          "archive_bytes": 5343728040,
+          "central_directory_offset": 5343721733,
+          "central_directory_bytes": 6209,
+          "central_directory_sha256": "c1f8e7ec15d84e1514824dab6da3d9d5b732b9fefada956f4460ea65ecac965b",
+          "member_scope": "cqadupstack/android/{corpus.jsonl,queries.jsonl,qrels/test.tsv}",
+          "compressed_member_bytes": 97987241,
+          "uncompressed_member_bytes": 280652465,
+          "member_sha256": {
+            "corpus.jsonl": "aa1bad1bd193e374da8bf30299487d24059c7555a2d437f33e15b7e071cbae95",
+            "queries.jsonl": "bb3bf827bc5d295297ce311ff3e6a3c48b0df4384688c8a3d762993ff3926997",
+            "qrels/test.tsv": "8965c2259e76144f857a36b197f2dedf073e838c5196e6720990ba10251e322b"
+          }
+        }
+      },
+      "options": {
+        "adapter": "modelscope_mteb_retrieval_json_gz",
+        "dataset": "MTEB/cqadupstack-retrieval",
+        "modelscope_file": "data/android-00000-of-00001.json.gz",
+        "modelscope_url": "https://www.modelscope.cn/api/v1/datasets/MTEB/cqadupstack-retrieval/repo?Source=SDK&Revision=c48cee56fcdafa78803dfb8674c53b3a9752cef9&FilePath=data/android-00000-of-00001.json.gz",
+        "modelscope_revision": "c48cee56fcdafa78803dfb8674c53b3a9752cef9",
+        "modelscope_bytes": 555190,
+        "modelscope_sha256": "b4e7db4c1c3879939404677876a363af2f14e0c94e21ad4455b49f790cd6bddf",
+        "split": "test",
+        "max_bytes": 314572800,
+        "timeout": 60,
+        "retries": 1
+      }
+    },
+    {
+      "id": "gapfill_beir_quora",
+      "connector": "beir",
+      "input_kind": "retrieval",
+      "domain": "general_qa",
+      "language": "en",
+      "genre": "duplicate_question_retrieval",
+      "revision": "beir-quora-20210302",
+      "license": "CC-BY-SA-4.0 (BEIR card; verify upstream Quora/Stack Exchange terms for redistribution)",
+      "materialization": {
+        "kind": "official_beir_archive",
+        "archive_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/quora.zip",
+        "archive_bytes": 15853968,
+        "archive_md5": "18fb154900ba42a600f84b839c173167",
+        "expected_counts": {
+          "all_queries": 15000,
+          "corpus_documents": 522931,
+          "test_positive_pairs": 15675,
+          "test_qrels_queries": 10000
+        }
+      },
+      "metadata": {
+        "source_family": "Quora",
+        "source_scope": "official BEIR Quora archive, complete corpus and test qrels",
+        "task_origin": "BEIR duplicate-question retrieval",
+        "translation_status": "native",
+        "query_origin": "native English Quora duplicate-question queries",
+        "source_catalog": "https://github.com/beir-cellar/beir/blob/main/README.md",
+        "source_archive": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/quora.zip",
+        "source_archive_md5": "18fb154900ba42a600f84b839c173167",
+        "source_homepage": "https://www.quora.com/",
+        "expected_counts": {
+          "all_queries": 15000,
+          "corpus_documents": 522931,
+          "test_positive_pairs": 15675,
+          "test_qrels_queries": 10000
+        },
+        "label_scope": "Native BEIR test qrels; unjudged documents are not negatives"
+      },
+      "options": {
+        "archive": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_beir_quora/acquisition-20261023T095213Z/source_inputs/quora.zip",
+        "archive_bytes": 15853968,
+        "archive_sha256": "56aacd9dcc4d9c093b63f175afdda0e21cbc8442ecf6c717d09de7b358d77531",
+        "max_archive_bytes": 536870912,
+        "max_archive_files": 1000,
+        "max_compression_ratio": 200.0,
+        "max_member_bytes": 268435456,
+        "split": "test"
+      }
+    }
+  ]
+}

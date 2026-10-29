@@ -18,7 +18,7 @@ import subprocess
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / 'results/protocol-freezes/20261015-selective-full-v1'
+SOURCE = ROOT / 'releases/protocol-freezes/20261015-selective-full-v1'
 RUNTIME = SOURCE / 'runtime'
 SOURCE_RUNTIME = RUNTIME
 FULL = ROOT / 'results/Qwen3.8-27B/full-selective-runs/20261015T071454Z-selective-full-1'
@@ -30,12 +30,27 @@ CONTRACT = 'c6f4a9e46de4f0ebf9b21aca6f73c86a7b1dfd726783362bc3c476807be6419f'
 SEED = '20261015-selective-expansion-v1'
 
 
+def code_path(path):
+    """Resolve archived code references without rewriting historical manifests."""
+    path = Path(path)
+    for group in ('protocol-freezes', 'expansion-runtimes', 'harness-confirmations',
+                  'harness-continuations', 'harness-replays', 'size-budget-experiments'):
+        old = ROOT / 'results' / group
+        if path.is_relative_to(old):
+            return ROOT / 'releases' / group / path.relative_to(old)
+    if path.is_relative_to(ROOT / 'results') and not path.exists():
+        relocated = ROOT / 'releases/result-code' / path.relative_to(ROOT / 'results')
+        if relocated.exists():
+            return relocated
+    return path
+
+
 def read(path):
-    return json.loads(Path(path).read_text())
+    return json.loads(code_path(path).read_text())
 
 
 def sha(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    return hashlib.sha256(code_path(path).read_bytes()).hexdigest()
 
 
 def canonical(value):
@@ -143,9 +158,9 @@ def verify(output):
     global RUNTIME
     verify_directory(output)
     plan = read(output / 'plan.json')
-    RUNTIME = Path(plan['execution_runtime'])
+    RUNTIME = code_path(plan['execution_runtime'])
     validate_execution_runtime(RUNTIME)
-    release = Path(plan['protocol_release'])
+    release = code_path(plan['protocol_release'])
     verify_directory(release)
     for path, expected in read(release / 'release.json')['evidence_sha256'].items():
         if sha(path) != expected:

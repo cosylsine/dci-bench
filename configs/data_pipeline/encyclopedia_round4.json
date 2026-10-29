@@ -1,0 +1,110 @@
+{
+  "schema_version": "dci-encyclopedia-round4-catalog-v1",
+  "created_at": "2026-10-23",
+  "raw_root": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data",
+  "eval_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data",
+  "research_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/source_research_20261023_round4/encyclopedia",
+  "dataset": "mteb/MIRACLRetrievalHardNegatives",
+  "dataset_revision": "d7d94fa4b946cec4a27c84653aa0cf6b33f74a3c",
+  "mteb_task_revision": "2ad77827480c853ee9518eb207a244f13f8a0966",
+  "license": "CC-BY-SA-4.0",
+  "download_budget_bytes": 500000000,
+  "per_source_budget_bytes": 130000000,
+  "quality_policy": {
+    "max_positive_per_query": null,
+    "drop_near_duplicates": false,
+    "exclude_review_required": false
+  },
+  "sources": [
+    {
+      "id": "r4_encyclopedia_bn",
+      "language": "bn",
+      "expected_counts": {"documents": 297265, "queries": 411, "positive_pairs": 863},
+      "files": {
+        "corpus": {"path": "bn-corpus/dev-00000-of-00001.parquet", "bytes": 111030282, "sha256": "357e27584003d5f3a3b7a27147c2afdf0f2ba91d23c10eaeaa4a50d0e8cf07d9"},
+        "queries": {"path": "bn-queries/dev-00000-of-00001.parquet", "bytes": 24644, "sha256": "f07417f80ad798fce0c2fc40e8e0f34cf54172ddeb632dc3e890777b6642242b"},
+        "qrels": {"path": "bn-qrels/dev-00000-of-00001.parquet", "bytes": 39487, "sha256": "5e9c50479096f411e6c5d5139a65151aa5afea8dbbf406b64d3d32d7ec7621f6"}
+      }
+    },
+    {
+      "id": "r4_encyclopedia_fa",
+      "language": "fa",
+      "expected_counts": {"documents": 133596, "queries": 632, "positive_pairs": 1314},
+      "files": {
+        "corpus": {"path": "fa-corpus/dev-00000-of-00001.parquet", "bytes": 49284298, "sha256": "be3775443691dd4e631dae536a7fd0f758ca8b437944891030766f6754df6297"},
+        "queries": {"path": "fa-queries/dev-00000-of-00001.parquet", "bytes": 32493, "sha256": "fc222ce5576a9da75d54e1c8db1e74f8aef5684ce0cd30c487c49a5a713cee70"},
+        "qrels": {"path": "fa-qrels/dev-00000-of-00001.parquet", "bytes": 70829, "sha256": "5c6cf8b8ac54a881cb17ccacccae6e578ab0132eafc4c8bcd17e8e054fff6957"}
+      }
+    },
+    {
+      "id": "r4_encyclopedia_fi",
+      "language": "fi",
+      "expected_counts": {"documents": 194415, "queries": 1000, "positive_pairs": 1918},
+      "files": {
+        "corpus": {"path": "fi-corpus/dev-00000-of-00001.parquet", "bytes": 61695473, "sha256": "23f9f28cda2f58ffad939431b37561068b158d6ad8ef7a3e597657683aaf136e"},
+        "queries": {"path": "fi-queries/dev-00000-of-00001.parquet", "bytes": 36246, "sha256": "e02c54a7b4076cc527b0ef6be494516d7011a54c28ef392e1f1b9be19604aaba"},
+        "qrels": {"path": "fi-qrels/dev-00000-of-00001.parquet", "bytes": 90216, "sha256": "2825ecabdcfa025f815338ae86c13600333c66f5e9eb4fcd8a6395a829fdfed3"}
+      }
+    },
+    {
+      "id": "r4_encyclopedia_fr",
+      "language": "fr",
+      "expected_counts": {"documents": 75357, "queries": 343, "positive_pairs": 731},
+      "files": {
+        "corpus": {"path": "fr-corpus/dev-00000-of-00001.parquet", "bytes": 23325111, "sha256": "521cfb7e34f1dac0ed80c00ddf860f518b15435b656b74f442d7fd82d215a7c8"},
+        "queries": {"path": "fr-queries/dev-00000-of-00001.parquet", "bytes": 14654, "sha256": "cd8448c32adb202e649d94662d1f2827c3f9011ad784611d36e5c95a0f03d44d"},
+        "qrels": {"path": "fr-qrels/dev-00000-of-00001.parquet", "bytes": 38597, "sha256": "f873ab0be474ee555bf45858b4c51fafaa52e40c7f1af06d37c100771ea0672a"}
+      }
+    },
+    {
+      "id": "r4_encyclopedia_id",
+      "language": "id",
+      "expected_counts": {"documents": 168173, "queries": 960, "positive_pairs": 3088},
+      "files": {
+        "corpus": {"path": "id-corpus/dev-00000-of-00001.parquet", "bytes": 49750428, "sha256": "3d276bc913270d21ea1e41ebb47b5c3d49e14d180a3136bf13e4fbbb508b3afe"},
+        "queries": {"path": "id-queries/dev-00000-of-00001.parquet", "bytes": 30447, "sha256": "73387adc48850e37b2977d203913011db5845e3b11479bee35b64c6df2e5cf52"},
+        "qrels": {"path": "id-qrels/dev-00000-of-00001.parquet", "bytes": 89970, "sha256": "0250aa684dcc56237aea2865d65d665a896bd4fdad866bf8fb3a6e67425956f6"}
+      }
+    },
+    {
+      "id": "r4_encyclopedia_ko",
+      "language": "ko",
+      "expected_counts": {"documents": 43293, "queries": 213, "positive_pairs": 547},
+      "files": {
+        "corpus": {"path": "ko-corpus/dev-00000-of-00001.parquet", "bytes": 16607544, "sha256": "9c5a4dbd3f160514de05f04e75bc066189e6023f81003ce2a47c7ce46ef0c073"},
+        "queries": {"path": "ko-queries/dev-00000-of-00001.parquet", "bytes": 9818, "sha256": "746812528afdfcf67baef4d1f6f91af3c31d98e76bcaac79ce1cd5718415d74e"},
+        "qrels": {"path": "ko-qrels/dev-00000-of-00001.parquet", "bytes": 30507, "sha256": "00192c1c99ef79d4de55bc9ec8b1e4351a8fdceb14861c5d647323de487fc20e"}
+      }
+    },
+    {
+      "id": "r4_encyclopedia_sw",
+      "language": "sw",
+      "expected_counts": {"documents": 131924, "queries": 482, "positive_pairs": 910},
+      "files": {
+        "corpus": {"path": "sw-corpus/dev-00000-of-00001.parquet", "bytes": 16585140, "sha256": "f4d5cdb2768dbceed912c6fef42294cca783562d8855db26247775d387526c09"},
+        "queries": {"path": "sw-queries/dev-00000-of-00001.parquet", "bytes": 15520, "sha256": "7e3524d1eef9f14c9ceb9e3ec4432f548c883382f8219c52b1895952e26d4055"},
+        "qrels": {"path": "sw-qrels/dev-00000-of-00001.parquet", "bytes": 43855, "sha256": "0d3145336a45b0245478447d6470f1e871ae963a6aab5faacb28ecebff7fd9b0"}
+      }
+    },
+    {
+      "id": "r4_encyclopedia_te",
+      "language": "te",
+      "expected_counts": {"documents": 101961, "queries": 828, "positive_pairs": 854},
+      "files": {
+        "corpus": {"path": "te-corpus/dev-00000-of-00001.parquet", "bytes": 51514831, "sha256": "35d3846706f1334ad87578ae062293c2642bfd638bbb92906b73d50e52699664"},
+        "queries": {"path": "te-queries/dev-00000-of-00001.parquet", "bytes": 38358, "sha256": "5569c0aacb425fe61574844cabb6b8ba73addb0bd8b22e0de747b1f23f0f5f09"},
+        "qrels": {"path": "te-qrels/dev-00000-of-00001.parquet", "bytes": 19216, "sha256": "098773009a0e9fb10c24168fc0cb8f746a7f79eb760fb11550caaaa83138df68"}
+      }
+    },
+    {
+      "id": "r4_encyclopedia_yo",
+      "language": "yo",
+      "expected_counts": {"documents": 49043, "queries": 119, "positive_pairs": 144},
+      "files": {
+        "corpus": {"path": "yo-corpus/dev-00000-of-00001.parquet", "bytes": 5155488, "sha256": "1a22c3211486a8bd8c72542c86143666e9bfa9499ce6baf8059f60077511b574"},
+        "queries": {"path": "yo-queries/dev-00000-of-00001.parquet", "bytes": 5590, "sha256": "ceca8a500e3b26e3750cff532ee7d59c3c2607b470686b7238da4267f6dc068c"},
+        "qrels": {"path": "yo-qrels/dev-00000-of-00001.parquet", "bytes": 10551, "sha256": "97b8822e166e0467eaccca753bed91a67745b05696d9b63a808388d89198d5da"}
+      }
+    }
+  ]
+}

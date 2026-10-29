@@ -15,6 +15,7 @@ from typing import Any
 from dci_bench.protocol.contracts import (
     BENCHMARK_CONTRACT_VERSION,
     CONTRACT_SHA256,
+    CONTEXT_POLICY,
     MAX_AGENT_STEPS,
     MAX_TOTAL_MODEL_TOKENS,
     PI_FINAL_RESULT_VERSION,
@@ -67,7 +68,7 @@ def run_pi_dci(
     model: str = "inspect",
     timeout_seconds: float = SAMPLE_TIMEOUT_SECONDS,
     max_agent_steps: int = MAX_AGENT_STEPS,
-    context_window: int = MAX_TOTAL_MODEL_TOKENS,
+    context_window: int = int(CONTEXT_POLICY.get("context_window", MAX_TOTAL_MODEL_TOKENS)),
     task_instruction: str = "",
     extra_env: dict[str, str] | None = None,
     _code_runtime: dict[str, Any] | None = None,

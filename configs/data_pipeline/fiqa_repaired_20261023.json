@@ -1,0 +1,48 @@
+{
+  "schema_version": "dci-source-catalog-v1",
+  "raw_root": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data",
+  "eval_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data",
+  "quality_policy": {
+    "max_positive_per_query": null,
+    "exclude_review_required": false
+  },
+  "sources": [
+    {
+      "connector": "beir",
+      "domain": "financial",
+      "id": "domain_fiqa_test",
+      "input_kind": "retrieval",
+      "language": "en",
+      "license": "research-only/non-commercial (FiQA-2018 source terms)",
+      "metadata": {
+        "archive_index": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/",
+        "archive_url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/fiqa.zip",
+        "beir_catalog": "https://github.com/beir-cellar/beir",
+        "coverage_limit": "English financial opinion/QA retrieval; does not represent all finance documents or tasks",
+        "expected_documents": 57638,
+        "expected_test_queries": 648,
+        "expected_test_relevance_per_query": 2.6,
+        "label_scope": "BEIR test qrels are seed relevance judgments and are not exhaustive negatives",
+        "official_homepage": "https://sites.google.com/view/fiqa/home",
+        "source_archive_md5": "17918ed23cd04fb15047f73e6c3bd9d9",
+        "source_scope": "official BEIR fiqa archive; full corpus retained, test qrels selected"
+      },
+      "options": {
+        "archive": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/domain_fiqa_test/download_stage/20261023T091759Z/fiqa.zip",
+        "archive_bytes": 17948027,
+        "archive_md5": "17918ed23cd04fb15047f73e6c3bd9d9",
+        "dataset": "FiQA-2018 / BEIR fiqa",
+        "genre": "financial_question_answering",
+        "max_archive_bytes": 536870912,
+        "max_archive_files": 10000,
+        "max_bytes": 157286400,
+        "max_compression_ratio": 100.0,
+        "max_member_bytes": 536870912,
+        "retries": 1,
+        "split": "test",
+        "timeout": 20
+      },
+      "revision": "beir-fiqa-20210302"
+    }
+  ]
+}

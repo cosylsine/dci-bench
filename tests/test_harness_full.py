@@ -16,7 +16,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
 import prepare_harness_full as F
 
-ARCHIVE = REPO / "results/harness-confirmations/20261015-selection-confirmation-v2"
+ARCHIVE = REPO / "releases/harness-confirmations/20261015-selection-confirmation-v2"
 
 
 class FullTests(unittest.TestCase):

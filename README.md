@@ -2,6 +2,12 @@
 
 Benchmark for evaluating LLM Direct Corpus Interaction (DCI) capabilities.
 
+Current progress (2026-10-28): [interactive data and evaluation overview](docs/project-progress-20261028/index.html),
+[harness workflow](docs/project-progress-20261028/workflow.svg), and
+[short collaborator update](docs/project-progress-20261028/progress.md).
+The document track has 53 sources / 159 candidate pools and 159 successful real
+Qwen3.8-27B smoke executions; this diagnostic run is not a full benchmark.
+
 ## Evaluation tracks
 
 DCI-Bench separates **document** and **code** evaluation. The existing six-task
@@ -37,6 +43,16 @@ Use `--preflight-only` for data/sandbox checks without requests. See
 [the separate contracts, metrics, and input formats](docs/code_evaluation.md).
 
 ## Prepared evaluation data
+
+New document preparations use task-local short IDs (`d000001`) with reversible,
+host-only source-ID and qrels mappings. The new per-query candidate-pool workflow
+uses small/medium/large capacities of 200/500/1000 and provisional cumulative
+budgets of 96k/128k/192k tokens. See [document pools](docs/document_pools.md) for
+score-ordered ID lists, shared corpus storage, temporary query workspaces,
+positive completion, audit boundaries, and offline preparation.
+The current 53-source pool catalog and KaLM retrieval audit are complete, and the
+paired 159-execution smoke passed. Full candidate-pool evaluation remains pending;
+historical frozen data and the code track retain their own contracts.
 
 The [2026-10-15 protocol data index](docs/protocol_data_2026-10-15.md) covers
 13 document tasks (2,399 queries, including WorkSurface) and 287 ARB code
@@ -588,3 +604,21 @@ All ordinary `.json` audit files use two-space indentation, recursively sorted
 keys, and one trailing newline. Canonical compact JSON is used only internally
 for deterministic fingerprints and content hashes. JSONL inputs remain one
 record per line.
+
+## Data acquisition and construction pipeline
+
+`scripts/data_pipeline.py` supports existing retrieval labels, evidence QA, and
+raw corpora. Source adapters, immutable raw/cleaned snapshots, quality reports,
+local query generation and adjudication, independent candidate mining, and
+200/500/1000-document pools are documented in [Data pipeline](docs/data_pipeline.md).
+The source catalog is [sources.json](configs/data_pipeline/sources.json); local
+model roles and deployment settings are in [models.json](configs/data_pipeline/models.json).
+Use `catalog` and `doctor` for read-only inspection. Acquisition requires explicit
+source IDs; inference is a separate bounded stage.
+
+## 代码、数据与结果目录
+
+- `scripts/`、`dci_bench/`、`pi-dci/`：维护中的启动脚本与实现。159 次 pool smoke 的入口为 `bash scripts/launch_pool_smoke.sh`。
+- `releases/`：冻结的可执行代码、依赖快照及发布配置；目录说明见 [releases/README.md](releases/README.md)。
+- AFS2 的 `raw_data/`、`eval_data/`：数据和数据发布凭证，不放启动脚本或运行时代码。
+- `results/`：评测输出、日志、诊断报告与来源证据，不作为可执行代码的来源。

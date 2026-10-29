@@ -6,7 +6,7 @@ WorkSurface 的 DCI 原始子集已下载、逐文件校验，并生成独立的
 - DCI 补充包：`/mnt/afs2/202609/embedding_models/dci-bench/eval_data/worksurface/dci_v1_20261014`
 - 上游：`lhpku20010120/WorkSurface-Bench`
 - 固定 revision：`3b3aef45f1e8f69416d6112c46e6e873cf522315`
-- 下载工具仍为 `/mnt/afs2/202609/embedding_models/dci-bench/hfd.sh`，镜像为 `https://hf-mirror.com`。
+- 下载工具仍为 `/mnt/afs/250010100/zxp/dci-bench/scripts/hfd.sh`，镜像为 `https://hf-mirror.com`。
 - 501 个选中文件，共 **9,836,909 字节**；全部长度与上游 Git blob 哈希一致。目录包含完整的 1,151 条任务 JSONL、493 篇 Markdown、5 份文档 registry 和 2 份 README。
 - 本次下载范围是 DCI 所需的文档检索子集，不包括表格、图和模型运行轨迹。
 

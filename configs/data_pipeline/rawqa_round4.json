@@ -1,0 +1,91 @@
+{
+  "sources": [
+    {
+      "id": "r4_rawqa_hc3_zh_finance",
+      "dataset": "simpleai/HC3-Chinese",
+      "url": "https://modelscope.cn/api/v1/datasets/simpleai/HC3-Chinese/repo?Revision=af38814d5f7ff4b20efa810fb6e0741ee1cc9513&FilePath=finance.jsonl",
+      "revision": "af38814d5f7ff4b20efa810fb6e0741ee1cc9513",
+      "sha256": "91251b749d645543f834012384554c753c2950db475e052508a469688fe82699",
+      "bytes": 1629320,
+      "filename": "finance.jsonl",
+      "domain": "finance",
+      "kind": "hc3_human",
+      "language": "zh",
+      "family": "HC3",
+      "split": "published_unsplit",
+      "license": "CC-BY-SA-4.0; stricter original source terms preserved",
+      "official_urls": [
+        "https://github.com/Hello-SimpleAI/chatgpt-comparison-detection",
+        "https://huggingface.co/datasets/Hello-SimpleAI/HC3-Chinese"
+      ],
+      "granularity": "human answer body; empty title",
+      "task_origin": "QA-derived development retrieval",
+      "label_basis": "Published question-to-human-answer association, binary link grade 1",
+      "scope": "Complete finance.jsonl questions with published nonempty human answers; human answer corpus only. Original ChatGPT answers remain in raw file and do not create labels.",
+      "limitations": [
+        "Development adaptation of published unsplit QA, not an official held-out retrieval benchmark.",
+        "Answers may be short or conversational; source association is not an exhaustive relevance or factual-correctness judgment.",
+        "Missing human answer slots and questions without a valid human answer are explicitly audited.",
+        "ChatGPT answers are outside the human-only corpus scope, never treated as positive or negative labels."
+      ]
+    },
+    {
+      "id": "r4_rawqa_hc3_zh_open_qa",
+      "dataset": "simpleai/HC3-Chinese",
+      "url": "https://modelscope.cn/api/v1/datasets/simpleai/HC3-Chinese/repo?Revision=af38814d5f7ff4b20efa810fb6e0741ee1cc9513&FilePath=open_qa.jsonl",
+      "revision": "af38814d5f7ff4b20efa810fb6e0741ee1cc9513",
+      "sha256": "ccac1bec153b57646ace3dbd4fdb677e7d66a789127119ffeab9ac56aa01df83",
+      "bytes": 6529129,
+      "filename": "open_qa.jsonl",
+      "domain": "general_qa",
+      "kind": "hc3_human",
+      "language": "zh",
+      "family": "HC3",
+      "split": "published_unsplit",
+      "license": "CC-BY-SA-4.0; stricter original source terms preserved",
+      "official_urls": [
+        "https://github.com/Hello-SimpleAI/chatgpt-comparison-detection",
+        "https://huggingface.co/datasets/Hello-SimpleAI/HC3-Chinese"
+      ],
+      "granularity": "human answer body; empty title",
+      "task_origin": "QA-derived development retrieval",
+      "label_basis": "Published question-to-human-answer association, binary link grade 1",
+      "scope": "Complete open_qa.jsonl questions with published nonempty human answers; human answer corpus only. Original ChatGPT answers remain in raw file and do not create labels.",
+      "limitations": [
+        "Development adaptation of published unsplit QA, not an official held-out retrieval benchmark.",
+        "Answers may be short or conversational; source association is not an exhaustive relevance or factual-correctness judgment.",
+        "Missing human answer slots and questions without a valid human answer are explicitly audited.",
+        "ChatGPT answers are outside the human-only corpus scope, never treated as positive or negative labels."
+      ]
+    },
+    {
+      "id": "r4_rawqa_stackoverflow_en",
+      "dataset": "MTEB/stackoverflowdupquestions-reranking",
+      "url": "https://modelscope.cn/api/v1/datasets/MTEB/stackoverflowdupquestions-reranking/repo?Revision=a6b9faadb60fae2c6fe1f5c7eed5bcc05fad4ede&FilePath=test.jsonl.gz",
+      "revision": "a6b9faadb60fae2c6fe1f5c7eed5bcc05fad4ede",
+      "sha256": "53c7d0b927237042f1428dd554b11fe247696029cd2200db8d9fcf1323ae75b8",
+      "bytes": 1348043,
+      "filename": "test.jsonl.gz",
+      "domain": "software",
+      "kind": "reranking_union",
+      "language": "en",
+      "family": "StackOverflowDupQuestions",
+      "split": "test",
+      "license": "Unknown in original MTEB mirror; underlying Stack Overflow terms apply",
+      "official_urls": [
+        "https://huggingface.co/datasets/mteb/stackoverflowdupquestions-reranking",
+        "https://github.com/embeddings-benchmark/mteb"
+      ],
+      "granularity": "original Stack Overflow question title",
+      "task_origin": "Reranking-derived corpus retrieval",
+      "label_basis": "Published test-row positive list, binary link grade 1",
+      "scope": "Complete published MTEB reranking test split; corpus is exact-text union of every positive and negative candidate. Every test query is retained.",
+      "limitations": [
+        "Derived union-corpus retrieval, not the original per-query reranking evaluation.",
+        "Corpus units are question titles, not complete Stack Overflow post bodies.",
+        "Unjudged cross-query candidates remain unjudged; no negative-label propagation.",
+        "Source has no native IDs: every row and candidate position is preserved in deterministic IDs/aliases."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "selected_doc_ids": ["content/zh-cn/docs/concepts/architecture/cloud-controller.md"],
+  "language": "zh",
+  "query_type": "operational troubleshooting with an explicit version or component constraint",
+  "constraints": ["Use natural user language", "Require evidence from the supplied document", "Do not copy a heading as the query"],
+  "max_queries": 2,
+  "temperature": 0.2,
+  "max_tokens": 2048,
+  "version": "1"
+}

@@ -9,6 +9,7 @@ from dci_bench.data.loader import load_qrels
 from dci_bench.data.registry import TaskSpec
 from dci_bench.data.workspace_builder import (
     CORPUS_MAX_LINE_CHARS,
+    LEGACY_WORKSPACE_FORMAT_VERSION,
     WORKSPACE_FORMAT_VERSION,
     assert_pinned_revision,
     build_workspace,
@@ -111,7 +112,7 @@ class WorkspaceBuilderTest(unittest.TestCase):
                     metadata_root=tmp_path / "metadata",
                 )
 
-                doc_path = result.workspace_dir / "corpus" / doc_id_to_filename("D/1")
+                doc_path = result.workspace_dir / "corpus" / "d000001.md"
                 self.assertTrue((result.workspace_dir / "README.md").exists())
                 self.assertTrue(doc_path.read_text(encoding="utf-8").startswith("# First"))
                 self.assertFalse((result.workspace_dir / "data").exists())
@@ -119,6 +120,18 @@ class WorkspaceBuilderTest(unittest.TestCase):
                 self.assertFalse(list(result.workspace_dir.rglob("*qrels*")))
                 self.assertTrue((result.metadata_dir / "qrels.json").exists())
                 self.assertTrue((result.metadata_dir / "queries.jsonl").exists())
+                self.assertEqual(
+                    json.loads((result.metadata_dir / "source_doc_ids.json").read_text()),
+                    {"d000001": "D/1", "d000002": "D2"},
+                )
+                self.assertEqual(
+                    json.loads((result.metadata_dir / "qrels.json").read_text()),
+                    {"Q1": {"d000001": 1}},
+                )
+                self.assertEqual(
+                    json.loads((result.metadata_dir / "original_qrels.json").read_text()),
+                    {"Q1": {"D/1": 1}},
+                )
                 manifest = (result.metadata_dir / "manifest.json").read_text(encoding="utf-8")
                 self.assertIn('"num_docs": 2', manifest)
                 self.assertIn('"num_queries": 1', manifest)
@@ -173,9 +186,14 @@ class WorkspaceBuilderTest(unittest.TestCase):
                 metadata_root=tmp_path / "metadata",
             )
             manifest = json.loads(first.manifest_path.read_text(encoding="utf-8"))
-            manifest.pop("workspace_format")
+            manifest["workspace_format"] = {
+                "version": LEGACY_WORKSPACE_FORMAT_VERSION,
+                "max_line_chars": CORPUS_MAX_LINE_CHARS,
+            }
             first.manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
-            document = first.workspace_dir / "corpus" / "D1.md"
+            (first.metadata_dir / "source_doc_ids.json").unlink()
+            (first.metadata_dir / "original_qrels.json").unlink()
+            document = first.workspace_dir / "corpus" / "d000001.md"
             document.write_text("legacy single line", encoding="utf-8")
 
             refreshed = build_workspace(

@@ -1,0 +1,258 @@
+{
+  "as_of": "2026-10-29",
+  "summary": "Lite / Full 核心改造已合入，20次真实沙箱CPU集成及恢复验收通过。数据已准备13/20任务；剩余来源、真实模型标定与正式评测仍未完成。",
+  "stages": [
+    {
+      "name": "采样与嵌套候选池",
+      "status": "部分数据准备与审计通过",
+      "detail": "13/20任务已生成不可覆盖新产物，开发130/正式650 query；两档260/1300次。20任务元数据审计31.8秒，不含正文全扫描。其余7格明确阻塞，正式启动被禁止。"
+    },
+    {
+      "name": "统一预算协议",
+      "status": "已合入，协议与门禁验证通过",
+      "detail": "两档同预算；Pi20项无跳过通过，旧profile hashes不变。32k/64k/96k选择要求三组完整实测报告，两档Recall降幅各≤2pp；前期API费用纳入总额。"
+    },
+    {
+      "name": "批量执行与工作区",
+      "status": "已合入，CPU链路通过",
+      "detail": "同任务/profile批处理、独立Pi会话、有界预取、逐query发布和hash核验恢复；20次执行全部有效，恢复新增请求0，退出后工作区已清理。"
+    },
+    {
+      "name": "CPU验收",
+      "status": "通过",
+      "detail": "最终Python联合验收62项通过，Pi20项无跳过通过；26个任务档位数据预检通过。20次本机provider沙箱执行全部有效，60次请求，恢复新增请求0；新版严格阅读器复核20条结果身份与hash通过。"
+    },
+    {
+      "name": "GPU/API标定与正式评测",
+      "status": "未执行",
+      "detail": "尚未进行真实模型32k/64k/96k及4/8/16并发标定；13/20数据任务就绪，正式评测门禁保持阻塞。"
+    }
+  ],
+  "limitations": [
+    "当前数据尚未补齐20个原生中英任务，缺格不能标记为就绪。",
+    "新增协议的质量、实际GPU利用率和API费用尚未验证。",
+    "原始数据、旧候选池和历史评测结果保留；报告更新前版本已归档。",
+    "当前可见为H100 3g.40gb MIG切片；此前4张H100条件不可复现，不能据此宣称完成吞吐/GPU标定。",
+    "CPU探针使用脚本化provider及AFS临时目录；计时只定位工程开销，不代表真实模型质量或生产吞吐。",
+    "恢复集成模拟query全部发布后、batch汇总前中断；中途仅部分query完成的恢复另由CPU单测覆盖。",
+    "已保留早期中断、依赖缺失及代理错误的诊断目录；成功验收以cpu-integration-4为准。"
+  ],
+  "data_tasks": [
+    {
+      "task": "argumentation_en",
+      "status": "阻塞",
+      "source": "domain_arguana_test（候选）",
+      "detail": "已有8674文档/1401查询；待原生来源审查与排名/构池"
+    },
+    {
+      "task": "argumentation_zh",
+      "status": "阻塞",
+      "source": "待补齐",
+      "detail": "缺原生中文 corpus/query/qrels 与候选池"
+    },
+    {
+      "task": "encyclopedia_en",
+      "status": "已准备",
+      "source": "gapfill_mlqa_en",
+      "detail": "开发10 / 正式50 / Smoke1；排除19条"
+    },
+    {
+      "task": "encyclopedia_zh",
+      "status": "已准备",
+      "source": "qa_cmrc2018_zh",
+      "detail": "开发10 / 正式50 / Smoke1；排除2条"
+    },
+    {
+      "task": "enterprise_en",
+      "status": "已准备",
+      "source": "wixqa_expertwritten",
+      "detail": "开发10 / 正式50 / Smoke1；排除0条"
+    },
+    {
+      "task": "enterprise_zh",
+      "status": "阻塞",
+      "source": "待补齐",
+      "detail": "缺原生中文企业检索来源与候选池；现有企业来源为英文"
+    },
+    {
+      "task": "finance_en",
+      "status": "已准备",
+      "source": "domain_fiqa_test",
+      "detail": "开发10 / 正式50 / Smoke1；排除0条"
+    },
+    {
+      "task": "finance_zh",
+      "status": "已准备",
+      "source": "r4_rawqa_hc3_zh_finance",
+      "detail": "开发10 / 正式50 / Smoke1；排除2条"
+    },
+    {
+      "task": "general_qa_en",
+      "status": "已准备",
+      "source": "gapfill_beir_quora_exact_dedup",
+      "detail": "开发10 / 正式50 / Smoke1；排除2条"
+    },
+    {
+      "task": "general_qa_zh",
+      "status": "已准备",
+      "source": "r4_rawqa_hc3_zh_open_qa",
+      "detail": "开发10 / 正式50 / Smoke1；排除2条"
+    },
+    {
+      "task": "legal_en",
+      "status": "阻塞",
+      "source": "LLMAILAStatutes / LLMLegalBenchConsumerContractsQA（小语料）",
+      "detail": "仅82/154文档，不足Full1000；需合格英文法律来源"
+    },
+    {
+      "task": "legal_zh",
+      "status": "已准备",
+      "source": "gapfill_legal_lecardv2",
+      "detail": "开发10 / 正式50 / Smoke1；排除0条"
+    },
+    {
+      "task": "medical_en",
+      "status": "已准备",
+      "source": "gapfill_medquad_rawqa",
+      "detail": "开发10 / 正式50 / Smoke1；排除3458条"
+    },
+    {
+      "task": "medical_zh",
+      "status": "已准备",
+      "source": "gapfill_mteb_cmedqa_retrieval",
+      "detail": "开发10 / 正式50 / Smoke1；排除0条"
+    },
+    {
+      "task": "scientific_en",
+      "status": "已准备",
+      "source": "domain_qasper_dev_fullcorpus",
+      "detail": "开发10 / 正式50 / Smoke1；排除27条"
+    },
+    {
+      "task": "scientific_zh",
+      "status": "已准备",
+      "source": "r4_rawqa_csl_zh",
+      "detail": "开发10 / 正式50 / Smoke1；排除0条"
+    },
+    {
+      "task": "software_en",
+      "status": "阻塞",
+      "source": "gapfill_beir_cqadupstack_android（候选）",
+      "detail": "已有22998文档/699查询；待来源审查与排名/构池"
+    },
+    {
+      "task": "software_zh",
+      "status": "阻塞",
+      "source": "github_kubernetes_website_zh（接口样例）",
+      "detail": "仅5文档，0查询/0qrels；不能用于评测"
+    },
+    {
+      "task": "web_en",
+      "status": "阻塞",
+      "source": "browsecomp_plus（候选）",
+      "detail": "已有99930文档/825查询；待原生来源审查与排名/构池"
+    },
+    {
+      "task": "web_zh",
+      "status": "已准备",
+      "source": "gapfill_mteb_duretrieval",
+      "detail": "开发10 / 正式50 / Smoke1；排除0条"
+    }
+  ],
+  "evidence": [
+    {
+      "label": "20任务数据审计（13就绪/7阻塞）",
+      "path": "../../results/implementation/20261029-lite-full/data-audit.json"
+    },
+    {
+      "label": "26个任务档位数据预检",
+      "path": "../../results/implementation/20261029-lite-full/data-preflight/preflight.json"
+    },
+    {
+      "label": "51项Python定向测试",
+      "path": "../../results/implementation/20261029-lite-full/benchmark-final-unit.log"
+    },
+    {
+      "label": "20项Pi协议与沙箱测试（无跳过）",
+      "path": "../../results/implementation/20261029-lite-full/protocol-pi-test-verified.log"
+    },
+    {
+      "label": "TypeScript类型检查",
+      "path": "../../results/implementation/20261029-lite-full/protocol-pi-check-final-2.log"
+    },
+    {
+      "label": "20次CPU真实链路与恢复结果",
+      "path": "../../results/implementation/20261029-lite-full/cpu-integration-4/result.json"
+    },
+    {
+      "label": "阶段计时汇总",
+      "path": "../../results/implementation/20261029-lite-full/cpu-stage-observations.json"
+    },
+    {
+      "label": "SDK重试实测：默认3请求，关闭后1请求",
+      "path": "../../results/implementation/20261029-lite-full/http-retry-probe.json"
+    },
+    {
+      "label": "预算与发布门禁22项回归",
+      "path": "../../results/implementation/20261029-lite-full/review-gates-unit.log"
+    },
+    {
+      "label": "最终Python联合验收62项",
+      "path": "../../results/implementation/20261029-lite-full/final-acceptance-unit.log"
+    },
+    {
+      "label": "严格结果身份与hash复核20条",
+      "path": "../../results/implementation/20261029-lite-full/final-reader-validation.json"
+    },
+    {
+      "label": "当前GPU可见范围",
+      "path": "../../results/implementation/20261029-lite-full/hardware-final.json"
+    },
+    {
+      "label": "报告静态校验",
+      "path": "../../results/implementation/20261029-lite-full/report-static-validation.json"
+    }
+  ],
+  "timing_rows": [
+    {
+      "phase": "工作区准备",
+      "lite": 2.5696,
+      "full": 11.7388
+    },
+    {
+      "phase": "前台等待工作区",
+      "lite": 0.2309,
+      "full": 3.9115
+    },
+    {
+      "phase": "桥接启动",
+      "lite": 9.9737,
+      "full": 8.9109
+    },
+    {
+      "phase": "Pi执行",
+      "lite": 19.8684,
+      "full": 24.2752
+    },
+    {
+      "phase": "工作区清理",
+      "lite": 0.6636,
+      "full": 3.9401
+    },
+    {
+      "phase": "候选沙箱校验",
+      "lite": 0.0314,
+      "full": 0.0654
+    },
+    {
+      "phase": "Bubblewrap预检",
+      "lite": 0.0721,
+      "full": 0.1126
+    },
+    {
+      "phase": "bash执行（含命令）",
+      "lite": 0.0564,
+      "full": 0.0757
+    }
+  ]
+}

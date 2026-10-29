@@ -111,7 +111,7 @@ mirror TLS 与重定向到 Hugging Face 后的连接反复失败，因此未纳�
 
 ## 6. 已交付数据与验收
 
-所有 HF 原始数据通过 `/mnt/afs2/202609/embedding_models/dci-bench/hfd.sh` 下载，设置 `HF_ENDPOINT=https://hf-mirror.com`，revision 固定到第 3 节所列 commit。BrowseComp-Plus 的两个小型官方 qrels 文件不在 HF 仓库，另从固定 GitHub commit 获取并保存 SHA-256。原始下载保留在各来源的 `raw` 目录。
+所有 HF 原始数据通过 `/mnt/afs/250010100/zxp/dci-bench/scripts/hfd.sh` 下载，设置 `HF_ENDPOINT=https://hf-mirror.com`，revision 固定到第 3 节所列 commit。BrowseComp-Plus 的两个小型官方 qrels 文件不在 HF 仓库，另从固定 GitHub commit 获取并保存 SHA-256。原始下载保留在各来源的 `raw` 目录。
 
 ### 通用 document
 

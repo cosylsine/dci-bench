@@ -1,0 +1,102 @@
+{
+  "schema_version": "dci-project-progress-manifest-v1",
+  "as_of": "2026-10-28",
+  "inputs": [
+    {
+      "path": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/pipeline_matrix_overview_20261023_v3/data_matrix.json",
+      "sha256": "2e69790a0a6b27201f67e148ce0c980179bee23653a6092ecbed99188d4c09f8"
+    },
+    {
+      "path": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/retrieval_pools/catalog.json",
+      "sha256": "62b13017f3155d7a6e5668c64e1c3167a05f5d635db92ebe2cd48d8f38c633be"
+    },
+    {
+      "path": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/retrieval_pools/_COMPLETE.json",
+      "sha256": "73a856bccf954f6b87ff1442c2798a048e614371035d2e3fc36160ac6ea1c498"
+    },
+    {
+      "path": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/retrieval_pools/audit/kalm_quality/kalm_pre_injection_quality.json",
+      "sha256": "0122e865dd194a0dea5d926412e6b753a96df1a59c2baff768ec072b57bc83b0"
+    },
+    {
+      "path": "/mnt/afs/250010100/zxp/dci-bench/results/Qwen3.8-27B/pool-smoke-runs/20261026T103919Z-1/summary.json",
+      "sha256": "3b83cae210d1fba306343d3e71f8052d949f75342f7a7837446d12d2601e51f9"
+    },
+    {
+      "path": "/mnt/afs/250010100/zxp/dci-bench/results/Qwen3.8-27B/pool-smoke-runs/20261026T103919Z-1/_COMPLETE",
+      "sha256": "0c4fc238002209ff1eb452e46bf3c428755e405013e1206ba6a80095b0adfcf7"
+    },
+    {
+      "path": "/mnt/afs/250010100/zxp/dci-bench/results/Qwen3.8-27B/pool-smoke-runs/20261026T103919Z-1/launch-plan.json",
+      "sha256": "ee566fd81047dec2eff8a55fa444e56ddd44a756982f3be0b2a0593a845eb7f7"
+    },
+    {
+      "path": "/mnt/afs/250010100/zxp/dci-bench/scripts/launch_pool_smoke.sh",
+      "sha256": "a535f37a35b2677c2a2e90f55633e1525bd904f3b1eb89bd9343d7c2925385a8"
+    },
+    {
+      "path": "/mnt/afs/250010100/zxp/dci-bench/dci_bench/protocol/document_pools.json",
+      "sha256": "d39a86dc14af006c5889ce849a37c0c2424e284413fa17cfe634abf426e2f2af"
+    },
+    {
+      "path": "/mnt/afs/250010100/zxp/dci-bench/releases/protocol-freezes/20261026-pool-smoke-v4/contracts.json",
+      "sha256": "60b3b4068f8b60bc59e25198ca81505bf2312d436dbc90505c6bd7182329b4ee"
+    },
+    {
+      "path": "/mnt/afs/250010100/zxp/dci-bench/releases/protocol-freezes/20261026-pool-smoke-v4/runtime/pi-dci/scripts/dci-run.ts",
+      "sha256": "58dfd3aca7fe66832ec10fcf73c37c7481e3da1cfdc6af87e2c5502df556d538"
+    },
+    {
+      "path": "/mnt/afs/250010100/zxp/dci-bench/releases/protocol-freezes/20261026-pool-smoke-v4/runtime/dci_bench/results/protocol.py",
+      "sha256": "199fa4ff8979be43477f1a0e245419aee7ce728fdb7b87ec041c8ffbfcfb5e4f"
+    },
+    {
+      "path": "/mnt/afs/250010100/zxp/dci-bench/docs/templates/project_progress.html",
+      "sha256": "f038b5b40e84d8b53c947085cf3525f2bee0ed7ca7cd77d1b7f4febd8d98a2ae"
+    },
+    {
+      "path": "/mnt/afs/250010100/zxp/dci-bench/docs/assets/project-progress-2026-10-28/workflow.svg",
+      "sha256": "a8f8b06129a2e014844bed620582323f131a8f7cdca5f4544c2b485128712a2e"
+    },
+    {
+      "path": "/mnt/afs/250010100/zxp/dci-bench/docs/assets/project-progress-2026-10-28/harness-rules.svg",
+      "sha256": "b19f14453f8077889dc91ae44f4a9904a59002dc555e29571e25c7de42bf68fc"
+    },
+    {
+      "path": "/mnt/afs/250010100/zxp/dci-bench/docs/templates/harness_rules.html",
+      "sha256": "17ae24837f6fc4e52e3bcc2a32b71bec298896b35de6d4733d646d7625a83478"
+    },
+    {
+      "path": "/mnt/afs/250010100/zxp/dci-bench/scripts/render_project_progress.py",
+      "sha256": "8f5f7b607359281dbee2e76293da1a06c26f463605d699ca42761d0b5e6f5055"
+    }
+  ],
+  "outputs": {
+    "browser-validation.json": "0380373d9b2042d5acf8c3991750d5f065dcd28f8f1af81c0b6ff0271ba71c4c",
+    "data_matrix.json": "f7729ad0f705b8edcab859c65ed76461886899ae14e96bfe258688b7f4640aaf",
+    "harness-rules.png": "95e242c86ea3eef7b2fdf409064d387f0e385cfb375244af51385e74536a4065",
+    "harness-rules.svg": "b19f14453f8077889dc91ae44f4a9904a59002dc555e29571e25c7de42bf68fc",
+    "index.html": "9b24eb5867fc6716a041fae5e87633323ed2b6cf662772082b4ef016155b5817",
+    "progress.md": "f0dca4ab1e3071c99be48d2d785a829bce2802c4f739bc1434cb6256ec9ff128",
+    "source_matrix.csv": "06fd462f02625afda0bd9f9b70fb3492608878e25e9f4458e40451fa10aff306",
+    "workflow.png": "fae5f026813156dd597d10f589a5244ea869f159f1a057c1b80c9a78e7ff527b",
+    "workflow.svg": "a8f8b06129a2e014844bed620582323f131a8f7cdca5f4544c2b485128712a2e"
+  },
+  "checks": {
+    "catalog_completion_hash": true,
+    "smoke_summary_completion_hash": true,
+    "launch_plan_completion_hash": true,
+    "pool_completion_files_present": 159,
+    "paired_queries": 53,
+    "real_model_tool_samples": 159,
+    "markdown_lines": 59,
+    "no_inference_started": true,
+    "full_source_hash_scan": false,
+    "browser_checks_passed": 35,
+    "svg_text_geometry_passed": true,
+    "relative_links_valid": true,
+    "data_statistics_unchanged": true,
+    "desktop_and_mobile_visually_reviewed": true,
+    "standalone_diagrams_visually_reviewed": true
+  }
+}

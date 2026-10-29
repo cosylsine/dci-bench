@@ -1,0 +1,355 @@
+{
+  "schema_version": "dci-benchmark-v2-20261029",
+  "scope": {
+    "domains": [
+      "encyclopedia",
+      "general_qa",
+      "scientific",
+      "medical",
+      "finance",
+      "legal",
+      "enterprise",
+      "web",
+      "software",
+      "argumentation"
+    ],
+    "languages": ["en", "zh"],
+    "task_count": 20
+  },
+  "sampling": {
+    "strategy": "random_without_replacement",
+    "algorithm_version": "random-without-replacement-v1",
+    "seed": 42,
+    "sizes": {"dev": 10, "test": 50, "smoke": 1},
+    "smoke_is_subset_of": "dev",
+    "input_order": "stable_sorted_by_query_id",
+    "selection_policy": "global_equivalence_group_constrained"
+  },
+  "tiers": {
+    "lite": {
+      "capacity": 200,
+      "profile": "document-pool-v2-lite",
+      "nested_in": "full"
+    },
+    "full": {
+      "capacity": 1000,
+      "profile": "document-pool-v2-full"
+    },
+    "positive_overflow_policy": "exclude_query_and_count"
+  },
+  "provenance_policy": {
+    "native_preferred": true,
+    "translated_is_supplementary": true,
+    "unknown_requires_explicit_override_with_evidence": true,
+    "parallel_translation_group_is_global": true,
+    "missing_source_is_blocked": true,
+    "evidence": [
+      "/mnt/afs/250010100/zxp/dci-bench/docs/project-progress-20261028/data_matrix.json",
+      "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/retrieval_pools/catalog.json"
+    ]
+  },
+  "sources": {
+    "encyclopedia_en": {
+      "status": "eligible",
+      "candidates": [
+        {
+          "source_id": "gapfill_mlqa_en",
+          "source_family": "MLQA",
+          "provenance": "native",
+          "role": "preferred_native",
+          "evidence": "data_matrix.sources[gapfill_mlqa_en]"
+        }
+      ]
+    },
+    "encyclopedia_zh": {
+      "status": "eligible",
+      "candidates": [
+        {
+          "source_id": "qa_cmrc2018_zh",
+          "source_family": "CMRC2018",
+          "provenance": "native",
+          "role": "preferred_native",
+          "evidence": "data_matrix.sources[qa_cmrc2018_zh]"
+        },
+        {
+          "source_id": "gapfill_mlqa_zh",
+          "source_family": "MLQA",
+          "provenance": "translated",
+          "role": "supplementary_translated",
+          "evidence": "data_matrix.sources[gapfill_mlqa_zh]"
+        }
+      ]
+    },
+    "general_qa_en": {
+      "status": "eligible",
+      "candidates": [
+        {
+          "source_id": "gapfill_beir_quora_exact_dedup",
+          "source_family": "Quora",
+          "provenance": "native",
+          "role": "preferred_native",
+          "evidence": "data_matrix.sources[gapfill_beir_quora_exact_dedup]"
+        }
+      ]
+    },
+    "general_qa_zh": {
+      "status": "eligible",
+      "candidates": [
+        {
+          "source_id": "r4_rawqa_hc3_zh_open_qa",
+          "source_family": "HC3",
+          "provenance": "native",
+          "role": "preferred_native",
+          "evidence": "data_matrix.sources[r4_rawqa_hc3_zh_open_qa]"
+        }
+      ]
+    },
+    "scientific_en": {
+      "status": "eligible",
+      "candidates": [
+        {
+          "source_id": "domain_qasper_dev_fullcorpus",
+          "source_family": "QASPER",
+          "provenance": "unknown",
+          "provenance_override": {
+            "value": "native",
+            "evidence": [
+              "https://huggingface.co/datasets/allenai/qasper/tree/06806e4608976fc2fac0a090ac425d5b2b29caf4/qasper",
+              "https://arxiv.org/abs/2105.03011"
+            ]
+          },
+          "role": "explicit_native_override",
+          "evidence": "data_matrix.sources[domain_qasper_dev_fullcorpus]"
+        },
+        {
+          "source_id": "beir_scifact_test",
+          "source_family": "SciFact",
+          "provenance": "unknown",
+          "role": "candidate_requires_review",
+          "evidence": "data_matrix.sources[beir_scifact_test]"
+        }
+      ]
+    },
+    "scientific_zh": {
+      "status": "eligible",
+      "candidates": [
+        {
+          "source_id": "r4_rawqa_csl_zh",
+          "source_family": "CSL",
+          "provenance": "native",
+          "role": "preferred_native",
+          "evidence": "data_matrix.sources[r4_rawqa_csl_zh]"
+        }
+      ]
+    },
+    "medical_en": {
+      "status": "eligible",
+      "candidates": [
+        {
+          "source_id": "gapfill_medquad_rawqa",
+          "source_family": "MedQuAD",
+          "provenance": "native",
+          "role": "preferred_native",
+          "evidence": "data_matrix.sources[gapfill_medquad_rawqa]"
+        }
+      ]
+    },
+    "medical_zh": {
+      "status": "eligible",
+      "candidates": [
+        {
+          "source_id": "gapfill_mteb_cmedqa_retrieval",
+          "source_family": "C-MTEB-CMedQAv2",
+          "provenance": "native",
+          "role": "preferred_native",
+          "evidence": "data_matrix.sources[gapfill_mteb_cmedqa_retrieval]"
+        }
+      ]
+    },
+    "finance_en": {
+      "status": "eligible",
+      "candidates": [
+        {
+          "source_id": "domain_fiqa_test",
+          "source_family": "FiQA",
+          "provenance": "unknown",
+          "provenance_override": {
+            "value": "native",
+            "evidence": [
+              "https://huggingface.co/datasets/BeIR/fiqa/tree/main/corpus",
+              "https://sites.google.com/view/fiqa/home"
+            ]
+          },
+          "role": "explicit_native_override",
+          "evidence": "data_matrix.sources[domain_fiqa_test]"
+        },
+        {
+          "source_id": "mteb_parent_hc3_finance",
+          "source_family": "HC3-Finance",
+          "provenance": "unknown",
+          "role": "candidate_requires_review",
+          "evidence": "data_matrix.sources[mteb_parent_hc3_finance]"
+        }
+      ]
+    },
+    "finance_zh": {
+      "status": "eligible",
+      "candidates": [
+        {
+          "source_id": "r4_rawqa_hc3_zh_finance",
+          "source_family": "HC3-Finance",
+          "provenance": "native",
+          "role": "preferred_native",
+          "evidence": "data_matrix.sources[r4_rawqa_hc3_zh_finance]"
+        }
+      ]
+    },
+    "legal_en": {
+      "status": "blocked",
+      "blocked_reason": "insufficient_or_unverified_native_source",
+      "candidates": [
+        {
+          "source_id": "LLMLegalBenchConsumerContractsQA",
+          "source_family": "LegalBench",
+          "provenance": "unknown",
+          "role": "candidate_requires_review",
+          "evidence": "data_matrix.sources[LLMLegalBenchConsumerContractsQA]"
+        },
+        {
+          "source_id": "LLMAILAStatutes",
+          "source_family": "LLM-AILA",
+          "provenance": "unknown",
+          "role": "candidate_requires_review",
+          "evidence": "data_matrix.sources[LLMAILAStatutes]"
+        }
+      ]
+    },
+    "legal_zh": {
+      "status": "eligible",
+      "candidates": [
+        {
+          "source_id": "gapfill_legal_lecardv2",
+          "source_family": "LeCaRDv2",
+          "provenance": "native",
+          "role": "preferred_native",
+          "evidence": "data_matrix.sources[gapfill_legal_lecardv2]"
+        }
+      ]
+    },
+    "enterprise_en": {
+      "status": "eligible",
+      "candidates": [
+        {
+          "source_id": "wixqa_expertwritten",
+          "source_family": "WixQA",
+          "provenance": "unknown",
+          "provenance_override": {
+            "value": "native",
+            "evidence": [
+              "https://huggingface.co/datasets/Wix/WixQA/blob/main/README.md"
+            ]
+          },
+          "role": "explicit_native_override",
+          "evidence": "data_matrix.sources[wixqa_expertwritten]"
+        },
+        {
+          "source_id": "enterprise_rag",
+          "source_family": "EnterpriseRAG",
+          "provenance": "unknown",
+          "role": "candidate_requires_review",
+          "evidence": "data_matrix.sources[enterprise_rag]"
+        }
+      ]
+    },
+    "enterprise_zh": {
+      "status": "blocked",
+      "blocked_reason": "missing_native_source",
+      "candidates": [
+        {
+          "source_id": "enterprise_zh_missing",
+          "source_family": "enterprise_missing",
+          "provenance": "missing",
+          "role": "formal_gap",
+          "evidence": "data_matrix.current.domains has no enterprise/zh three-tier source"
+        }
+      ]
+    },
+    "web_en": {
+      "status": "blocked",
+      "blocked_reason": "missing_native_provenance",
+      "candidates": [
+        {
+          "source_id": "browsecomp_plus",
+          "source_family": "BrowseCompPlus",
+          "provenance": "unknown",
+          "role": "candidate_requires_review",
+          "evidence": "data_matrix.sources[browsecomp_plus]"
+        }
+      ]
+    },
+    "web_zh": {
+      "status": "eligible",
+      "candidates": [
+        {
+          "source_id": "gapfill_mteb_duretrieval",
+          "source_family": "C-MTEB-DuRetrieval",
+          "provenance": "native",
+          "role": "preferred_native",
+          "evidence": "data_matrix.sources[gapfill_mteb_duretrieval]"
+        }
+      ]
+    },
+    "software_en": {
+      "status": "blocked",
+      "blocked_reason": "source_requires_review",
+      "candidates": [
+        {
+          "source_id": "gapfill_beir_cqadupstack_android",
+          "source_family": "CQADupStack",
+          "provenance": "native",
+          "role": "candidate_requires_review",
+          "evidence": "data_matrix.sources[gapfill_beir_cqadupstack_android]"
+        }
+      ]
+    },
+    "software_zh": {
+      "status": "blocked",
+      "blocked_reason": "connector_demo_has_no_queries",
+      "candidates": [
+        {
+          "source_id": "github_kubernetes_website_zh",
+          "source_family": "github_kubernetes_website",
+          "provenance": "missing",
+          "role": "formal_gap",
+          "evidence": "data_matrix.sources[github_kubernetes_website_zh]"
+        }
+      ]
+    },
+    "argumentation_en": {
+      "status": "blocked",
+      "blocked_reason": "missing_native_provenance",
+      "candidates": [
+        {
+          "source_id": "domain_arguana_test",
+          "source_family": "ArguAna",
+          "provenance": "unknown",
+          "role": "candidate_requires_review",
+          "evidence": "data_matrix.sources[domain_arguana_test]"
+        }
+      ]
+    },
+    "argumentation_zh": {
+      "status": "blocked",
+      "blocked_reason": "missing_native_source",
+      "candidates": [
+        {
+          "source_id": "argumentation_zh_missing",
+          "source_family": "argumentation_missing",
+          "provenance": "missing",
+          "role": "formal_gap",
+          "evidence": "data_matrix.current.domains has no argumentation/zh source"
+        }
+      ]
+    }
+  }
+}

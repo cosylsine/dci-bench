@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -eq 0 ]]; then
-  set -- --all-tasks --refresh-existing
+  set -- --all-tasks --skip-existing
 elif [[ "$1" != --* ]]; then
   task="$1"
   shift

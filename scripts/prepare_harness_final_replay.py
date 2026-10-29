@@ -186,6 +186,8 @@ def verify_runtime(root, manifest):
 
 
 def prepare(runtime_bundle, pilots, output):
+    if {'results', 'eval_data', 'raw_data', 'eval_data_code'} & set(output.resolve().parts):
+        raise ValueError('Executable bundles belong under the code repository releases/ directory')
     print("[replay] verifying frozen dependencies and extracting saved requests (CPU only)", flush=True)
     frozen = read_json(runtime_bundle / "continuation.json")
     runtime = runtime_bundle / "runtime"

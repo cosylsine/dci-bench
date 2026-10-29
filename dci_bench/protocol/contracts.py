@@ -24,11 +24,18 @@ with _CONTRACT_PATH.open(encoding="utf-8") as _handle:
 # pilot arm runs in a fresh process and Pi inherits the same selection. The
 # v3 remains the unbudgeted control arm; all arms share the current ID contract.
 PROTOCOL_PROFILE = os.environ.get("DCI_PROTOCOL_PROFILE", "v3")
+if os.environ.get("DCI_DOCUMENT_TOKEN_BUDGET") is not None and not (
+    PROTOCOL_PROFILE in {"lite", "full"} or PROTOCOL_PROFILE.startswith("document-pool-v2-")
+):
+    raise ValueError("DCI_DOCUMENT_TOKEN_BUDGET is only valid for document-pool-v2 profiles")
 if PROTOCOL_PROFILE != "v3":
     with _CONTRACT_PATH.with_name("pilot_profiles.json").open(encoding="utf-8") as _handle:
         _profiles = json.load(_handle)
     if PROTOCOL_PROFILE.startswith("_") or PROTOCOL_PROFILE not in _profiles:
         raise ValueError(f"Unknown DCI_PROTOCOL_PROFILE: {PROTOCOL_PROFILE!r}")
+    token_budget = os.environ.get("DCI_DOCUMENT_TOKEN_BUDGET")
+    if token_budget is not None and token_budget not in {"32000", "64000", "96000"}:
+        raise ValueError("DCI_DOCUMENT_TOKEN_BUDGET must be one of 32000, 64000, or 96000")
     _profile = _profiles[PROTOCOL_PROFILE]
     _CONTRACT["benchmark_contract_version"] = _profile.get("benchmark_contract_version", "dci-mvp-v3.3-pilot")
     _CONTRACT["protocol_profile"] = PROTOCOL_PROFILE
@@ -40,6 +47,53 @@ if PROTOCOL_PROFILE != "v3":
         _CONTRACT["search_policy"] = deepcopy(_profiles[_profile["search_policy"]]["search_policy"])
         if _CONTRACT_PATH.with_name("stable-rg.conf").read_text(encoding="utf-8") != _CONTRACT["search_policy"]["ripgrep_config"]:
             raise ValueError("stable-rg.conf does not match the protocol search policy")
+    if _profile.get("candidate_pool"):
+        from dci_bench.protocol.document_pools import (
+            budget_overrides,
+            get_tier,
+            rewrite_document_id_prompt,
+        )
+
+        pool_name = _profile["candidate_pool"]
+        if not isinstance(pool_name, str):
+            raise ValueError("candidate_pool profile reference must be a string")
+        pool = get_tier(pool_name)
+        if not _CONTRACT.get("budget_control"):
+            raise ValueError("candidate_pool profiles require budget_control")
+        _CONTRACT["candidate_pool"] = deepcopy(pool)
+        _CONTRACT["max_total_model_tokens"] = int(pool["max_total_model_tokens"])
+        _CONTRACT["context_policy"]["max_total_model_tokens"] = int(pool["max_total_model_tokens"])
+        _CONTRACT["context_policy"]["context_window"] = int(pool["context_window"])
+        _CONTRACT["budget_control"].update(deepcopy(budget_overrides(pool_name)))
+        if pool.get("schema_version") == "document-pool-v2":
+            _CONTRACT["max_agent_steps"] = int(pool["max_agent_steps"])
+            _CONTRACT["max_final_repair_turns"] = int(pool["max_final_repair_turns"])
+            _CONTRACT["sample_timeout_seconds"] = int(pool["sample_timeout_seconds"])
+            _CONTRACT["tool_result_max_bytes"] = int(pool["tool_result_max_bytes"])
+            _CONTRACT["max_model_output_tokens"] = int(pool["max_model_output_tokens"])
+            _CONTRACT["max_final_output_tokens"] = int(pool["max_final_output_tokens"])
+            _CONTRACT["context_policy"]["max_model_output_tokens"] = int(pool["max_model_output_tokens"])
+            _CONTRACT["context_policy"]["max_final_output_tokens"] = int(pool["max_final_output_tokens"])
+            for key in ("max_search_turns", "max_tool_invocations", "max_final_repair_turns", "max_agent_steps"):
+                _CONTRACT["budget_control"][key] = int(pool[key])
+            for tool in _CONTRACT["tool_definitions"]:
+                tool["result_max_bytes"] = int(pool["tool_result_max_bytes"])
+                if isinstance(tool.get("description"), str):
+                    tool["description"] = tool["description"].replace(
+                        "20000 UTF-8 bytes", f"{pool['tool_result_max_bytes']} UTF-8 bytes"
+                    )
+        for key in ("system_prompt", "query_prompt_template", "repair_prompt_template"):
+            _CONTRACT[key] = rewrite_document_id_prompt(_CONTRACT[key], pool_name)
+        for tool in _CONTRACT["tool_definitions"]:
+            if isinstance(tool.get("description"), str):
+                tool["description"] = rewrite_document_id_prompt(tool["description"], pool_name)
+        for key in ("initial_prompt", "loop_prompt", "read_prompt", "resume_prompt", "final_prompt", "final_repair_prompt"):
+            _CONTRACT["budget_control"][key] = rewrite_document_id_prompt(
+                _CONTRACT["budget_control"][key], pool_name
+            )
+        for key, value in _CONTRACT.get("document_id_policy", {}).items():
+            if isinstance(value, str):
+                _CONTRACT["document_id_policy"][key] = rewrite_document_id_prompt(value, pool_name)
 
 CONTRACT_SHA256 = hashlib.sha256(
     json.dumps(_CONTRACT, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")

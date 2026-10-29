@@ -1,0 +1,67 @@
+{
+  "schema_version": "dci-pipeline-model-plan-v1",
+  "hardware_target": "4 x H100 80GB; deployment estimates require a model smoke",
+  "schedule": "Run embedding first, then generation and adjudication in separate stages; optional two TP=2 services after memory measurement.",
+  "roles": {
+    "generator": {
+      "model_id": "Qwen/Qwen3.8-27B",
+      "path": "/mnt/afs2/202610/Qwen3.8-27B",
+      "license": "Apache-2.0",
+      "base_url": "http://127.0.0.1:28101/v1",
+      "served_model_name": "dci-generator",
+      "dtype": "bfloat16",
+      "tensor_parallel_size": 2,
+      "max_model_len": 32768,
+      "max_num_seqs": 8,
+      "gpu_memory_utilization": 0.85,
+      "model_card": "https://huggingface.co/Qwen/Qwen3.8-27B",
+      "selection_reason": "Existing local weights and multilingual structured instruction following. Use bounded evidence packets rather than maximal advertised context."
+    },
+    "judge": {
+      "model_id": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+      "path": "/mnt/afs2/202609/embedding_models/dci-bench/pretrained_models/Mistral-Small-3.2-24B-Instruct-2506",
+      "license": "Apache-2.0",
+      "base_url": "http://127.0.0.1:28102/v1",
+      "served_model_name": "dci-judge",
+      "dtype": "bfloat16",
+      "tensor_parallel_size": 2,
+      "max_model_len": 32768,
+      "max_num_seqs": 8,
+      "gpu_memory_utilization": 0.85,
+      "tokenizer_mode": "mistral",
+      "config_format": "mistral",
+      "load_format": "mistral",
+      "model_card": "https://huggingface.co/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+      "selection_reason": "A separately trained model family for evidence adjudication; disagreement is sent to review. Cross-family judging does not remove correlated errors. Weights are not downloaded automatically."
+    },
+    "retriever": {
+      "model_id": "KaLM-Embedding/KaLM-embedding-multilingual-mini-instruct-v2.5",
+      "path": "/mnt/afs/share/embedding_models/KaLM-embedding-multilingual-mini-instruct-v2_5",
+      "trust_remote_code": true,
+      "normalize_embeddings": true,
+      "query_prompt_name": "query",
+      "document_prompt_name": "document",
+      "max_seq_length": 8192,
+      "batch_size": 8,
+      "model_card": "https://huggingface.co/KaLM-Embedding/KaLM-embedding-multilingual-mini-instruct-v2.5",
+      "selection_reason": "Preserves the agreed candidate-pool retriever. Encoding length is explicit and truncation must be audited."
+    },
+    "audit_retriever": {
+      "model_id": "BAAI/bge-m3",
+      "path": "/mnt/afs/share/embedding_models/bge-m3",
+      "trust_remote_code": false,
+      "normalize_embeddings": true,
+      "max_seq_length": 8192,
+      "batch_size": 8,
+      "model_card": "https://huggingface.co/BAAI/bge-m3",
+      "selection_reason": "Optional independent dense candidate mining alongside lexical search; never silently replaces KaLM in official pools."
+    }
+  },
+  "small_generation_budget": {
+    "max_calls": 50,
+    "max_total_tokens": 200000,
+    "max_output_tokens": 2048,
+    "temperature": 0.2
+  },
+  "validation_boundary": "Official model cards and local configuration inspected. No deployment throughput or GPU completion claimed. Pin weight identity when actually serving."
+}

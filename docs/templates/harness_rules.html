@@ -1,0 +1,74 @@
+<div class="rules-intro">
+  <h3>一题从检索到评分</h3>
+  <p>模型负责找出相关文档；Harness（运行控制程序）负责限定工具、计算用量、决定何时停止，并检查提交。</p>
+</div>
+<ol class="rules-flow">
+  <li class="rule-step" id="rule-search">
+    <span class="rule-number" aria-hidden="true">1</span>
+    <div class="rule-content">
+      <h3>开始：在指定文档中检索</h3>
+      <p>每题提供一个问题和 200 / 500 / 1000 篇候选文档。模型用搜索工具定位文档，用 <code>read</code> 打开正文，最后提交按相关性排序的 <strong>1–10 个文档 ID</strong>。</p>
+      <p>标准相关性标签只在评分端保存，模型看不到。</p>
+    </div>
+    <aside class="rule-reason"><h4>为什么限定范围</h4><p>让每次运行都有明确的候选集合，避免模型读到评分答案。</p></aside>
+  </li>
+  <li class="rule-step" id="rule-budget">
+    <span class="rule-number" aria-hidden="true">2</span>
+    <div class="rule-content">
+      <h3>每次调用都记账，一题共用一份预算</h3>
+      <p><strong>总预算是整题累计用量的上限。</strong>每次模型调用结束，把实际输入和输出 token 加入账单；历史对话再次作为输入发送，也会再次计入。</p>
+      <dl class="budget-contrast">
+        <div><dt>整题可以累计花多少</dt><dd>96,000 / 128,000 / 192,000 token<small>对应 200 / 500 / 1000 篇候选文档</small></dd></div>
+        <div><dt>单次请求可以装多少</dt><dd>65,536 token<small>上下文上限；每次输出最多 1,024 token</small></dd></div>
+      </dl>
+      <div class="worked-example"><h4>贯穿示例 · 500 篇候选文档</h4><p>第 1 次：8,000 输入 + 1,000 输出；第 2 次：12,000 输入 + 1,000 输出。</p><p><strong>累计用了 22,000，剩余 128,000 − 22,000 = 106,000 token。</strong></p></div>
+    </div>
+    <aside class="rule-reason"><h4>为什么按调用累加</h4><p>长对话反复传入模型也有成本。只看最终输出长度，会漏掉搜索过程中大量的输入开销。</p></aside>
+  </li>
+  <li class="rule-step" id="rule-reserve">
+    <span class="rule-number" aria-hidden="true">3</span>
+    <div class="rule-content">
+      <h3>提前给提交结果和修正输出留出额度</h3>
+      <p>每次控制决策都重新估算：<strong>再检索一轮 → 提交一次结果 → 修正一次输出</strong>，合计还需要多少 token。这个估计随对话和工具返回内容增长而变化。</p>
+      <p>算法先用最近一次实际输入、输出，再加新增消息，估计下一次输入；然后估算上述三次调用的总开销，与固定预留下限取较大值。</p>
+      <div class="worked-example"><h4>接上例</h4><p>最近一次输入 12,000 + 输出 1,000 + 新增消息估计 1,000，得到下一次输入估计 <strong>14,000</strong>。</p><p>当前公式算出预留 <strong>100,432</strong>。余额 106,000 高于预留，预算条件仍允许继续搜索。</p></div>
+      <p class="rule-key">预留包含在原总预算内。它只估算一次修复，并不保证后面允许的三次修复都有额度。</p>
+      <details class="rule-details"><summary>预算公式与当前参数</summary>
+        <p>设 N 为下一次输入的估计 token 数。最近一次实际输入和输出由模型服务返回；新增消息按 UTF-8 字节数换算，当前保守地按 1 byte = 1 token 估计。</p>
+        <table><caption class="sr-only">三次请求的预算估算</caption><thead><tr><th>预估请求</th><th>计算</th><th>上例 N = 14,000</th></tr></thead><tbody><tr><td>再检索一轮</td><td>N + 1,024 + 4,096</td><td>19,120</td></tr><tr><td>提交结果</td><td>N + 2 × 1,024 + 20,000 + 4,096</td><td>40,144</td></tr><tr><td>修正一次输出</td><td>N + 3 × 1,024 + 20,000 + 4,096</td><td>41,168</td></tr></tbody></table>
+        <p>每次请求预留 1,024 个输出 token 和 4,096 个安全余量；后两次还要重传预计最多 20,000 bytes 的新增工具结果，以及此前输出。因此历史输入会在三次请求中重复计算。</p>
+        <p class="formula">预留 = max(固定下限, 3 × N + 58,432)</p>
+        <p>三档固定下限为 24,000 / 32,000 / 48,000。当前参数下，动态估计始终高于这些下限；上例为 19,120 + 40,144 + 41,168 = 100,432。</p>
+        <p>首次尚无实际用量时，系统提示和工具定义的字符串长度各除以 4、向上取整，再加新增消息的字节估计。后续以真实用量更新；估计用于提前决策，最终仍按实际用量扣预算。</p>
+      </details>
+    </div>
+    <aside class="rule-reason"><h4>为什么提前预留</h4><p>如果搜索花光所有额度，模型就没机会整理和提交结果。历史越长，提交时重传上下文也越贵，因此预留不能只看固定值。</p></aside>
+  </li>
+  <li class="rule-step" id="rule-stop">
+    <span class="rule-number" aria-hidden="true">4</span>
+    <div class="rule-content">
+      <h3>余额接近预留时，停止自由搜索</h3>
+      <p><strong>剩余额度 ≤ 预留</strong>，或<strong>同参数工具调用连续出现 3 次</strong>，都会触发干预。接下来先看模型有没有真正打开过正文：</p>
+      <div class="rule-branches"><div><h4>已经读过正文</h4><p>关闭搜索和读取工具，让模型用已有内容整理并提交文档 ID。这一步称为“收尾”。</p></div><div><h4>还没有读过正文</h4><p>最多给 2 轮，只允许 <code>read</code> 补读。读到后，余额高于预留就恢复搜索，否则收尾；仍未读到则失败。</p></div></div>
+      <div class="worked-example"><h4>接上例：从余额判断走到提交</h4><p>假设模型已读过正文，继续检索后余额不再高于预留，就关闭工具、提交结果。此后即使文档 ID 写错，也只能用已有内容修正。</p></div>
+      <p>即使预算充足，6 轮仍未读正文也会触发补读。模型也可以主动提交：列表结构正确且已读正文，就结束搜索、进入验收。</p>
+    </div>
+    <aside class="rule-reason"><h4>为什么先看是否读过</h4><p>避免反复搜索却不看内容，也避免只凭文件名提交。要求的是整题至少读过一段非空正文，不要求每个返回 ID 都有对应读取记录。</p></aside>
+  </li>
+  <li class="rule-step" id="rule-submit">
+    <span class="rule-number" aria-hidden="true">5</span>
+    <div class="rule-content">
+      <h3>检查提交；可修复的错误再给机会</h3>
+      <p>提交必须是规定的 JSON：包含 1–10 个非空、不重复、在候选语料内的文档 ID，且整题已读过非空正文。失败时会把具体错误反馈给模型。</p>
+      <div class="rule-branches"><div><h4>还没进入收尾</h4><p>例如早期提交格式有误：可以继续搜索、读正文后重交；若正在补读，则仍只允许 <code>read</code>。</p></div><div><h4>已经进入收尾</h4><p>工具保持关闭，只能基于已有内容修正格式或文档 ID，不能重新搜索。</p></div></div>
+      <p><strong>两种修复合计最多 3 次，继续扣同一份预算。</strong>预算耗尽、超时等运行失败直接终止；不会为了修复追加额度。</p>
+      <p class="rule-outcome">验收通过 → 用隐藏的相关性标签评分 → 保存排名、轨迹和成本。<br><strong>格式合格不等于检索正确。</strong></p>
+    </div>
+    <aside class="rule-reason"><h4>为什么区分两种修复</h4><p>给可纠正的输出错误重试机会，同时防止模型在停止搜索后，借修复重新开始检索。</p></aside>
+  </li>
+</ol>
+<details class="rule-details rule-reference"><summary>验收细节与停止条件</summary>
+  <p>“读过正文”指通过 <code>read</code> 取得至少一条非空正文读取记录；搜索输出、目录读取和空白正文不算。验收只检查整题是否有这样的记录，不把每个返回 ID 与读取记录逐一匹配。</p>
+  <p>标准输出为 <code>{"ranked_doc_ids":["d1","d2"]}</code>，也兼容单键 <code>top_documents</code>。非 JSON、空列表、重复 ID 或额外字段均不能触发主动收尾。结构正确但 ID 不存在时，可以先进入收尾，再无工具修复；错误反馈可包含文件名到正确 ID 的映射，不包含相关性答案。</p>
+  <ul><li>真实累计输入 + 输出达到总预算，记 <code>token_limit</code>；用量缺失记 <code>usage_unavailable</code>；单次输出超过 1,024 token 记 <code>agent_error</code>。</li><li>发送前检查估计输入 + 1,024 + 4,096 不超过 65,536；控制或修复请求的估计成本（含新增指令）达到剩余额度时，不再发送，记 <code>token_limit</code>。</li><li>每题最多 600 秒，包含启动、工具和模型等待；超时直接失败，不会提前触发收尾。最多 1,200 次模型响应；该轮尚未满足“列表结构正确 + 已读正文”才检查这个轮数上限。</li><li>补读两轮仍无正文，且下一请求仍有预算时，记 <code>tool_failure</code>；预算不足会先记 <code>token_limit</code>。</li><li>最多三次修复后仍无效，记 <code>invalid_json</code>。上述运行失败不进入修复；无效样本在主要平均指标中计零，同时单独报告有效样本的指标。</li></ul>
+</details>

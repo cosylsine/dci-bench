@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import json
-from contextlib import AsyncExitStack, asynccontextmanager
+import time
+from contextlib import AsyncExitStack, asynccontextmanager, contextmanager
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,8 +20,16 @@ from inspect_ai.util import LimitExceededError, sample_limits
 
 from dci_bench.agents.pi_agent import run_pi_dci
 from dci_bench.data.registry import TASKS, get_task
-from dci_bench.protocol.contracts import MAX_AGENT_STEPS, MAX_TOTAL_MODEL_TOKENS, SAMPLE_TIMEOUT_SECONDS
-from dci_bench.results.protocol import sample_directory_name
+from dci_bench.data.document_runtime import (
+    WorkspacePrefetcher,
+    load_pool_for_runtime,
+    materialize_query_workspace,
+    workspace_prefetch_config,
+)
+from dci_bench.protocol.contracts import (
+    CONTEXT_POLICY, MAX_AGENT_STEPS, MAX_TOTAL_MODEL_TOKENS, SAMPLE_TIMEOUT_SECONDS, protocol_contract,
+)
+from dci_bench.results.protocol import sample_directory_name, write_json_atomic
 from dci_bench.scoring.retrieval import normalize_metric_ks, score_query, zero_metrics
 
 
@@ -29,6 +38,83 @@ RETRIEVAL_AGGREGATION_METRICS = {
     "f1_at_*": [mean()],
     "ndcg_at_*": [mean()],
 }
+DEFAULT_MODEL_CONTEXT_WINDOW = int(CONTEXT_POLICY.get("context_window", MAX_TOTAL_MODEL_TOKENS))
+RUNTIME_TIMING_SCHEMA = "dci-runtime-timing-v1"
+
+
+def _workspace_prefetcher(
+    *,
+    workspace_root: Path,
+    task_name: str,
+    query_ids: Sequence[str],
+    candidate_pool: dict[str, Any] | None,
+    max_concurrency: int,
+) -> WorkspacePrefetcher | None:
+    """Build a run-scoped prefetcher only when the explicit v2 switch is set."""
+
+    if candidate_pool is None:
+        return None
+    config = workspace_prefetch_config(max_concurrency)
+    if not config.enabled:
+        return None
+    return WorkspacePrefetcher(
+        workspace_root / task_name,
+        list(query_ids),
+        candidate_pool,
+        config,
+    )
+
+
+def _attach_workspace_prefetcher(
+    task: Task,
+    prefetcher: WorkspacePrefetcher | None,
+) -> Task:
+    if prefetcher is not None:
+        setattr(task, "_dci_workspace_prefetcher", prefetcher)
+    return task
+
+
+@contextmanager
+def workspace_prefetch_lifecycle(task: Task):
+    """Own one evaluation epoch for the task's optional prefetch manager.
+
+    The caller must wrap the complete ``inspect_eval_fn`` invocation.  Inspect
+    task cleanup runs once per sample, so it cannot safely own this run-scoped
+    manager.  Entering refreshes a task that was evaluated previously; leaving
+    closes pending and active workspaces even when evaluation raises.
+    """
+
+    prefetcher = getattr(task, "_dci_workspace_prefetcher", None)
+    if prefetcher is None:
+        yield task
+        return
+    prefetcher.refresh()
+    try:
+        yield task
+    finally:
+        prefetcher.close_sync()
+
+
+def _runtime_timing_payload(query_id: str, prefetcher: WorkspacePrefetcher) -> dict[str, Any]:
+    return {
+        "schema_version": RUNTIME_TIMING_SCHEMA,
+        "query_id": query_id,
+        "timing_source": "host_monotonic",
+        "prefetch_enabled": True,
+        "workspace_wait_seconds": None,
+        "workspace_prepare_seconds": None,
+        "bridge_start_seconds": None,
+        "pi_invocation_seconds": None,
+        "workspace_cleanup_seconds": None,
+        "prefetch_batch_size": prefetcher.config.batch_size,
+        "prefetch_max_concurrency": prefetcher.config.max_concurrency,
+        "prefetch_max_bytes": prefetcher.config.max_bytes,
+    }
+
+
+def _write_runtime_timing(path: Path, timing: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_json_atomic(path, timing)
 
 
 def _load_queries(task_name: str, metadata_root: Path) -> list[dict[str, Any]]:
@@ -136,6 +222,7 @@ def _make_samples(
     *,
     all_queries: bool = False,
     bridge_port_pool: "BridgePortPool | None" = None,
+    candidate_pool: dict[str, Any] | None = None,
 ) -> list[Sample]:
     """Build one host-validated Inspect sample for every selected query."""
 
@@ -149,6 +236,8 @@ def _make_samples(
         all_queries=all_queries,
     )
     by_id = {query["_id"]: query for query in queries}
+    if candidate_pool is None:
+        candidate_pool = load_pool_for_runtime(metadata_root, workspace_root, task_name, protocol_contract())
     samples: list[Sample] = []
     for sample_index, selected_id in enumerate(selected_ids):
         query = by_id[selected_id]
@@ -169,7 +258,8 @@ def _make_samples(
     return samples
 
 
-def _make_sample(task_name: str, query_id: str | None, metadata_root: Path, workspace_root: Path) -> Sample:
+def _make_sample(task_name: str, query_id: str | None, metadata_root: Path, workspace_root: Path,
+                 candidate_pool: dict[str, Any] | None = None) -> Sample:
     """Backward-compatible single-sample constructor.
 
     Phase 3 callers historically omitted ``query_id`` and received the first
@@ -187,6 +277,7 @@ def _make_sample(task_name: str, query_id: str | None, metadata_root: Path, work
         [query_id],
         metadata_root,
         workspace_root,
+        candidate_pool=candidate_pool,
     )
     return samples[0]
 
@@ -299,9 +390,14 @@ def pi_dci_solver(
     bridge_port: int = 13131,
     include_task_dir: bool = True,
     bridge_port_pool: BridgePortPool | None = None,
-    model_context_window: int = MAX_TOTAL_MODEL_TOKENS,
+    model_context_window: int = DEFAULT_MODEL_CONTEXT_WINDOW,
     task_instruction: str = "",
+    candidate_pool: dict[str, Any] | None = None,
+    workspace_prefetcher: WorkspacePrefetcher | None = None,
 ) -> Any:
+    if protocol_contract().get("candidate_pool") and candidate_pool is None:
+        raise ValueError("pooled solver requires verified candidate docid lists")
+
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         task_name = str(state.metadata["task"])
         query_id = str(state.metadata["query_id"])
@@ -311,33 +407,83 @@ def pi_dci_solver(
         sample_dir /= sample_directory_name(query_id)
         output_path = sample_dir / "final.json"
         trace_path = sample_dir / "trace.json"
-        async with _bridge_port_lease(bridge_port_pool, bridge_port) as sample_bridge_port:
-            bridge_context = sandbox_agent_bridge(
-                model="inspect",
-                sandbox="local",
-                port=sample_bridge_port,
-                web_search=False,
-                code_execution=False,
-                client_mcp_servers=False,
-                forward_generation_config=False,
-            )
-            async with _serialized_bridge_start(bridge_port_pool, bridge_context):
-                timeout_seconds = _remaining_pi_timeout_seconds()
-                result = await anyio.to_thread.run_sync(
-                    lambda: run_pi_dci(
-                        query=state.input_text,
-                        workspace=Path(str(state.metadata["workspace"])),
-                        output_path=output_path,
-                        trace_path=trace_path,
-                        openai_base_url=f"http://localhost:{sample_bridge_port}/v1",
-                        openai_api_key="inspect",
-                        model="inspect",
-                        timeout_seconds=timeout_seconds,
-                        max_agent_steps=MAX_AGENT_STEPS,
-                        context_window=model_context_window,
-                        task_instruction=task_instruction,
-                    )
+        timing = (
+            _runtime_timing_payload(query_id, workspace_prefetcher)
+            if workspace_prefetcher is not None
+            else None
+        )
+        timing_path = sample_dir / "runtime-timing.json"
+        try:
+            async with _bridge_port_lease(bridge_port_pool, bridge_port) as sample_bridge_port:
+                bridge_context = sandbox_agent_bridge(
+                    model="inspect",
+                    sandbox="local",
+                    port=sample_bridge_port,
+                    web_search=False,
+                    code_execution=False,
+                    client_mcp_servers=False,
+                    forward_generation_config=False,
                 )
+                bridge_started = time.perf_counter()
+                async with _serialized_bridge_start(bridge_port_pool, bridge_context):
+                    if timing is not None:
+                        timing["bridge_start_seconds"] = time.perf_counter() - bridge_started
+                    if workspace_prefetcher is None:
+                        def run_query():
+                            with materialize_query_workspace(
+                                Path(str(state.metadata["workspace"])), query_id, candidate_pool
+                            ) as workspace:
+                                timeout_seconds = _remaining_pi_timeout_seconds()
+                                return run_pi_dci(
+                                    query=state.input_text,
+                                    workspace=workspace,
+                                    output_path=output_path,
+                                    trace_path=trace_path,
+                                    openai_base_url=f"http://localhost:{sample_bridge_port}/v1",
+                                    openai_api_key="inspect",
+                                    model="inspect",
+                                    timeout_seconds=timeout_seconds,
+                                    max_agent_steps=MAX_AGENT_STEPS,
+                                    context_window=model_context_window,
+                                    task_instruction=task_instruction,
+                                )
+
+                        result = await anyio.to_thread.run_sync(run_query)
+                    else:
+                        lease = None
+                        wait_started = time.perf_counter()
+                        try:
+                            lease = await workspace_prefetcher.acquire(query_id)
+                            timing["workspace_wait_seconds"] = time.perf_counter() - wait_started
+                            timing["workspace_prepare_seconds"] = lease.prepare_seconds
+                            timeout_seconds = _remaining_pi_timeout_seconds()
+                            invocation_started = time.perf_counter()
+                            result = await anyio.to_thread.run_sync(
+                                lambda: run_pi_dci(
+                                    query=state.input_text,
+                                    workspace=lease.path,
+                                    output_path=output_path,
+                                    trace_path=trace_path,
+                                    openai_base_url=f"http://localhost:{sample_bridge_port}/v1",
+                                    openai_api_key="inspect",
+                                    model="inspect",
+                                    timeout_seconds=timeout_seconds,
+                                    max_agent_steps=MAX_AGENT_STEPS,
+                                    context_window=model_context_window,
+                                    task_instruction=task_instruction,
+                                ),
+                                abandon_on_cancel=False,
+                            )
+                            timing["pi_invocation_seconds"] = time.perf_counter() - invocation_started
+                        finally:
+                            if lease is not None:
+                                cleanup_started = time.perf_counter()
+                                with anyio.CancelScope(shield=True):
+                                    await workspace_prefetcher.release(lease)
+                                timing["workspace_cleanup_seconds"] = time.perf_counter() - cleanup_started
+        finally:
+            if timing is not None:
+                _write_runtime_timing(timing_path, timing)
         state.output.completion = json.dumps(
             {
                 "ranked_doc_ids": result.ranked_doc_ids,
@@ -357,6 +503,8 @@ def pi_dci_solver(
                 "tool_sandbox": result.tool_sandbox,
                 "output_path": str(result.output_path),
                 "trace_path": str(result.trace_path),
+                "runtime_timing_path": str(timing_path) if timing is not None else None,
+                "host_timing": timing,
             },
             ensure_ascii=False,
             sort_keys=True,
@@ -424,12 +572,22 @@ def mteb_llm_retrieval_single(
     effective_task_instruction = (
         task_spec.task_instruction if task_instruction is None else task_instruction
     )
-    sample = _make_sample(task_name, query_id, Path(metadata_root), Path(workspace_root))
-    return Task(
+    candidate_pool = load_pool_for_runtime(Path(metadata_root), Path(workspace_root), task_name, protocol_contract())
+    sample = _make_sample(task_name, query_id, Path(metadata_root), Path(workspace_root), candidate_pool)
+    workspace_prefetcher = _workspace_prefetcher(
+        workspace_root=Path(workspace_root),
+        task_name=task_name,
+        query_ids=[sample.id],
+        candidate_pool=candidate_pool,
+        max_concurrency=1,
+    )
+    task = Task(
         dataset=MemoryDataset([sample], name=f"{task_name}-{sample.id}"),
         solver=pi_dci_solver(
             output_dir=output_dir,
             include_task_dir=True,
+            candidate_pool=candidate_pool,
+            workspace_prefetcher=workspace_prefetcher,
             task_instruction=effective_task_instruction,
         ),
         scorer=dci_retrieval_scorer(
@@ -447,6 +605,7 @@ def mteb_llm_retrieval_single(
             "metric_ks": list(ks),
         },
     )
+    return _attach_workspace_prefetcher(task, workspace_prefetcher)
 
 
 @task
@@ -460,7 +619,7 @@ def mteb_llm_retrieval(
     metric_ks: Sequence[int] | None = None,
     bridge_port: int = 13131,
     max_concurrency: int = 1,
-    model_context_window: int = MAX_TOTAL_MODEL_TOKENS,
+    model_context_window: int = DEFAULT_MODEL_CONTEXT_WINDOW,
     task_instruction: str | None = None,
 ) -> Task:
     """Build one Inspect task containing the complete selected query batch.
@@ -481,6 +640,9 @@ def mteb_llm_retrieval(
         raise ValueError("model_context_window must be an integer")
     if model_context_window < 1:
         raise ValueError("model_context_window must be at least 1")
+    candidate_policy = protocol_contract().get("candidate_pool")
+    if candidate_policy and model_context_window != candidate_policy["context_window"]:
+        raise ValueError("model context window does not match the document-pool protocol")
     task_spec = get_task(task_name)
     effective_task_instruction = (
         task_spec.task_instruction if task_instruction is None else task_instruction
@@ -492,16 +654,25 @@ def mteb_llm_retrieval(
         query_ids=query_ids,
         all_queries=all_queries,
     )
+    candidate_pool = load_pool_for_runtime(Path(metadata_root), Path(workspace_root), task_name, protocol_contract())
+    workspace_prefetcher = _workspace_prefetcher(
+        workspace_root=Path(workspace_root),
+        task_name=task_name,
+        query_ids=selected_ids,
+        candidate_pool=candidate_pool,
+        max_concurrency=max_concurrency,
+    )
     samples = _make_samples(
         task_name,
-        query_ids,
+        selected_ids,
         Path(metadata_root),
         Path(workspace_root),
-        all_queries=all_queries,
+        all_queries=False,
         bridge_port_pool=pool,
+        candidate_pool=candidate_pool,
     )
     ks = normalize_metric_ks(metric_ks)
-    return Task(
+    task = Task(
         dataset=MemoryDataset(samples, name=f"{task_name}-batch"),
         solver=pi_dci_solver(
             output_dir=output_dir,
@@ -509,6 +680,8 @@ def mteb_llm_retrieval(
             include_task_dir=False,
             bridge_port_pool=pool,
             model_context_window=model_context_window,
+            candidate_pool=candidate_pool,
+            workspace_prefetcher=workspace_prefetcher,
             task_instruction=effective_task_instruction,
         ),
         scorer=dci_retrieval_scorer(
@@ -531,6 +704,7 @@ def mteb_llm_retrieval(
             "model_context_window": model_context_window,
         },
     )
+    return _attach_workspace_prefetcher(task, workspace_prefetcher)
 
 
 # Explicit alias for callers that prefer the name used in the Phase 4 plan.

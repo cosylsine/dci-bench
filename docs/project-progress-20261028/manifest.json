@@ -1,0 +1,35 @@
+{
+  "schema_version": "dci-project-progress-manifest-v2",
+  "as_of": "2026-10-29",
+  "historical_manifest": "history/20261028/manifest.json",
+  "outputs": {
+    "benchmark-v2-coverage.csv": "7daf793ab1a90a6fa45d4cdbe6f8618f69cc6c23beb770292b0dba0a5fc04da2",
+    "benchmark-v2-coverage.json": "5eb8f39530156eac3fdaa1b63a9dbf4502619d5ba99f77f6f813921b77d81caa",
+    "benchmark-v2-status.json": "e5b94aec20c777f38a373be821f1d61a56a8e19c6cf6804431601a8fcec39f32",
+    "browser-validation-v2.json": "36c38c51d137c122d27cd90c7258bd919ea1108ab99403ac6fe8c5a4dc1db3af",
+    "browser-validation.json": "0380373d9b2042d5acf8c3991750d5f065dcd28f8f1af81c0b6ff0271ba71c4c",
+    "data_matrix.json": "f7729ad0f705b8edcab859c65ed76461886899ae14e96bfe258688b7f4640aaf",
+    "harness-rules.png": "95e242c86ea3eef7b2fdf409064d387f0e385cfb375244af51385e74536a4065",
+    "harness-rules.svg": "b19f14453f8077889dc91ae44f4a9904a59002dc555e29571e25c7de42bf68fc",
+    "index.html": "eecb011b76d2cf85a330fa26e6926b855773ee6db3f6c8c583b46fa3fc8686b6",
+    "progress.md": "5d1e2d78b30ae08f4121f49e2b88f19065b8a004ebcc39a3d897d225c335afb1",
+    "source_matrix.csv": "06fd462f02625afda0bd9f9b70fb3492608878e25e9f4458e40451fa10aff306",
+    "workflow.png": "fae5f026813156dd597d10f589a5244ea869f159f1a057c1b80c9a78e7ff527b",
+    "workflow.svg": "a8f8b06129a2e014844bed620582323f131a8f7cdca5f4544c2b485128712a2e"
+  },
+  "inputs": {
+    "configs/benchmark_v2.json": "7c587ba59869d38ced5827040c0b0f7ab9ec8b6e6bdf189e784f3a97be174f08",
+    "results/implementation/20261029-lite-full/prepared-manifest.json": "969aef3a47e80d2a9b42c80b520516225b0b0a8f9a49350a1bf6e05c8f0a2a1c",
+    "results/implementation/20261029-lite-full/data-audit.json": "8a1adcad9ba8dd6c94a2e743a25fecfab5957b9e0bb227f565c8ea9ce56f55ba",
+    "docs/templates/benchmark_progress.html": "7042f4416622dcd5a0cf39113305617f79630951bd30996d0fada3d28381ab63"
+  },
+  "checks": {
+    "markdown_lines": 36,
+    "historical_matrix_preserved": true,
+    "coverage_task_count": 20,
+    "coverage_ready_tasks": 13,
+    "new_gpu_inference_completed": false,
+    "browser_validation_current": true,
+    "yuque_host_verified": false
+  }
+}

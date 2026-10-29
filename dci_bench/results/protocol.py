@@ -268,6 +268,7 @@ _RELEVANCE_DIGEST_KEYS = frozenset(
         "qrels_hash_expected",
         "qrels_sha256",
         "expected_qrels_hash",
+        "original_qrels_hash",
     }
 )
 
@@ -299,6 +300,8 @@ def validate_no_sensitive_fields(value: Any, *, _path: str = "$") -> bool:
             reason = _key_is_forbidden(raw_key)
             if reason:
                 raise ResultValidationError(f"{_path}.{raw_key}: {reason}")
+            if re.sub(r"[^a-z0-9]+", "_", raw_key.lower()).strip("_") == "original_qrels_hash":
+                _validate_sha256(child, f"{_path}.{raw_key}")
             validate_no_sensitive_fields(child, _path=f"{_path}.{raw_key}")
         return True
     if isinstance(value, (list, tuple)):

@@ -20,7 +20,7 @@ sys.path.insert(0, str(REPO / "scripts"))
 SPEC = importlib.util.spec_from_file_location("final_replay", REPO / "scripts/prepare_harness_final_replay.py")
 R = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(R)
-RUNTIME = REPO / "results/harness-continuations/20261014T043719Z-validation-remaining/runtime"
+RUNTIME = REPO / "releases/harness-continuations/20261014T043719Z-validation-remaining/runtime"
 NODE = Path(R.BENCH_PYTHON).with_name("node")
 
 

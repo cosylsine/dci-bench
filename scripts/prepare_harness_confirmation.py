@@ -196,6 +196,8 @@ def python_identity(python):
 
 
 def prepare(source, repository, output, backend_path, take):
+    if {'results', 'eval_data', 'raw_data', 'eval_data_code'} & set(output.resolve().parts):
+        raise ValueError('Executable bundles belong under the code repository releases/ directory')
     preparer_source = Path(__file__).read_bytes()
     source_manifest = read_json(source / "continuation.json")
     original = source / "runtime"

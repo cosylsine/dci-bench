@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import inspect
 import json
+import os
 import re
 import secrets
 import sys
@@ -129,7 +130,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default="sglang",
         help="Inspect service prefix used in openai-api/<service>/<model>",
     )
-    parser.add_argument("--api-key", default="EMPTY")
+    parser.add_argument("--api-key", default=os.environ.get("DCI_API_KEY", "EMPTY"))
     parser.add_argument("--log-dir", type=Path)
     parser.add_argument("--bridge-port", type=_port, default=13131)
     parser.add_argument("--max-concurrency", type=_positive_int, default=1)

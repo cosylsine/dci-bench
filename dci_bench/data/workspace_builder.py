@@ -20,6 +20,13 @@ from dci_bench.data.loader import (
     sha256_files,
     stable_json_sha256,
 )
+from dci_bench.data.document_ids import (
+    DOCUMENT_ID_POLICY,
+    build_document_id_map,
+    remap_qrels,
+    reverse_document_id_map,
+    validate_source_document_ids,
+)
 from dci_bench.data.registry import (
     DEFAULT_DATA_ROOT,
     TASKS,
@@ -30,7 +37,8 @@ from dci_bench.data.registry import (
 from dci_bench.protocol.contracts import BENCHMARK_CONTRACT_VERSION, TOP_K, protocol_contract
 
 
-WORKSPACE_FORMAT_VERSION = "dci-corpus-markdown-v2"
+WORKSPACE_FORMAT_VERSION = "dci-corpus-markdown-v3"
+LEGACY_WORKSPACE_FORMAT_VERSION = "dci-corpus-markdown-v2"
 CORPUS_MAX_LINE_CHARS = 200
 
 
@@ -170,8 +178,31 @@ def build_workspace(
             expected_format = {
                 "version": WORKSPACE_FORMAT_VERSION,
                 "max_line_chars": CORPUS_MAX_LINE_CHARS,
+                "document_id_policy": DOCUMENT_ID_POLICY,
             }
             if workspace_format == expected_format:
+                current_required = (
+                    metadata_dir / "source_doc_ids.json",
+                    metadata_dir / "original_qrels.json",
+                )
+                current_missing = [path for path in current_required if not path.exists()]
+                if current_missing:
+                    raise FileNotFoundError(
+                        "cannot reuse incomplete current-format workspace; missing: "
+                        + ", ".join(str(path) for path in current_missing)
+                    )
+                source_doc_ids = validate_source_document_ids(
+                    json.loads((metadata_dir / "source_doc_ids.json").read_text(encoding="utf-8"))
+                )
+                original_qrels = json.loads(
+                    (metadata_dir / "original_qrels.json").read_text(encoding="utf-8")
+                )
+                qrels = json.loads((metadata_dir / "qrels.json").read_text(encoding="utf-8"))
+                if (manifest.get("source_num_docs") != len(source_doc_ids)
+                        or stable_json_sha256(source_doc_ids) != manifest.get("source_doc_ids_hash")
+                        or stable_json_sha256(original_qrels) != manifest.get("original_qrels_hash")
+                        or stable_json_sha256(qrels) != manifest.get("qrels_hash")):
+                    raise ValueError("existing short document metadata hashes do not match manifest")
                 return WorkspaceBuildResult(
                     task=task.name,
                     workspace_dir=workspace_dir,
@@ -208,14 +239,20 @@ def build_workspace(
     corpus_dir.mkdir(parents=True, exist_ok=False)
     metadata_dir.mkdir(parents=True, exist_ok=False)
 
+    # Build aliases from the complete source corpus before any qrel or query
+    # filtering.  Source IDs remain available in host-only metadata while the
+    # model-visible workspace uses only deterministic short aliases.
+    original_to_alias = build_document_id_map(doc["_id"] for doc in docs)
+    source_doc_ids = reverse_document_id_map(original_to_alias)
     doc_id_files: dict[str, str] = {}
     filenames: set[str] = set()
     for doc in sorted(docs, key=lambda row: row["_id"]):
-        filename = doc_id_to_filename(doc["_id"])
+        alias = original_to_alias[doc["_id"]]
+        filename = doc_id_to_filename(alias)
         if filename in filenames:
             raise ValueError(f"Filename collision after percent-encoding: {filename}")
         filenames.add(filename)
-        doc_id_files[doc["_id"]] = filename
+        doc_id_files[alias] = filename
         (corpus_dir / filename).write_text(
             render_doc_markdown(doc["title"], doc["text"]),
             encoding="utf-8",
@@ -227,17 +264,21 @@ def build_workspace(
         f"Dataset: {task.hf_dataset}\n\n"
         f"Revision: {task.revision}\n\n"
         f"Documents: {len(docs)}\n\n"
-        "Each corpus file is named as the URL percent-encoded original document id "
-        "with a `.md` suffix.\n"
+        "Each corpus file is named as a deterministic task-local short document "
+        "alias with a `.md` suffix.\n"
     )
     (workspace_dir / "README.md").write_text(readme, encoding="utf-8")
 
     rng = random.Random(sample_seed)
     sampled_queries = rng.sample(queries, k=min(sample_queries, len(queries))) if queries else []
 
-    qrels_canonical = {
+    original_qrels = {
         query_id: dict(sorted(doc_scores.items()))
         for query_id, doc_scores in sorted(qrels.items())
+    }
+    qrels_canonical = {
+        query_id: dict(sorted(doc_scores.items()))
+        for query_id, doc_scores in sorted(remap_qrels(original_qrels, original_to_alias).items())
     }
     manifest = {
         "benchmark_contract_version": BENCHMARK_CONTRACT_VERSION,
@@ -248,13 +289,17 @@ def build_workspace(
         "source_dir": str(task_dir),
         "num_queries": len(queries),
         "num_docs": len(docs),
+        "source_num_docs": len(source_doc_ids),
         "num_qrels": sum(len(items) for items in qrels.values()),
         "top_k": TOP_K,
+        "document_id_policy": DOCUMENT_ID_POLICY,
         "corpus_hash": stable_json_sha256(
             [{"_id": doc["_id"], "title": doc["title"], "text": doc["text"]} for doc in sorted(docs, key=lambda row: row["_id"])]
         ),
         "queries_hash": stable_json_sha256(sorted(queries, key=lambda row: row["_id"])),
         "qrels_hash": stable_json_sha256(qrels_canonical),
+        "source_doc_ids_hash": stable_json_sha256(source_doc_ids),
+        "original_qrels_hash": stable_json_sha256(original_qrels),
         "source_parquet_hash": sha256_files(
             parquet_files(task_dir, "corpus")
             + parquet_files(task_dir, "queries")
@@ -265,6 +310,7 @@ def build_workspace(
         "workspace_format": {
             "version": WORKSPACE_FORMAT_VERSION,
             "max_line_chars": CORPUS_MAX_LINE_CHARS,
+            "document_id_policy": DOCUMENT_ID_POLICY,
         },
         "task_instruction": task.task_instruction,
         "protocol": protocol_contract(
@@ -276,6 +322,8 @@ def build_workspace(
     write_jsonl(metadata_dir / "queries.jsonl", sorted(queries, key=lambda row: row["_id"]))
     write_json(metadata_dir / "qrels.json", qrels_canonical)
     write_json(metadata_dir / "doc_id_files.json", dict(sorted(doc_id_files.items())))
+    write_json(metadata_dir / "source_doc_ids.json", dict(sorted(source_doc_ids.items())))
+    write_json(metadata_dir / "original_qrels.json", original_qrels)
     write_json(metadata_dir / "query_samples.json", sampled_queries)
     manifest_path = metadata_dir / "manifest.json"
     write_json(manifest_path, manifest)

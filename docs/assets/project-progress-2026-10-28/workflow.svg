@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1120" viewBox="0 0 1680 1120" role="img" aria-labelledby="title desc">
+  <title id="title">DCI-Bench 当前文档评测框架与 harness 工作流程</title>
+  <desc id="desc">三类数据输入统一为 corpus、queries、qrels，经 KaLM 排名、正例补回和三档候选池构造，冻结与预检后由 Inspect 编排，HTTP bridge 连接 Pi，使用 read 与 Bubblewrap bash 工具检索候选正文，预算控制后提交 ranked_doc_ids，宿主侧验收、评分并保存可追溯结果。qrels 不进入 agent 工作区。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L8 4.5 L0 9" fill="none" stroke="#688277" stroke-width="1.6"/></marker>
+    <style>
+      text{font-family:'Noto Sans CJK SC','WenQuanYi Zen Hei','Microsoft YaHei',sans-serif;fill:#193b36}
+      .eyebrow{font-size:17px;letter-spacing:2px;fill:#58786e}.title{font-size:38px;font-weight:700}.sub{font-size:20px;fill:#526c65}
+      .label{font-size:23px;font-weight:700}.body{font-size:19px;fill:#46635b}.small{font-size:17px;fill:#526c65}.mono{font-family:monospace;font-size:19px}
+      .card{fill:#fff;stroke:#cddad1;stroke-width:1.5}.edge{fill:none;stroke:#688277;stroke-width:2;marker-end:url(#arrow)}
+      .accent{fill:#176b56}.white{fill:#fff}.section{font-size:20px;font-weight:700;fill:#176b56}
+    </style>
+  </defs>
+  <rect width="1680" height="1120" rx="24" fill="#f7f8f2"/>
+  <text x="48" y="49" class="eyebrow">DCI-BENCH / DOCUMENT TRACK / 2026-10-28</text>
+  <text x="48" y="104" class="title">DCI-Bench 评测框架与 Harness</text>
+  <text x="48" y="143" class="sub">document-pool-v1 · dci-mvp-v3.4-pilot · 冻结包 20261026-pool-smoke-v4 · Qwen3.8-27B</text>
+
+  <text x="48" y="197" class="section">01  数据准备与实验冻结 · 宿主侧</text>
+  <rect x="48" y="219" width="350" height="160" rx="14" class="card"/>
+  <text x="70" y="256" class="label">三类数据输入</text>
+  <text x="70" y="291" class="body">已有检索集 · 带证据 QA · 原始语料</text>
+  <text x="70" y="323" class="body">清洗、适配、标签审计与发布</text>
+  <text x="70" y="355" class="small">raw_data 原样保留，派生数据独立存放</text>
+  <path d="M402 299 H438" class="edge"/>
+  <rect x="446" y="219" width="350" height="160" rx="14" class="card"/>
+  <text x="468" y="256" class="label">统一检索契约</text>
+  <text x="468" y="291" class="mono">corpus + queries + qrels</text>
+  <text x="468" y="323" class="body">短 doc_id 与原始 ID 可逆映射</text>
+  <text x="468" y="355" class="small">数据集 evidence 可选；qrels 仅宿主持有</text>
+  <path d="M800 299 H836" class="edge"/>
+  <rect x="844" y="219" width="370" height="160" rx="14" class="card"/>
+  <text x="866" y="256" class="label">KaLM 排名 → 候选池</text>
+  <text x="866" y="291" class="body">200 / 500 / 1000 独立构造</text>
+  <text x="866" y="323" class="body">补回遗漏正例，等量移除非正例</text>
+  <text x="866" y="355" class="small">共享正文 + 每题 ID 索引 + 排名压缩归档</text>
+  <path d="M1218 299 H1254" class="edge"/>
+  <rect x="1262" y="219" width="370" height="160" rx="14" class="card"/>
+  <text x="1284" y="256" class="label">冻结计划 → 运行前检查</text>
+  <text x="1284" y="291" class="body">固定同题三档，封存源码与配置</text>
+  <text x="1284" y="323" class="body">数据、模型身份、依赖与真实工具链</text>
+  <text x="1284" y="355" class="small">预检通过后加载 vLLM，开始模型执行</text>
+  <path d="M1446 381 V410 H216 V459" class="edge"/>
+
+  <rect x="48" y="467" width="1584" height="371" rx="18" fill="#eaf3ed" stroke="#c5d9cc"/>
+  <text x="72" y="503" class="section">02  单题 harness · Inspect 编排 → HTTP bridge → Pi 控制器</text>
+  <rect x="72" y="528" width="310" height="182" rx="12" class="card"/>
+  <text x="92" y="563" class="label">当前 query 工作区</text>
+  <text x="92" y="599" class="body">从共享语料按候选 ID 取正文</text>
+  <text x="92" y="631" class="body">仅本题 200 / 500 / 1000 篇</text>
+  <text x="92" y="663" class="body">按需物化，退出后释放</text>
+  <text x="92" y="692" class="small">无 qrels、正例标记或原始 ID 映射</text>
+  <path d="M386 618 H426" class="edge"/>
+  <rect x="434" y="528" width="306" height="182" rx="12" fill="#176b56"/>
+  <text x="457" y="563" class="label white">Pi：搜索 ↔ 阅读 ↔ 判断</text>
+  <text x="457" y="599" class="body white">通过 vLLM 调用 Qwen3.8-27B</text>
+  <text x="457" y="631" class="body white">累计每次输入和输出的用量</text>
+  <text x="457" y="663" class="body white">余额低时 → 收尾 / 补读</text>
+  <text x="457" y="692" class="small white">模型服务由宿主连接；bash 无网络</text>
+  <path d="M744 574 H784" class="edge"/>
+  <path d="M786 674 H748" class="edge"/>
+  <rect x="794" y="528" width="372" height="84" rx="12" class="card"/>
+  <text x="814" y="560" class="label">read · Pi Node 受控读取</text>
+  <text x="814" y="590" class="small">仅 corpus 内路径；非空正文生成读取凭据</text>
+  <rect x="794" y="626" width="372" height="84" rx="12" class="card" stroke-dasharray="5 4"/>
+  <text x="814" y="658" class="label">bash · Bubblewrap 沙箱</text>
+  <text x="814" y="688" class="small">只读候选语料，无网络；支持 rg 等检索</text>
+  <path d="M1170 618 H1210" class="edge"/>
+  <rect x="1218" y="528" width="390" height="182" rx="12" class="card"/>
+  <text x="1240" y="563" class="label">停止搜索并提交结果</text>
+  <text x="1240" y="599" class="body">收尾时关闭工具；无效输出最多修复 3 次</text>
+  <text x="1240" y="631" class="mono">{"ranked_doc_ids": [...]}</text>
+  <text x="1240" y="663" class="body">1–10 个唯一、语料内有效的短 ID</text>
+  <text x="1240" y="692" class="small">终稿至少需一条非空 read 凭据</text>
+  <rect x="72" y="735" width="1536" height="77" rx="12" fill="#fff" fill-opacity=".7"/>
+  <text x="92" y="767" class="body">三档累计输入＋输出预算：96k / 128k / 192k token（重复传入上下文也计入预算）</text>
+  <text x="92" y="796" class="small">单次上下文 65,536 · 输出上限 1,024 · 每题 600 秒 · 预留在总预算内；公式、补读与修复分支见 Harness 规则图</text>
+  <path d="M1414 839 V866 H720 V907" class="edge"/>
+
+  <text x="48" y="891" class="section">03  宿主验收、评分与结果封存</text>
+  <rect x="48" y="915" width="756" height="129" rx="14" class="card"/>
+  <text x="72" y="950" class="label">验收与评分</text>
+  <text x="72" y="985" class="body">JSON / ID / read 凭据验收 → 对照 host-only qrels 评分</text>
+  <text x="72" y="1017" class="body">Recall / F1 / nDCG @ 1, 3, 5, 10, 20 · token 与耗时</text>
+  <path d="M805 980 H825" class="edge"/>
+  <rect x="828" y="915" width="804" height="129" rx="14" class="card"/>
+  <text x="852" y="950" class="label">结果与审计记录</text>
+  <text x="852" y="985" class="body">final.json · result.json · trace.json · manifest · _COMPLETE</text>
+  <text x="852" y="1017" class="body">当前：53 条配对 query × 3 档，159 / 159 smoke 通过</text>
+  <text x="48" y="1084" class="small">解释边界：三档非嵌套且预算不同；池内 DCI 与补正例前 KaLM 分开评价。159 次 smoke 属运行诊断，全量 benchmark 尚未完成。</text>
+</svg>

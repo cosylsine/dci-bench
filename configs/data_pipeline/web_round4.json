@@ -1,0 +1,558 @@
+{
+  "schema_version": "dci-web-round4-v1",
+  "raw_root": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data",
+  "eval_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data",
+  "research_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/source_research_20261023_round4/web",
+  "download_base_url": "https://hf-mirror.com",
+  "download_budget_bytes": 400000000,
+  "per_file_budget_bytes": 120000000,
+  "quality_policy": {
+    "max_positive_per_query": null,
+    "exclude_review_required": false,
+    "drop_near_duplicates": false,
+    "max_document_bytes": 16777216,
+    "max_query_bytes": 16777216
+  },
+  "sources": [
+    {
+      "id": "r4_web_mmarco_ar",
+      "domain": "web",
+      "language": "ar",
+      "dataset": "lopozz/MMarcoRetrievalMultilingual",
+      "dataset_revision": "44480423f56a42b948edd899c707e640b8e46f19",
+      "mteb_task": "MMarcoRetrievalMultilingual",
+      "mteb_task_revision": "2ad77827480c853ee9518eb207a244f13f8a0966",
+      "split": "dev",
+      "source_family": "MTEB MMarcoRetrievalMultilingual / mMARCO v2",
+      "source_scope": "official bounded MTEB dev retrieval view; task code describes a 100,000-candidate sample and the pinned parquet contains 106,813 corpus rows including positive closure; no full parent retrieval claim",
+      "translation_status": "machine-translated view of MS MARCO; translated family; no local translation",
+      "license": "apache-2.0",
+      "official_urls": [
+        "https://github.com/embeddings-benchmark/mteb/blob/2ad77827480c853ee9518eb207a244f13f8a0966/mteb/tasks/retrieval/multilingual/mmarco_retrieval.py",
+        "https://huggingface.co/datasets/lopozz/MMarcoRetrievalMultilingual/tree/44480423f56a42b948edd899c707e640b8e46f19",
+        "https://github.com/unicamp-dl/mMARCO",
+        "https://arxiv.org/abs/2108.13897"
+      ],
+      "expected_counts": {
+        "documents": 106813,
+        "queries": 6980,
+        "positive_pairs": 7437
+      },
+      "files": {
+        "documents": {
+          "path": "ar-corpus/dev-00000-of-00001.parquet",
+          "bytes": 25271798,
+          "sha256": "dcc3f85bc4d9ce5023431bb3e258124de63be649a515e2ed163244b505d63f6a",
+          "file_revision": "1a777c008000eafb1ad3e84a62ca8b0afc33a4f6"
+        },
+        "queries": {
+          "path": "ar-queries/dev-00000-of-00001.parquet",
+          "bytes": 255075,
+          "sha256": "53463bf7d0596746f1d636b00534193a5c83e01e6b3d9d2e606f4cb58a393e95",
+          "file_revision": "4259e5789f7e871d6961cb1161399a70c92a3d5b"
+        },
+        "qrels": {
+          "path": "ar-qrels/dev-00000-of-00001.parquet",
+          "bytes": 108842,
+          "sha256": "28d0036a78646f266f48f8bde7355a36492b8525b792b6b8439f555149ca803d",
+          "file_revision": "974e0c35560090dabf53ff18e950c74cdf4feb33"
+        }
+      }
+    },
+    {
+      "id": "r4_web_mmarco_de",
+      "domain": "web",
+      "language": "de",
+      "dataset": "lopozz/MMarcoRetrievalMultilingual",
+      "dataset_revision": "44480423f56a42b948edd899c707e640b8e46f19",
+      "mteb_task": "MMarcoRetrievalMultilingual",
+      "mteb_task_revision": "2ad77827480c853ee9518eb207a244f13f8a0966",
+      "split": "dev",
+      "source_family": "MTEB MMarcoRetrievalMultilingual / mMARCO v2",
+      "source_scope": "official bounded MTEB dev retrieval view; task code describes a 100,000-candidate sample and the pinned parquet contains 106,813 corpus rows including positive closure; no full parent retrieval claim",
+      "translation_status": "machine-translated view of MS MARCO; translated family; no local translation",
+      "license": "apache-2.0",
+      "official_urls": [
+        "https://github.com/embeddings-benchmark/mteb/blob/2ad77827480c853ee9518eb207a244f13f8a0966/mteb/tasks/retrieval/multilingual/mmarco_retrieval.py",
+        "https://huggingface.co/datasets/lopozz/MMarcoRetrievalMultilingual/tree/44480423f56a42b948edd899c707e640b8e46f19",
+        "https://github.com/unicamp-dl/mMARCO",
+        "https://arxiv.org/abs/2108.13897"
+      ],
+      "expected_counts": {
+        "documents": 106813,
+        "queries": 6980,
+        "positive_pairs": 7437
+      },
+      "files": {
+        "documents": {
+          "path": "de-corpus/dev-00000-of-00001.parquet",
+          "bytes": 22681777,
+          "sha256": "266e84a7ceff626815406f45951648e7a43d613e9042d823f8c0f35fcf1aa252",
+          "file_revision": "799d3fe0f899e06caae99c7c97e8e9866db9afe7"
+        },
+        "queries": {
+          "path": "de-queries/dev-00000-of-00001.parquet",
+          "bytes": 248946,
+          "sha256": "9f7fdf6d161611a89b4c0ad1a2f8f60572b7e08542cfe35ed831cfecb922fcde",
+          "file_revision": "c0efb5c4f562482862ca43b064a0779f15576d0c"
+        },
+        "qrels": {
+          "path": "de-qrels/dev-00000-of-00001.parquet",
+          "bytes": 108842,
+          "sha256": "28d0036a78646f266f48f8bde7355a36492b8525b792b6b8439f555149ca803d",
+          "file_revision": "6d320c0a1f68097501168d403a5f0978ff002cec"
+        }
+      }
+    },
+    {
+      "id": "r4_web_mmarco_es",
+      "domain": "web",
+      "language": "es",
+      "dataset": "lopozz/MMarcoRetrievalMultilingual",
+      "dataset_revision": "44480423f56a42b948edd899c707e640b8e46f19",
+      "mteb_task": "MMarcoRetrievalMultilingual",
+      "mteb_task_revision": "2ad77827480c853ee9518eb207a244f13f8a0966",
+      "split": "dev",
+      "source_family": "MTEB MMarcoRetrievalMultilingual / mMARCO v2",
+      "source_scope": "official bounded MTEB dev retrieval view; task code describes a 100,000-candidate sample and the pinned parquet contains 106,813 corpus rows including positive closure; no full parent retrieval claim",
+      "translation_status": "machine-translated view of MS MARCO; translated family; no local translation",
+      "license": "apache-2.0",
+      "official_urls": [
+        "https://github.com/embeddings-benchmark/mteb/blob/2ad77827480c853ee9518eb207a244f13f8a0966/mteb/tasks/retrieval/multilingual/mmarco_retrieval.py",
+        "https://huggingface.co/datasets/lopozz/MMarcoRetrievalMultilingual/tree/44480423f56a42b948edd899c707e640b8e46f19",
+        "https://github.com/unicamp-dl/mMARCO",
+        "https://arxiv.org/abs/2108.13897"
+      ],
+      "expected_counts": {
+        "documents": 106813,
+        "queries": 6980,
+        "positive_pairs": 7437
+      },
+      "files": {
+        "documents": {
+          "path": "es-corpus/dev-00000-of-00001.parquet",
+          "bytes": 22407660,
+          "sha256": "2fbdc4c27b4bef7bde0672db5c92f9e5dfb8ccbff2597a3430f568644d5ed557",
+          "file_revision": "3e8f465458fd03a0d3e6a38d535b39cc6d4559bd"
+        },
+        "queries": {
+          "path": "es-queries/dev-00000-of-00001.parquet",
+          "bytes": 250550,
+          "sha256": "53c542eb415a62ba06f39764571644dfd5cf07155c408cff27eb7278a73856df",
+          "file_revision": "c884c500b5655dc0e9f23ca6842bc9a4bc414c81"
+        },
+        "qrels": {
+          "path": "es-qrels/dev-00000-of-00001.parquet",
+          "bytes": 108842,
+          "sha256": "28d0036a78646f266f48f8bde7355a36492b8525b792b6b8439f555149ca803d",
+          "file_revision": "7ae01e29b84694722ea37e9e030315accbde7aea"
+        }
+      }
+    },
+    {
+      "id": "r4_web_mmarco_fr",
+      "domain": "web",
+      "language": "fr",
+      "dataset": "lopozz/MMarcoRetrievalMultilingual",
+      "dataset_revision": "44480423f56a42b948edd899c707e640b8e46f19",
+      "mteb_task": "MMarcoRetrievalMultilingual",
+      "mteb_task_revision": "2ad77827480c853ee9518eb207a244f13f8a0966",
+      "split": "dev",
+      "source_family": "MTEB MMarcoRetrievalMultilingual / mMARCO v2",
+      "source_scope": "official bounded MTEB dev retrieval view; task code describes a 100,000-candidate sample and the pinned parquet contains 106,813 corpus rows including positive closure; no full parent retrieval claim",
+      "translation_status": "machine-translated view of MS MARCO; translated family; no local translation",
+      "license": "apache-2.0",
+      "official_urls": [
+        "https://github.com/embeddings-benchmark/mteb/blob/2ad77827480c853ee9518eb207a244f13f8a0966/mteb/tasks/retrieval/multilingual/mmarco_retrieval.py",
+        "https://huggingface.co/datasets/lopozz/MMarcoRetrievalMultilingual/tree/44480423f56a42b948edd899c707e640b8e46f19",
+        "https://github.com/unicamp-dl/mMARCO",
+        "https://arxiv.org/abs/2108.13897"
+      ],
+      "expected_counts": {
+        "documents": 106813,
+        "queries": 6980,
+        "positive_pairs": 7437
+      },
+      "files": {
+        "documents": {
+          "path": "fr-corpus/dev-00000-of-00001.parquet",
+          "bytes": 22955251,
+          "sha256": "19527df2d425dd51be683527b54ac396ad5d25570bacef0edcebaf0cd285fafd",
+          "file_revision": "64fe9c39d7de69f3b0ae5288d3ab183985b1b2ad"
+        },
+        "queries": {
+          "path": "fr-queries/dev-00000-of-00001.parquet",
+          "bytes": 253558,
+          "sha256": "67590c754be04f2392cf9add6975cf1d1fcdb90acda882fbce1c57335b07f766",
+          "file_revision": "82fef59deb8f2f06c3aeb020aae2b82e0f779292"
+        },
+        "qrels": {
+          "path": "fr-qrels/dev-00000-of-00001.parquet",
+          "bytes": 108842,
+          "sha256": "28d0036a78646f266f48f8bde7355a36492b8525b792b6b8439f555149ca803d",
+          "file_revision": "8201cc3473a446506e277b1f08b9b75f5d6c7ad2"
+        }
+      }
+    },
+    {
+      "id": "r4_web_mmarco_hi",
+      "domain": "web",
+      "language": "hi",
+      "dataset": "lopozz/MMarcoRetrievalMultilingual",
+      "dataset_revision": "44480423f56a42b948edd899c707e640b8e46f19",
+      "mteb_task": "MMarcoRetrievalMultilingual",
+      "mteb_task_revision": "2ad77827480c853ee9518eb207a244f13f8a0966",
+      "split": "dev",
+      "source_family": "MTEB MMarcoRetrievalMultilingual / mMARCO v2",
+      "source_scope": "official bounded MTEB dev retrieval view; task code describes a 100,000-candidate sample and the pinned parquet contains 106,813 corpus rows including positive closure; no full parent retrieval claim",
+      "translation_status": "machine-translated view of MS MARCO; translated family; no local translation",
+      "license": "apache-2.0",
+      "official_urls": [
+        "https://github.com/embeddings-benchmark/mteb/blob/2ad77827480c853ee9518eb207a244f13f8a0966/mteb/tasks/retrieval/multilingual/mmarco_retrieval.py",
+        "https://huggingface.co/datasets/lopozz/MMarcoRetrievalMultilingual/tree/44480423f56a42b948edd899c707e640b8e46f19",
+        "https://github.com/unicamp-dl/mMARCO",
+        "https://arxiv.org/abs/2108.13897"
+      ],
+      "expected_counts": {
+        "documents": 106813,
+        "queries": 6980,
+        "positive_pairs": 7437
+      },
+      "files": {
+        "documents": {
+          "path": "hi-corpus/dev-00000-of-00001.parquet",
+          "bytes": 31794111,
+          "sha256": "3845e0cc993837be7f601ebca25354e741ce11dceafe901c3fb58719e15bf985",
+          "file_revision": "2d5b832e9fdfc184e3ed2b452980ef85b4501789"
+        },
+        "queries": {
+          "path": "hi-queries/dev-00000-of-00001.parquet",
+          "bytes": 307208,
+          "sha256": "74c5bdf550347a5350412d7e78cc2732b7ee88cb9659001ddf6c6de5ce2d6256",
+          "file_revision": "fe46883041cfec17f80fd5d25dcc11c073e4a5ff"
+        },
+        "qrels": {
+          "path": "hi-qrels/dev-00000-of-00001.parquet",
+          "bytes": 108842,
+          "sha256": "28d0036a78646f266f48f8bde7355a36492b8525b792b6b8439f555149ca803d",
+          "file_revision": "9c854071d8b710d56a06e9e4d49408ca40078c51"
+        }
+      }
+    },
+    {
+      "id": "r4_web_mmarco_id",
+      "domain": "web",
+      "language": "id",
+      "dataset": "lopozz/MMarcoRetrievalMultilingual",
+      "dataset_revision": "44480423f56a42b948edd899c707e640b8e46f19",
+      "mteb_task": "MMarcoRetrievalMultilingual",
+      "mteb_task_revision": "2ad77827480c853ee9518eb207a244f13f8a0966",
+      "split": "dev",
+      "source_family": "MTEB MMarcoRetrievalMultilingual / mMARCO v2",
+      "source_scope": "official bounded MTEB dev retrieval view; task code describes a 100,000-candidate sample and the pinned parquet contains 106,813 corpus rows including positive closure; no full parent retrieval claim",
+      "translation_status": "machine-translated view of MS MARCO; translated family; no local translation",
+      "license": "apache-2.0",
+      "official_urls": [
+        "https://github.com/embeddings-benchmark/mteb/blob/2ad77827480c853ee9518eb207a244f13f8a0966/mteb/tasks/retrieval/multilingual/mmarco_retrieval.py",
+        "https://huggingface.co/datasets/lopozz/MMarcoRetrievalMultilingual/tree/44480423f56a42b948edd899c707e640b8e46f19",
+        "https://github.com/unicamp-dl/mMARCO",
+        "https://arxiv.org/abs/2108.13897"
+      ],
+      "expected_counts": {
+        "documents": 106813,
+        "queries": 6980,
+        "positive_pairs": 7437
+      },
+      "files": {
+        "documents": {
+          "path": "id-corpus/dev-00000-of-00001.parquet",
+          "bytes": 20207512,
+          "sha256": "289b893c8db3480fbcfa2038af75c8578192ebab05fb70c9fd97959bbbd8b23b",
+          "file_revision": "6f325725dc1254700c5c83e6810c04f0ca9e8713"
+        },
+        "queries": {
+          "path": "id-queries/dev-00000-of-00001.parquet",
+          "bytes": 218843,
+          "sha256": "792f9810816d29f26d98f109156b910771ac6419b01c0a8abf40dfb673f72e49",
+          "file_revision": "d7069afc6092aeac3566508406743a3c7eb45d31"
+        },
+        "qrels": {
+          "path": "id-qrels/dev-00000-of-00001.parquet",
+          "bytes": 108842,
+          "sha256": "28d0036a78646f266f48f8bde7355a36492b8525b792b6b8439f555149ca803d",
+          "file_revision": "aa53d0275c18461c27c81a0ef65a376a936d237d"
+        }
+      }
+    },
+    {
+      "id": "r4_web_mmarco_it",
+      "domain": "web",
+      "language": "it",
+      "dataset": "lopozz/MMarcoRetrievalMultilingual",
+      "dataset_revision": "44480423f56a42b948edd899c707e640b8e46f19",
+      "mteb_task": "MMarcoRetrievalMultilingual",
+      "mteb_task_revision": "2ad77827480c853ee9518eb207a244f13f8a0966",
+      "split": "dev",
+      "source_family": "MTEB MMarcoRetrievalMultilingual / mMARCO v2",
+      "source_scope": "official bounded MTEB dev retrieval view; task code describes a 100,000-candidate sample and the pinned parquet contains 106,813 corpus rows including positive closure; no full parent retrieval claim",
+      "translation_status": "machine-translated view of MS MARCO; translated family; no local translation",
+      "license": "apache-2.0",
+      "official_urls": [
+        "https://github.com/embeddings-benchmark/mteb/blob/2ad77827480c853ee9518eb207a244f13f8a0966/mteb/tasks/retrieval/multilingual/mmarco_retrieval.py",
+        "https://huggingface.co/datasets/lopozz/MMarcoRetrievalMultilingual/tree/44480423f56a42b948edd899c707e640b8e46f19",
+        "https://github.com/unicamp-dl/mMARCO",
+        "https://arxiv.org/abs/2108.13897"
+      ],
+      "expected_counts": {
+        "documents": 106813,
+        "queries": 6980,
+        "positive_pairs": 7437
+      },
+      "files": {
+        "documents": {
+          "path": "it-corpus/dev-00000-of-00001.parquet",
+          "bytes": 22283852,
+          "sha256": "3d592eb4a5291583007af0deed50158f3c4ee5d69e3425f6263928e36bbfba26",
+          "file_revision": "1a5bc7652f36d397dad6cb266ce19ce14efbe74f"
+        },
+        "queries": {
+          "path": "it-queries/dev-00000-of-00001.parquet",
+          "bytes": 246949,
+          "sha256": "642d3252ec348039fdd96b18a1cd2531f949c12e459482b33c7e84899b28a142",
+          "file_revision": "f2625d7e1dc0aebb337438a2765e24d90f6ff506"
+        },
+        "qrels": {
+          "path": "it-qrels/dev-00000-of-00001.parquet",
+          "bytes": 108842,
+          "sha256": "28d0036a78646f266f48f8bde7355a36492b8525b792b6b8439f555149ca803d",
+          "file_revision": "3a4bb51ff98be0d1b4dc59dff27a3f5e94bebceb"
+        }
+      }
+    },
+    {
+      "id": "r4_web_mmarco_ja",
+      "domain": "web",
+      "language": "ja",
+      "dataset": "lopozz/MMarcoRetrievalMultilingual",
+      "dataset_revision": "44480423f56a42b948edd899c707e640b8e46f19",
+      "mteb_task": "MMarcoRetrievalMultilingual",
+      "mteb_task_revision": "2ad77827480c853ee9518eb207a244f13f8a0966",
+      "split": "dev",
+      "source_family": "MTEB MMarcoRetrievalMultilingual / mMARCO v2",
+      "source_scope": "official bounded MTEB dev retrieval view; task code describes a 100,000-candidate sample and the pinned parquet contains 106,813 corpus rows including positive closure; no full parent retrieval claim",
+      "translation_status": "machine-translated view of MS MARCO; translated family; no local translation",
+      "license": "apache-2.0",
+      "official_urls": [
+        "https://github.com/embeddings-benchmark/mteb/blob/2ad77827480c853ee9518eb207a244f13f8a0966/mteb/tasks/retrieval/multilingual/mmarco_retrieval.py",
+        "https://huggingface.co/datasets/lopozz/MMarcoRetrievalMultilingual/tree/44480423f56a42b948edd899c707e640b8e46f19",
+        "https://github.com/unicamp-dl/mMARCO",
+        "https://arxiv.org/abs/2108.13897"
+      ],
+      "expected_counts": {
+        "documents": 106813,
+        "queries": 6980,
+        "positive_pairs": 7437
+      },
+      "files": {
+        "documents": {
+          "path": "ja-corpus/dev-00000-of-00001.parquet",
+          "bytes": 23128896,
+          "sha256": "9aac048b50210d493f564c7e0ed5f822fc6c9cf4d67eee59c94c221239ba9c6b",
+          "file_revision": "8d978c0ee246bfcf9bf7409b83100ba15c97367f"
+        },
+        "queries": {
+          "path": "ja-queries/dev-00000-of-00001.parquet",
+          "bytes": 249228,
+          "sha256": "31cd6f55be325c55763e4d5f7c79b37d8b42fb2b0d15bcaa45f2bc4de26ab8cf",
+          "file_revision": "a08cb3af36fdf92a379062391bb4d0109e159492"
+        },
+        "qrels": {
+          "path": "ja-qrels/dev-00000-of-00001.parquet",
+          "bytes": 108842,
+          "sha256": "28d0036a78646f266f48f8bde7355a36492b8525b792b6b8439f555149ca803d",
+          "file_revision": "2cebba5c187395fdf8256fbefb6228a4631d6be5"
+        }
+      }
+    },
+    {
+      "id": "r4_web_mmarco_nl",
+      "domain": "web",
+      "language": "nl",
+      "dataset": "lopozz/MMarcoRetrievalMultilingual",
+      "dataset_revision": "44480423f56a42b948edd899c707e640b8e46f19",
+      "mteb_task": "MMarcoRetrievalMultilingual",
+      "mteb_task_revision": "2ad77827480c853ee9518eb207a244f13f8a0966",
+      "split": "dev",
+      "source_family": "MTEB MMarcoRetrievalMultilingual / mMARCO v2",
+      "source_scope": "official bounded MTEB dev retrieval view; task code describes a 100,000-candidate sample and the pinned parquet contains 106,813 corpus rows including positive closure; no full parent retrieval claim",
+      "translation_status": "machine-translated view of MS MARCO; translated family; no local translation",
+      "license": "apache-2.0",
+      "official_urls": [
+        "https://github.com/embeddings-benchmark/mteb/blob/2ad77827480c853ee9518eb207a244f13f8a0966/mteb/tasks/retrieval/multilingual/mmarco_retrieval.py",
+        "https://huggingface.co/datasets/lopozz/MMarcoRetrievalMultilingual/tree/44480423f56a42b948edd899c707e640b8e46f19",
+        "https://github.com/unicamp-dl/mMARCO",
+        "https://arxiv.org/abs/2108.13897"
+      ],
+      "expected_counts": {
+        "documents": 106813,
+        "queries": 6980,
+        "positive_pairs": 7437
+      },
+      "files": {
+        "documents": {
+          "path": "nl-corpus/dev-00000-of-00001.parquet",
+          "bytes": 21847103,
+          "sha256": "f95b330745b4d349ef586244d0cc1e9e87081bed1f95024c2f1544ada8956636",
+          "file_revision": "10fc6139d19c79e6991ec72698789da9dbd536de"
+        },
+        "queries": {
+          "path": "nl-queries/dev-00000-of-00001.parquet",
+          "bytes": 230127,
+          "sha256": "8c96a7e7d821fecf4dec699be36ccacbaf86221f3dfb355bff4e98c1f32fe867",
+          "file_revision": "4901091ef10b6a61f3ddddf2a99c7e69ea4fb6f2"
+        },
+        "qrels": {
+          "path": "nl-qrels/dev-00000-of-00001.parquet",
+          "bytes": 108842,
+          "sha256": "28d0036a78646f266f48f8bde7355a36492b8525b792b6b8439f555149ca803d",
+          "file_revision": "117926480f6a66d122181ce8c1b7229f363d8e2a"
+        }
+      }
+    },
+    {
+      "id": "r4_web_mmarco_pt",
+      "domain": "web",
+      "language": "pt",
+      "dataset": "lopozz/MMarcoRetrievalMultilingual",
+      "dataset_revision": "44480423f56a42b948edd899c707e640b8e46f19",
+      "mteb_task": "MMarcoRetrievalMultilingual",
+      "mteb_task_revision": "2ad77827480c853ee9518eb207a244f13f8a0966",
+      "split": "dev",
+      "source_family": "MTEB MMarcoRetrievalMultilingual / mMARCO v2",
+      "source_scope": "official bounded MTEB dev retrieval view; task code describes a 100,000-candidate sample and the pinned parquet contains 106,813 corpus rows including positive closure; no full parent retrieval claim",
+      "translation_status": "machine-translated view of MS MARCO; translated family; no local translation",
+      "license": "apache-2.0",
+      "official_urls": [
+        "https://github.com/embeddings-benchmark/mteb/blob/2ad77827480c853ee9518eb207a244f13f8a0966/mteb/tasks/retrieval/multilingual/mmarco_retrieval.py",
+        "https://huggingface.co/datasets/lopozz/MMarcoRetrievalMultilingual/tree/44480423f56a42b948edd899c707e640b8e46f19",
+        "https://github.com/unicamp-dl/mMARCO",
+        "https://arxiv.org/abs/2108.13897"
+      ],
+      "expected_counts": {
+        "documents": 106813,
+        "queries": 6980,
+        "positive_pairs": 7437
+      },
+      "files": {
+        "documents": {
+          "path": "pt-corpus/dev-00000-of-00001.parquet",
+          "bytes": 22143403,
+          "sha256": "0a95746e29f8f4449b626a481a19df03440508a017ae60fe38004eef21535ff3",
+          "file_revision": "9ac2a313a32fc0098713c2eea35c11e13fddea1e"
+        },
+        "queries": {
+          "path": "pt-queries/dev-00000-of-00001.parquet",
+          "bytes": 243721,
+          "sha256": "692ecea159907d9914e536373de1afd632f1b53fdf675b8ae451ab094b09c79b",
+          "file_revision": "32d8840df3e533b1e8ed129e62f4be7c373adbf8"
+        },
+        "qrels": {
+          "path": "pt-qrels/dev-00000-of-00001.parquet",
+          "bytes": 108842,
+          "sha256": "28d0036a78646f266f48f8bde7355a36492b8525b792b6b8439f555149ca803d",
+          "file_revision": "6008133e2f83e59cd62cfd9627b7e08990f4c228"
+        }
+      }
+    },
+    {
+      "id": "r4_web_mmarco_ru",
+      "domain": "web",
+      "language": "ru",
+      "dataset": "lopozz/MMarcoRetrievalMultilingual",
+      "dataset_revision": "44480423f56a42b948edd899c707e640b8e46f19",
+      "mteb_task": "MMarcoRetrievalMultilingual",
+      "mteb_task_revision": "2ad77827480c853ee9518eb207a244f13f8a0966",
+      "split": "dev",
+      "source_family": "MTEB MMarcoRetrievalMultilingual / mMARCO v2",
+      "source_scope": "official bounded MTEB dev retrieval view; task code describes a 100,000-candidate sample and the pinned parquet contains 106,813 corpus rows including positive closure; no full parent retrieval claim",
+      "translation_status": "machine-translated view of MS MARCO; translated family; no local translation",
+      "license": "apache-2.0",
+      "official_urls": [
+        "https://github.com/embeddings-benchmark/mteb/blob/2ad77827480c853ee9518eb207a244f13f8a0966/mteb/tasks/retrieval/multilingual/mmarco_retrieval.py",
+        "https://huggingface.co/datasets/lopozz/MMarcoRetrievalMultilingual/tree/44480423f56a42b948edd899c707e640b8e46f19",
+        "https://github.com/unicamp-dl/mMARCO",
+        "https://arxiv.org/abs/2108.13897"
+      ],
+      "expected_counts": {
+        "documents": 106813,
+        "queries": 6980,
+        "positive_pairs": 7437
+      },
+      "files": {
+        "documents": {
+          "path": "ru-corpus/dev-00000-of-00001.parquet",
+          "bytes": 30793292,
+          "sha256": "85e02ba1b5720619d7eb2323fc04d1c66f32b91a9ccd1f190ab4b5150f603231",
+          "file_revision": "466021a2a2666d99d111e9dc62a7f635cc1edc74"
+        },
+        "queries": {
+          "path": "ru-queries/dev-00000-of-00001.parquet",
+          "bytes": 295652,
+          "sha256": "e30b21f18e63de01da10d48b7cadc7f279f467790327bd4633280fa4caab6b82",
+          "file_revision": "2ce2bdcfd3b4be01146ae1998ce54e1da6a2b30d"
+        },
+        "qrels": {
+          "path": "ru-qrels/dev-00000-of-00001.parquet",
+          "bytes": 108842,
+          "sha256": "28d0036a78646f266f48f8bde7355a36492b8525b792b6b8439f555149ca803d",
+          "file_revision": "d70cb864cfde167fb634a333be31be180ce474ca"
+        }
+      }
+    },
+    {
+      "id": "r4_web_mmarco_vi",
+      "domain": "web",
+      "language": "vi",
+      "dataset": "lopozz/MMarcoRetrievalMultilingual",
+      "dataset_revision": "44480423f56a42b948edd899c707e640b8e46f19",
+      "mteb_task": "MMarcoRetrievalMultilingual",
+      "mteb_task_revision": "2ad77827480c853ee9518eb207a244f13f8a0966",
+      "split": "dev",
+      "source_family": "MTEB MMarcoRetrievalMultilingual / mMARCO v2",
+      "source_scope": "official bounded MTEB dev retrieval view; task code describes a 100,000-candidate sample and the pinned parquet contains 106,813 corpus rows including positive closure; no full parent retrieval claim",
+      "translation_status": "machine-translated view of MS MARCO; translated family; no local translation",
+      "license": "apache-2.0",
+      "official_urls": [
+        "https://github.com/embeddings-benchmark/mteb/blob/2ad77827480c853ee9518eb207a244f13f8a0966/mteb/tasks/retrieval/multilingual/mmarco_retrieval.py",
+        "https://huggingface.co/datasets/lopozz/MMarcoRetrievalMultilingual/tree/44480423f56a42b948edd899c707e640b8e46f19",
+        "https://github.com/unicamp-dl/mMARCO",
+        "https://arxiv.org/abs/2108.13897"
+      ],
+      "expected_counts": {
+        "documents": 106813,
+        "queries": 6980,
+        "positive_pairs": 7437
+      },
+      "files": {
+        "documents": {
+          "path": "vi-corpus/dev-00000-of-00001.parquet",
+          "bytes": 23223635,
+          "sha256": "577e10073e8b9e62a48cf537c1c856e7f5d80d6530a8c2bcb8075685d52743c0",
+          "file_revision": "ac88104ff42ff15819ec4e6d1fb2217fba146f85"
+        },
+        "queries": {
+          "path": "vi-queries/dev-00000-of-00001.parquet",
+          "bytes": 244422,
+          "sha256": "e847efba6a7deb531577ace8ea5b72348df002b1ebaa43054e0904709ca008bd",
+          "file_revision": "4a707b7ffde32f1f056b559b7797f186a08c3505"
+        },
+        "qrels": {
+          "path": "vi-qrels/dev-00000-of-00001.parquet",
+          "bytes": 108842,
+          "sha256": "28d0036a78646f266f48f8bde7355a36492b8525b792b6b8439f555149ca803d",
+          "file_revision": "1a48328de0d642efdbcdca768fe657516635498e"
+        }
+      }
+    }
+  ]
+}

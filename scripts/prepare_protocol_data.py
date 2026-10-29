@@ -22,7 +22,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dci_bench.data.expansion import (
-    CANONICAL_FILES, EXPANSION_VERSION, METADATA_FILES, sha256_file, verify_document_task, write_json,
+    CANONICAL_FILES, EXPANSION_VERSION, LEGACY_METADATA_FILES, METADATA_FILES,
+    sha256_file, verify_document_task, write_json,
 )
 from dci_bench.data.expansion_code import load_reference, verify_arb
 from dci_bench.data.expansion_code_subset import ARTIFACTS as SUBSET_ARTIFACTS
@@ -82,7 +83,8 @@ def document_inputs(suites, reader):
             seen.add(name)
             md = suite / 'metadata' / name
             done = reader.json(md / '_COMPLETE.json', catalog['task_completion_hashes'][name])
-            if (done.get('schema_version') != EXPANSION_VERSION or set(done['metadata_hashes']) != METADATA_FILES
+            if (done.get('schema_version') != EXPANSION_VERSION or set(done['metadata_hashes']) not in
+                    (METADATA_FILES, LEGACY_METADATA_FILES)
                     or set(done['canonical_hashes']) != CANONICAL_FILES):
                 raise ValueError('Incomplete document metadata hash catalog')
             values = {key: reader.read(md / key, digest) for key, digest in done['metadata_hashes'].items()}

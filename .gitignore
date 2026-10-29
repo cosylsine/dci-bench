@@ -29,3 +29,7 @@ DCI-Bench_MVP_Implementation_Plan.md
 
 # sglang source
 sglang/
+
+# Frozen executable bundles (maintained source lives in scripts/ and dci_bench/)
+/releases/*
+!/releases/README.md

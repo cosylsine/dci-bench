@@ -60,6 +60,20 @@ class Phase4RunnerTest(unittest.TestCase):
         finally:
             listener.close()
 
+    def test_bridge_port_preflight_accepts_closed_server_time_wait(self):
+        with socket.socket() as listener, socket.socket() as client:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listener.bind(("127.0.0.1", 0))
+            listener.listen(1)
+            port = listener.getsockname()[1]
+            client.settimeout(2)
+            client.connect(("127.0.0.1", port))
+            connection, _ = listener.accept()
+            with connection:
+                connection.shutdown(socket.SHUT_WR)
+                self.assertEqual(client.recv(1), b"")
+        self.assertEqual(preflight_bridge_ports(port, 1), (port,))
+
     def _fixture(self, root: Path, query_id="Q1"):
         metadata = root / "metadata" / "LLMPublicHealthQA"
         metadata.mkdir(parents=True)
@@ -320,6 +334,22 @@ class Phase4RunnerTest(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "qrels_hash"):
                 data_audit(args.metadata_root, args.task)
+
+    def test_data_audit_accepts_integer_source_hash_and_rejects_changed_grade(self):
+        with tempfile.TemporaryDirectory() as temp:
+            args = self._fixture(Path(temp))
+            task_root = args.metadata_root / args.task
+            manifest_path = task_root / 'manifest.json'
+            manifest = json.loads(manifest_path.read_text())
+            manifest['qrels_hash'] = sha256_json({'Q1': {'D1': 1}})
+            manifest_path.write_text(json.dumps(manifest))
+            audit = data_audit(args.metadata_root, args.task)
+            self.assertEqual(audit['qrels_hash_expected'], manifest['qrels_hash'])
+            self.assertEqual(audit['qrels_hash'], sha256_json({'Q1': {'D1': 1.0}}))
+            for changed_grade in [2, True, '1']:
+                (task_root / 'qrels.json').write_text(json.dumps({'Q1': {'D1': changed_grade}}))
+                with self.assertRaises(ValueError):
+                    data_audit(args.metadata_root, args.task)
 
     @staticmethod
     def _task_factory(**kwargs):

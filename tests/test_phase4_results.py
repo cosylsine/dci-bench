@@ -125,6 +125,18 @@ class Phase4ResultsTest(unittest.TestCase):
         with self.assertRaises(ResultValidationError):
             validate_sample_result(sample)
 
+    def test_original_relevance_digest_can_be_published_without_labels(self):
+        manifest = build_run_manifest(
+            run_id='pool-probe', model_key='probe', task='pool-task', query_ids=['q'],
+            data={'original_qrels_hash': 'a' * 64},
+        )
+        self.assertTrue(validate_run_manifest(manifest))
+        for value in ({'q': {'doc': 1}}, 'not-a-digest', None):
+            with self.subTest(value=value), self.assertRaises(ResultValidationError):
+                validate_no_sensitive_fields({'data': {'original_qrels_hash': value}})
+        with self.assertRaises(ResultValidationError):
+            validate_no_sensitive_fields({'data': {'original_qrels': {'q': {'doc': 1}}}})
+
     def test_task_aggregation_uses_invalid_as_zero_and_reports_valid_only(self):
         valid = _sample("run", "Q1", valid=True, value=1.0)
         invalid = _sample("run", "Q2", valid=False, value=1.0)

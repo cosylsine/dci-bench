@@ -1,0 +1,181 @@
+{
+  "sources": [
+    {
+      "name": "FiQA2018-Fa.v2",
+      "reference": "https://huggingface.co/datasets/MCINext/fiqa-fa-v2",
+      "dataset": {
+        "path": "MCINext/fiqa-fa-v2",
+        "revision": "3443316360bb14c1ef68f609d6fe8f89b117977d"
+      },
+      "eval_splits": [
+        "test"
+      ],
+      "license": "not specified",
+      "adapted_from": [
+        "FiQA2018"
+      ],
+      "class": "FiQA2018FaV2",
+      "id": "r4_extra_fa_fiqa",
+      "domain": "finance",
+      "files": [
+        {
+          "type": "file",
+          "oid": "2166dd649505caa4d56f4bfebe8fd2b2e424b413",
+          "size": 212606214,
+          "lfs": {
+            "oid": "f249f540c7c90e08a06309b15260898342a28e668812acdf05f729a510b9d7f3",
+            "size": 212606214,
+            "pointerSize": 134
+          },
+          "xetHash": "786f312bbd515e14f855066d41c5e8366b4015c7da1c9e43312de97c8d51a6ae",
+          "path": "corpus.jsonl",
+          "url": "https://huggingface.co/datasets/MCINext/fiqa-fa-v2/resolve/3443316360bb14c1ef68f609d6fe8f89b117977d/corpus.jsonl"
+        },
+        {
+          "type": "file",
+          "oid": "15a503e67b9118c20233ddb08e455b5986ce636b",
+          "size": 98588,
+          "lfs": {
+            "oid": "2bccf36cea9efefcc14ae500f11bf89d50182b78b4636d73ca2eda5c1993c5c5",
+            "size": 98588,
+            "pointerSize": 130
+          },
+          "xetHash": "ddd640e43938ee83ffa78fb83274517254bb8fd16467faea15e4b83d62e5ba37",
+          "path": "qrels/test.jsonl",
+          "url": "https://huggingface.co/datasets/MCINext/fiqa-fa-v2/resolve/3443316360bb14c1ef68f609d6fe8f89b117977d/qrels/test.jsonl"
+        },
+        {
+          "type": "file",
+          "oid": "bb111aea846bbebec0e2aac793faa934edcb5a41",
+          "size": 2378451,
+          "lfs": {
+            "oid": "0f4d520fc02fd42c16efb6829ea6d4e911e724dc5341267be4a831b86138fae8",
+            "size": 2378451,
+            "pointerSize": 132
+          },
+          "xetHash": "8c025c3dcabc2a78de11d97407d088c9076b9382669638713cc8e7b412b8bb60",
+          "path": "queries.jsonl",
+          "url": "https://huggingface.co/datasets/MCINext/fiqa-fa-v2/resolve/3443316360bb14c1ef68f609d6fe8f89b117977d/queries.jsonl"
+        }
+      ]
+    },
+    {
+      "name": "NFCorpus-Fa",
+      "reference": "https://huggingface.co/datasets/MCINext/nfcorpus-fa",
+      "dataset": {
+        "path": "MCINext/nfcorpus-fa",
+        "revision": "70aa71825a791e87210c0355a01f538aa611feae"
+      },
+      "eval_splits": [
+        "test"
+      ],
+      "license": "not specified",
+      "adapted_from": [
+        "NFCorpus"
+      ],
+      "class": "NFCorpusFa",
+      "id": "r4_extra_fa_nfcorpus",
+      "domain": "medical",
+      "files": [
+        {
+          "type": "file",
+          "oid": "cbf4c8b16e7ca156973341c8a364c7c702579853",
+          "size": 23753832,
+          "lfs": {
+            "oid": "fbd4269a45c9ae5612bf63d09f9cd98e241087b55e8acd713129918883aea92b",
+            "size": 23753832,
+            "pointerSize": 133
+          },
+          "xetHash": "b4c820c50fdaa39ab80a6c50ddb11ceb7ad61eeb7dfa452945670fece927ab31",
+          "path": "corpus.jsonl",
+          "url": "https://huggingface.co/datasets/MCINext/nfcorpus-fa/resolve/70aa71825a791e87210c0355a01f538aa611feae/corpus.jsonl"
+        },
+        {
+          "type": "file",
+          "oid": "187e13ba0752f4e73f0fe398f0b7c62ad5001c1c",
+          "size": 809908,
+          "lfs": {
+            "oid": "2f8df5be92d8b4c4bfe9e348059f8c4e85a1d952f3f501ce86b95e69d4f8226d",
+            "size": 809908,
+            "pointerSize": 131
+          },
+          "xetHash": "2e4d38feee1ea9599e55f3e5a3736f9905d5fa7c2404561e1da9554f91f717c1",
+          "path": "qrels/test.jsonl",
+          "url": "https://huggingface.co/datasets/MCINext/nfcorpus-fa/resolve/70aa71825a791e87210c0355a01f538aa611feae/qrels/test.jsonl"
+        },
+        {
+          "type": "file",
+          "oid": "805ca9024f9401bbb235b58b44ca1e117addee83",
+          "size": 443223,
+          "lfs": {
+            "oid": "1df5d92ace88813eaf8e47b18931a85165bfbf5777e35e587a42e7c647bed822",
+            "size": 443223,
+            "pointerSize": 131
+          },
+          "xetHash": "9a04ced5246cccc2bcbc18fc518c7a59707b16ae56d1e8eb2b7708e5a58a6385",
+          "path": "queries.jsonl",
+          "url": "https://huggingface.co/datasets/MCINext/nfcorpus-fa/resolve/70aa71825a791e87210c0355a01f538aa611feae/queries.jsonl"
+        }
+      ]
+    },
+    {
+      "name": "SciFact-Fa.v2",
+      "reference": "https://huggingface.co/datasets/MCINext/scifact-fa-v2",
+      "dataset": {
+        "path": "MCINext/scifact-fa-v2",
+        "revision": "75937d5e71adf8040e511fab41e06bc88825a52b"
+      },
+      "eval_splits": [
+        "test"
+      ],
+      "license": "not specified",
+      "adapted_from": [
+        "SciFact"
+      ],
+      "class": "SciFactFaV2",
+      "id": "r4_extra_fa_scifact",
+      "domain": "scientific",
+      "files": [
+        {
+          "type": "file",
+          "oid": "0731bf9ebe6919bac0471f85a2d6a14f654279e5",
+          "size": 33841598,
+          "lfs": {
+            "oid": "30d58505c362b05fc2488b42a5626fdbff485bc42fedab556af8dfe00edce447",
+            "size": 33841598,
+            "pointerSize": 133
+          },
+          "xetHash": "3764274a42edca6fa62cdc860150a0d9897b53e1fe8219dbe13ee2557e394a33",
+          "path": "corpus.jsonl",
+          "url": "https://huggingface.co/datasets/MCINext/scifact-fa-v2/resolve/75937d5e71adf8040e511fab41e06bc88825a52b/corpus.jsonl"
+        },
+        {
+          "type": "file",
+          "oid": "394dae8bf78c412972f64753d788ecff1b2542df",
+          "size": 19940,
+          "lfs": {
+            "oid": "da33fc0edc7447d43908ea92bf11de010e361ac43228295f09bdcd33ce14730c",
+            "size": 19940,
+            "pointerSize": 130
+          },
+          "xetHash": "4fb05f9349802d5f6112422add7087eb738e4e9cd5500a1e1dbb3badea150fc5",
+          "path": "qrels/test.jsonl",
+          "url": "https://huggingface.co/datasets/MCINext/scifact-fa-v2/resolve/75937d5e71adf8040e511fab41e06bc88825a52b/qrels/test.jsonl"
+        },
+        {
+          "type": "file",
+          "oid": "ed44e45d947b7c0bbaca8dc2c2c018b76f818222",
+          "size": 479032,
+          "lfs": {
+            "oid": "7973f8dc015e443a9fbcfbee025574d0de8ed608ce21e7c93ec674a6ef1e9faf",
+            "size": 479032,
+            "pointerSize": 131
+          },
+          "xetHash": "687ed58565aaa473c91c1aa23a8431d4214965d8233a16566d91dd03697f3da6",
+          "path": "queries.jsonl",
+          "url": "https://huggingface.co/datasets/MCINext/scifact-fa-v2/resolve/75937d5e71adf8040e511fab41e06bc88825a52b/queries.jsonl"
+        }
+      ]
+    }
+  ]
+}

@@ -36,6 +36,48 @@
       "final_repair_prompt": "The previous final response cannot be accepted: {reason}. Tools remain disabled. Using only the inspected evidence, review each candidate against the query and task instruction: retain documents supported as relevant to the requested information, and remove candidates supported only by shared keywords, a similar topic, or the fact that they were read. Keep multiple relevant documents when supported; do not reduce the answer to one merely for brevity. Copy exact original doc_id values from read results or filename mappings in the validation feedback. Return only a JSON object with ranked_doc_ids containing 1 to 10 unique original document IDs, ranked by relevance. Do not fill unused slots or include your review in the output."
     }
   },
+  "document-pool-v1-small": {
+    "benchmark_contract_version": "dci-mvp-v3.4-pilot",
+    "search_policy": "_stable_search",
+    "budget_control": "_budget_policy",
+    "candidate_pool": "document-pool-v1-small"
+  },
+  "document-pool-v1-medium": {
+    "benchmark_contract_version": "dci-mvp-v3.4-pilot",
+    "search_policy": "_stable_search",
+    "budget_control": "_budget_policy",
+    "candidate_pool": "document-pool-v1-medium"
+  },
+  "document-pool-v1-large": {
+    "benchmark_contract_version": "dci-mvp-v3.4-pilot",
+    "search_policy": "_stable_search",
+    "budget_control": "_budget_policy",
+    "candidate_pool": "document-pool-v1-large"
+  },
+  "document-pool-v2-lite": {
+    "benchmark_contract_version": "dci-document-pool-v2",
+    "search_policy": "_stable_search",
+    "budget_control": "_budget_policy_v2",
+    "candidate_pool": "document-pool-v2-lite"
+  },
+  "document-pool-v2-full": {
+    "benchmark_contract_version": "dci-document-pool-v2",
+    "search_policy": "_stable_search",
+    "budget_control": "_budget_policy_v2",
+    "candidate_pool": "document-pool-v2-full"
+  },
+  "lite": {
+    "benchmark_contract_version": "dci-document-pool-v2",
+    "search_policy": "_stable_search",
+    "budget_control": "_budget_policy_v2",
+    "candidate_pool": "document-pool-v2-lite"
+  },
+  "full": {
+    "benchmark_contract_version": "dci-document-pool-v2",
+    "search_policy": "_stable_search",
+    "budget_control": "_budget_policy_v2",
+    "candidate_pool": "document-pool-v2-full"
+  },
   "_stable_search": {
     "search_policy": {
       "version": "stable-rg-v1",
@@ -56,6 +98,25 @@
       "final_prompt": "The search phase is now complete: {reason}. The remaining cumulative model-token budget is {remaining_tokens}. Tools are disabled for the final response. Use the corpus evidence already inspected and return only the final JSON object with ranked_doc_ids, at most 10 unique original IDs. Copy doc_id values from read results exactly. Filenames are not IDs: e.g. l%27exemple.md maps to l'exemple, and report.md.md maps to report.md. Do not add documents merely to fill slots.",
       "final_repair_prompt": "The previous final response cannot be accepted: {reason}. Tools remain disabled. Use only the corpus evidence already inspected. Copy the exact original doc_id values from read results or the filename mappings in the validation feedback. Return only a JSON object with ranked_doc_ids containing 1 to 10 unique original document IDs, ranked by relevance. Do not add documents merely to fill slots.",
       "resume_prompt": "The required nonempty corpus read is complete. Remaining cumulative token budget: {remaining_tokens}. Both read and bash are available again. A successful read proves that text was inspected, not that this document answers the query. Verify the most promising candidates and, if needed, search further for missing relevant documents. Stop and submit ranked_doc_ids when the evidence is sufficient. Include only documents supported by the inspected evidence as relevant to this query; do not add loosely related candidates to fill slots. Copy original doc_id values exactly.",
+      "wall_time_policy": "hard_timeout_only; no time-based search or finalization decisions"
+    }
+  },
+  "_budget_policy_v2": {
+    "policy": {
+      "version": "document-pool-v2-dynamic-finalize-v1",
+      "reserve_tokens": 0,
+      "dynamic_reserve": true,
+      "repeat_threshold": 3,
+      "max_search_turns_without_read": 6,
+      "max_search_turns": 12,
+      "max_tool_invocations": 24,
+      "max_required_read_turns": 2,
+      "initial_prompt": "Execution budget: at most {max_total_model_tokens} cumulative input plus output model tokens for this query. Replaying the conversation on each request also spends this budget. Stop searching once the inspected evidence supports your answer. Avoid repeating identical tool calls. The harness may end the search phase when the remaining budget is low or identical calls repeat; any final answer must still satisfy the read-evidence and JSON rules.",
+      "loop_prompt": "The same tool call has repeated without changing its arguments. Do not repeat it again. Change the search terms or inspect a candidate with read. A nonempty corpus read is still required before final submission. The v2 tool invocation cap is 24.",
+      "read_prompt": "Remaining cumulative token budget: {remaining_tokens}. Inspect a relevant candidate with read now; final submission requires a nonempty read receipt. Search is paused and only read is available for at most two responses. Use an exact corpus filename, including .md and literal percent escapes, or /workspace/corpus/<filename>. If a read fails, correct the path using the error feedback rather than repeating it. Do not call bash or return final JSON yet. After a nonempty read, submit without starting another search phase.",
+      "final_prompt": "The search phase is now complete: {reason}. The remaining cumulative model-token budget is {remaining_tokens}. Tools are disabled for the final response. Use the corpus evidence already inspected and return only the final JSON object with ranked_doc_ids, at most 10 unique document IDs. Copy doc_id values from read results exactly. Filenames are not IDs (d000001.md -> d000001). Do not add documents merely to fill slots.",
+      "final_repair_prompt": "The previous final response cannot be accepted: {reason}. Tools remain disabled. Use only the corpus evidence already inspected. Copy the exact document IDs from read results or filename mappings in the validation feedback. Return only a JSON object with ranked_doc_ids containing 1 to 10 unique document IDs, ranked by relevance. Do not add documents merely to fill slots.",
+      "resume_prompt": "The required nonempty corpus read is complete. Remaining cumulative token budget: {remaining_tokens}. Submit the final JSON now; the v2 search and tool caps do not permit another free search phase.",
       "wall_time_policy": "hard_timeout_only; no time-based search or finalization decisions"
     }
   }

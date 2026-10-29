@@ -1,0 +1,68 @@
+{
+  "schema_version": "dci-lleqa-gapfill-v1",
+  "raw_root": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data",
+  "eval_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data",
+  "research_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/source_research_20261023_round3/lleqa",
+  "download_budget_bytes": 350000000,
+  "source": {
+    "id": "gapfill_legal_lleqa_fr",
+    "mode": "probe_and_record",
+    "domain": "legal",
+    "language": "fr",
+    "language_variant": "fr-BE",
+    "dataset": "maastrichtlawtech/lleqa",
+    "source_family": "LLeQA",
+    "source_scope": "full Belgian statutory article corpus plus native French expert questions and article associations",
+    "translation_status": "native French",
+    "license": "cc-by-nc-sa-4.0",
+    "evaluation_split": "test",
+    "expected_official_counts": {
+      "documents": 27941,
+      "queries": 1868,
+      "split_queries": {"train": 1472, "dev": 201, "test": 195}
+    },
+    "official_urls": [
+      "https://huggingface.co/datasets/maastrichtlawtech/lleqa",
+      "https://github.com/maastrichtlawtech/lleqa",
+      "https://arxiv.org/abs/2309.17050"
+    ],
+    "github_revision": "01ae7a96c58c1e34a9786bbecf3524b268e1b019",
+    "github_archive": {
+      "url": "https://codeload.github.com/maastrichtlawtech/lleqa/zip/01ae7a96c58c1e34a9786bbecf3524b268e1b019",
+      "path": "source_metadata/lleqa_repo_01ae7a96.zip",
+      "bytes": 944383,
+      "sha256": "0093853bc1a78066c1f5c1ecbae72570160dcc545c684d320eb839d9ffe72dc9"
+    },
+    "hf_card_revision": "f24d30f33e51354a1acbc2f5d58fa3353f845242",
+    "hf_card": {
+      "url": "https://huggingface.co/datasets/maastrichtlawtech/lleqa/resolve/f24d30f33e51354a1acbc2f5d58fa3353f845242/README.md?download=true",
+      "path": "source_metadata/hf_dataset_card_README.md",
+      "bytes": 29441,
+      "sha256": "ccdbf8ce08efdc20eaf9e034e5ba6c2753f1dd945f12660aa8e15e52667eef0a"
+    },
+    "raw_files": [
+      {"role": "corpus", "source_path": "articles.json", "url": "https://huggingface.co/datasets/maastrichtlawtech/lleqa/resolve/f24d30f33e51354a1acbc2f5d58fa3353f845242/articles.json?download=true"},
+      {"role": "queries_train", "source_path": "questions_train.json", "url": "https://huggingface.co/datasets/maastrichtlawtech/lleqa/resolve/f24d30f33e51354a1acbc2f5d58fa3353f845242/questions_train.json?download=true"},
+      {"role": "queries_dev", "source_path": "questions_dev.json", "url": "https://huggingface.co/datasets/maastrichtlawtech/lleqa/resolve/f24d30f33e51354a1acbc2f5d58fa3353f845242/questions_dev.json?download=true"},
+      {"role": "queries_test", "source_path": "questions_test.json", "url": "https://huggingface.co/datasets/maastrichtlawtech/lleqa/resolve/f24d30f33e51354a1acbc2f5d58fa3353f845242/questions_test.json?download=true"}
+    ],
+    "modelscope_candidates": [
+      "https://modelscope.cn/api/v1/datasets/maastrichtlawtech/lleqa/repo/tree?Revision=master",
+      "https://modelscope.cn/api/v1/datasets/MTEB/LLeQA/repo/tree?Revision=master",
+      "https://modelscope.cn/api/v1/datasets/mteb/LLeQA/repo/tree?Revision=master"
+    ],
+    "planned_conversion": {
+      "document_id_field": "id",
+      "document_text_fields": ["reference", "description", "article"],
+      "query_id_field": "id",
+      "query_text_field": "question",
+      "qrel_source_field": "article_ids",
+      "qrel_grade": 1,
+      "association_kind": "evidence_qa",
+      "evaluation_split": "test",
+      "train_dev_retained_as_raw": true,
+      "max_positive_per_query": null,
+      "exclude_review_required": false
+    }
+  }
+}

@@ -87,6 +87,8 @@ def patch_launcher(source):
 
 
 def prepare(source, output, backend_path, results_root):
+    if {'results', 'eval_data', 'raw_data', 'eval_data_code'} & set(output.resolve().parts):
+        raise ValueError('Executable bundles belong under the code repository releases/ directory')
     preparer_source = Path(__file__).read_bytes()
     original = source / "runtime"
     # Helpers used to prepare the new snapshot must be the same verified ones.

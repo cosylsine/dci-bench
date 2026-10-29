@@ -2,7 +2,7 @@
 # Pinned raw sources for the 2026-10-14 DCI expansion. Safe to resume.
 set -euo pipefail
 DCI_EXPANSION_ROOT=${DCI_EXPANSION_ROOT:-/mnt/afs2/202609/embedding_models/dci-bench}
-HFD=${HFD:-$DCI_EXPANSION_ROOT/hfd.sh}
+HFD=${HFD:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/hfd.sh}
 export HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
 # Keep the active proxy by default. Set DCI_KEEP_PROXY=0 only after verifying
 # a current proxy failure; an old connection failure does not justify bypassing it.

@@ -52,7 +52,7 @@ class SelectiveExpansionTests(unittest.TestCase):
                 MODULE.verify_directory(output)
 
     def test_runtime_override_cannot_change_the_frozen_contract(self):
-        source = MODULE.ROOT / 'results/expansion-runtimes/20261015-selective-document-v1'
+        source = MODULE.ROOT / 'releases/expansion-runtimes/20261015-selective-document-v1'
         if not source.exists():
             self.skipTest('Prepared expansion snapshot is not present')
         MODULE.validate_execution_runtime(source)

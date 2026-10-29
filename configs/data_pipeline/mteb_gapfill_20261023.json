@@ -1,0 +1,137 @@
+{
+  "schema_version": "dci-mteb-gapfill-v2",
+  "raw_root": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data",
+  "eval_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data",
+  "research_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/source_research_20261023_round3/legal",
+  "round2_receipt": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/source_research_20261023_round2/mteb/research_complete.json",
+  "download_budget_bytes": 800000000,
+  "per_source_budget_bytes": 350000000,
+  "quality_policy": {
+    "max_positive_per_query": null,
+    "exclude_review_required": false,
+    "drop_near_duplicates": false,
+    "max_document_bytes": 16777216,
+    "max_query_bytes": 16777216
+  },
+  "sources": [
+    {
+      "id": "gapfill_mteb_cmedqa_retrieval",
+      "mode": "verify_frozen",
+      "domain": "medical",
+      "language": "zh",
+      "dataset": "mteb/CmedqaRetrieval",
+      "mteb_revision": "c476f85bf03d6642ec66bf54b9a551c88108bbb4",
+      "release_path": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/pipeline_v1/gapfill_mteb_cmedqa_retrieval/v1",
+      "canonical_input": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_mteb_cmedqa_retrieval/canonical_input_ascii_v1",
+      "source_parquet": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_mteb_cmedqa_retrieval/source_parquet",
+      "expected_counts": {"documents": 100001, "queries": 3999, "positive_pairs": 7449},
+      "source_family": "C-MTEB CmedqaRetrieval / CMedQAv2",
+      "source_scope": "MTEB dev retrieval split; complete source corpus and qrels",
+      "translation_status": "native Chinese",
+      "official_urls": [
+        "https://huggingface.co/datasets/mteb/CmedqaRetrieval",
+        "https://github.com/embeddings-benchmark/mteb/blob/main/mteb/tasks/retrieval/zho/cmteb_retrieval.py",
+        "https://aclanthology.org/2022.emnlp-main.357/"
+      ]
+    },
+    {
+      "id": "gapfill_mteb_duretrieval",
+      "mode": "verify_frozen",
+      "domain": "web",
+      "language": "zh",
+      "dataset": "mteb/DuRetrieval",
+      "mteb_revision": "313c81b51311893c8fd09ca432f96b841ed0ebb3",
+      "release_path": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/pipeline_v1/gapfill_mteb_duretrieval/v1",
+      "canonical_input": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_mteb_duretrieval/canonical_input_ascii_v1",
+      "source_parquet": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_mteb_duretrieval/source_parquet",
+      "expected_counts": {"documents": 100001, "queries": 2000, "positive_pairs": 9839},
+      "source_family": "C-MTEB DuRetrieval / DuReader-retrieval",
+      "source_scope": "MTEB dev retrieval split; complete source corpus and qrels",
+      "translation_status": "native Chinese",
+      "official_urls": [
+        "https://huggingface.co/datasets/mteb/DuRetrieval",
+        "https://github.com/embeddings-benchmark/mteb/blob/main/mteb/tasks/retrieval/zho/cmteb_retrieval.py",
+        "https://aclanthology.org/2022.emnlp-main.357/"
+      ]
+    },
+    {
+      "id": "gapfill_mteb_germandpr",
+      "mode": "verify_frozen",
+      "domain": "web",
+      "reported_domain": "encyclopedia",
+      "language": "de",
+      "dataset": "mteb/GermanDPR",
+      "mteb_revision": "64a4860e55ba6d8fcb923d5306d08e08b1c72794",
+      "release_path": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/pipeline_v1/gapfill_mteb_germandpr/v1",
+      "canonical_input": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_mteb_germandpr/canonical_input_ascii_v1",
+      "source_parquet": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data/gapfill_mteb_germandpr/source_parquet",
+      "expected_counts": {"documents": 2876, "queries": 1025, "positive_pairs": 1025},
+      "source_family": "MTEB GermanDPR / deepset GermanDPR",
+      "source_scope": "MTEB test retrieval split over GermanDPR Wikipedia contexts",
+      "translation_status": "native German",
+      "official_urls": [
+        "https://huggingface.co/datasets/mteb/GermanDPR",
+        "https://huggingface.co/datasets/deepset/germandpr",
+        "https://github.com/embeddings-benchmark/mteb/blob/main/mteb/tasks/retrieval/deu/german_dpr_retrieval.py",
+        "https://arxiv.org/abs/2104.12741"
+      ],
+      "correction_note": "The sealed round2 spec says domain=web; the official GermanDPR card describes Wikipedia contexts. Preserve the sealed release and expose encyclopedia only as a report-level correction."
+    },
+    {
+      "id": "gapfill_legal_lecardv2",
+      "mode": "acquire_and_publish",
+      "domain": "legal",
+      "language": "zh",
+      "dataset": "mteb/LeCaRDv2",
+      "mteb_revision": "566865fc50a566db1635307496e46c5a1a118cb2",
+      "mteb_task_revision": "b78e18688c3d012a33dc3676597c1d1b2243ce1c",
+      "mirror": "modelscope.cn/datasets/MTEB/LeCaRDv2",
+      "mirror_revision": "8abd8019ed605a8c01467a1c65d446862312f2f5",
+      "expected_counts": {"documents": 3795, "queries": 159, "positive_pairs": 3896},
+      "source_family": "MTEB LeCaRDv2",
+      "source_scope": "complete MTEB test legal case retrieval corpus, queries, and derived qrels",
+      "translation_status": "native Chinese",
+      "official_urls": [
+        "https://huggingface.co/datasets/mteb/LeCaRDv2",
+        "https://github.com/embeddings-benchmark/mteb/blob/main/mteb/tasks/retrieval/zho/le_ca_r_dv2_retrieval.py",
+        "https://github.com/THUIR/LeCaRDv2",
+        "https://arxiv.org/abs/2310.17609"
+      ],
+      "mirror_tree_url": "https://modelscope.cn/api/v1/datasets/MTEB/LeCaRDv2/repo/tree?Revision=master",
+      "files": {
+        "documents": {"path": "corpus.jsonl", "bytes": 153726855, "sha256": "f112eb82ff3b7cbc1e97e44d96ae9e520746df3858b77a0028115f1436454c0c", "revision": "e9b265673d0d883cf65990d02a0ab42d3c0e1a0e"},
+        "queries": {"path": "queries.jsonl", "bytes": 3753106, "sha256": "a3007d1043f6b545a28583ae94a754f6091a5c57ba2356af922f7f73848b4aa7", "revision": "e9b265673d0d883cf65990d02a0ab42d3c0e1a0e"},
+        "qrels": {"path": "qrels/test.jsonl", "bytes": 237656, "sha256": "57c9deede2cfb955ffcd7d16fe93715e6cef7568075f33c8c8bd4ec8c82baf3d", "revision": "e9b265673d0d883cf65990d02a0ab42d3c0e1a0e"}
+      }
+    },
+    {
+      "id": "gapfill_legal_gerdalirsmall",
+      "mode": "acquire_and_publish",
+      "domain": "legal",
+      "language": "de",
+      "dataset": "mteb/GerDaLIRSmall",
+      "mteb_revision": "b199f38071bc06a2cb86c4c10d57ecee6c46056a",
+      "mteb_task_revision": "48327de6ee192e9610f3069789719788957c7abd",
+      "mirror": "modelscope.cn/datasets/MTEB/GerDaLIRSmall",
+      "mirror_revision": "ffd75874a55b29236c220ab1307449c9e5532414",
+      "expected_counts": {"documents": 9969, "queries": 12234, "positive_pairs": 14320},
+      "historical_round2_counts": {"documents": 9969, "queries": 12234, "qrels": 22203},
+      "metadata_discrepancy_note": "Count reconciliation: earlier official-card/research metadata used in round2 reported qrels=22203, while the pinned current MTEB ModelScope/Hugging Face test definition has 14320 qrel rows. Raw audit found every current row score=1, with no score<=0 rows, duplicate pairs, or unknown IDs. The 7883-row difference remains an unresolved source count/metadata discrepancy; it is not filtered negatives or invented positives.",
+      "source_family": "MTEB GerDaLIRSmall / GerDaLIR",
+      "source_scope": "complete MTEB test legal information retrieval corpus, queries, and derived qrels",
+      "translation_status": "native German",
+      "official_urls": [
+        "https://huggingface.co/datasets/mteb/GerDaLIRSmall",
+        "https://github.com/embeddings-benchmark/mteb/blob/main/mteb/tasks/retrieval/deu/ger_da_lir_small_retrieval.py",
+        "https://github.com/lavis-nlp/GerDaLIR",
+        "https://aclanthology.org/2021.nllp-1.13/"
+      ],
+      "mirror_tree_url": "https://modelscope.cn/api/v1/datasets/MTEB/GerDaLIRSmall/repo/tree?Revision=master",
+      "files": {
+        "documents": {"path": "corpus.jsonl", "bytes": 213837737, "sha256": "aff8c019528a3406945ece5218b0d74a2ada2a9c7ac2c5cc755f280074266580", "revision": "23a5770149e6005a066d31b61444f5f2673e1535"},
+        "queries": {"path": "queries.jsonl", "bytes": 14002442, "sha256": "f66c60047d0836d96fe8429b9fe57eabfcb92714ee41ca15f83e73fe0ba33e7c", "revision": "23a5770149e6005a066d31b61444f5f2673e1535"},
+        "qrels": {"path": "qrels/test.jsonl", "bytes": 873520, "sha256": "283cf3aeb5967f71e9e720cf5d9a5a046449e09caef88061ed2528259b5a2bb2", "revision": "23a5770149e6005a066d31b61444f5f2673e1535"}
+      }
+    }
+  ]
+}

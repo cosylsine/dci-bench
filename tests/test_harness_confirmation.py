@@ -19,7 +19,7 @@ sys.path.insert(0, str(REPO / "scripts"))
 import prepare_harness_confirmation as C
 from prepare_harness_pilot_continuation import execution_order
 
-ARCHIVE = REPO / "results/harness-continuations/20261014T043719Z-validation-remaining/runtime"
+ARCHIVE = REPO / "releases/harness-continuations/20261014T043719Z-validation-remaining/runtime"
 
 
 class ConfirmationTests(unittest.TestCase):

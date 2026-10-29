@@ -1,0 +1,684 @@
+{
+  "schema_version": "dci-source-catalog-v1",
+  "raw_root": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data",
+  "eval_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data",
+  "sources": [
+    {
+      "id": "beir_scifact_test",
+      "connector": "beir",
+      "input_kind": "retrieval",
+      "domain": "scientific",
+      "language": "en",
+      "revision": "officialzip",
+      "license": "CC-BY-NC-4.0",
+      "options": {
+        "dataset": "beir/scifact",
+        "archive": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/scifact.zip",
+        "split": "test",
+        "genre": "scientific_fact_checking",
+        "max_bytes": 33554432,
+        "max_member_bytes": 134217728,
+        "max_archive_bytes": 268435456,
+        "max_archive_files": 10000,
+        "max_compression_ratio": 100.0,
+        "timeout": 60,
+        "retries": 3
+      },
+      "metadata": {
+        "source_scope": "official BEIR SciFact test archive"
+      }
+    },
+    {
+      "id": "qasper_dev",
+      "connector": "qasper",
+      "input_kind": "evidence_qa",
+      "domain": "scientific",
+      "language": "en",
+      "revision": "v0.3-train-dev",
+      "license": "CC-BY-4.0",
+      "options": {
+        "dataset": "QASPER",
+        "archive": "https://qasper-dataset.s3.us-west-2.amazonaws.com/qasper-train-dev-v0.3.tgz",
+        "split": "dev",
+        "genre": "scientific_papers",
+        "max_bytes": 67108864,
+        "max_member_bytes": 134217728,
+        "max_archive_bytes": 268435456,
+        "max_archive_files": 1000,
+        "max_compression_ratio": 100.0,
+        "timeout": 60,
+        "retries": 3
+      },
+      "metadata": {
+        "source_scope": "official QASPER train/dev archive, dev split"
+      }
+    },
+    {
+      "id": "wixqa_expertwritten",
+      "connector": "wixqa",
+      "input_kind": "retrieval",
+      "domain": "enterprise",
+      "language": "en",
+      "revision": "d662dc42479c14e202eccd832f8c4b66a035c4cc",
+      "license": "MIT",
+      "options": {
+        "dataset": "Wix/WixQA",
+        "path": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/wixqa/raw",
+        "split": "expertwritten",
+        "genre": "enterprise_qa",
+        "max_bytes": 67108864,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "source_scope": "existing local raw snapshot; corpus plus expertwritten test"
+      }
+    },
+    {
+      "id": "wixqa_simulated",
+      "connector": "wixqa",
+      "input_kind": "retrieval",
+      "domain": "enterprise",
+      "language": "en",
+      "revision": "d662dc42479c14e202eccd832f8c4b66a035c4cc",
+      "license": "MIT",
+      "options": {
+        "dataset": "Wix/WixQA",
+        "path": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/wixqa/raw",
+        "split": "simulated",
+        "genre": "enterprise_qa",
+        "max_bytes": 67108864,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "source_scope": "existing local raw snapshot; corpus plus simulated test"
+      }
+    },
+    {
+      "id": "worksurface_backend_developer",
+      "connector": "worksurface",
+      "input_kind": "evidence_qa",
+      "domain": "enterprise",
+      "language": "en",
+      "revision": "3b3aef45f1e8f69416d6112c46e6e873cf522315",
+      "license": "CC-BY-4.0",
+      "options": {
+        "dataset": "lhpku20010120/WorkSurface-Bench",
+        "path": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/worksurface/raw",
+        "persona": "Backend Developer",
+        "genre": "enterprise_documents",
+        "task_filter": "rag_only",
+        "max_bytes": 67108864,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "source_scope": "document persona only; pure RAG tasks and matching KB documents"
+      }
+    },
+    {
+      "id": "worksurface_logistics_manager",
+      "connector": "worksurface",
+      "input_kind": "evidence_qa",
+      "domain": "enterprise",
+      "language": "en",
+      "revision": "3b3aef45f1e8f69416d6112c46e6e873cf522315",
+      "license": "CC-BY-4.0",
+      "options": {
+        "dataset": "lhpku20010120/WorkSurface-Bench",
+        "path": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/worksurface/raw",
+        "persona": "Logistics Manager",
+        "genre": "enterprise_documents",
+        "task_filter": "rag_only",
+        "max_bytes": 67108864,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "source_scope": "document persona only; pure RAG tasks and matching KB documents"
+      }
+    },
+    {
+      "id": "worksurface_operations_manager",
+      "connector": "worksurface",
+      "input_kind": "evidence_qa",
+      "domain": "enterprise",
+      "language": "en",
+      "revision": "3b3aef45f1e8f69416d6112c46e6e873cf522315",
+      "license": "CC-BY-4.0",
+      "options": {
+        "dataset": "lhpku20010120/WorkSurface-Bench",
+        "path": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/worksurface/raw",
+        "persona": "Operations Manager",
+        "genre": "enterprise_documents",
+        "task_filter": "rag_only",
+        "max_bytes": 67108864,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "source_scope": "document persona only; pure RAG tasks and matching KB documents"
+      }
+    },
+    {
+      "id": "github_kubernetes_website_en",
+      "connector": "github_markdown",
+      "input_kind": "corpus",
+      "domain": "software",
+      "language": "en",
+      "revision": "bc7f3479bc8b0af48097b155c22c8d58e8e1afe4",
+      "license": "CC-BY-4.0",
+      "options": {
+        "dataset": "kubernetes/website",
+        "repo": "kubernetes/website",
+        "paths": [
+          "content/en/docs/_index.md",
+          "content/en/docs/concepts/_index.md",
+          "content/en/docs/concepts/architecture/_index.md",
+          "content/en/docs/concepts/architecture/cgroups.md",
+          "content/en/docs/concepts/architecture/cloud-controller.md"
+        ],
+        "extensions": [
+          ".md"
+        ],
+        "genre": "technical_documentation",
+        "translation_status": "translated_parallel",
+        "translation_group": "kubernetes-website-docs",
+        "max_bytes": 8388608,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "translation_group": "kubernetes-website-docs",
+        "source_scope": "five fixed Markdown paths selected from one commit tree"
+      }
+    },
+    {
+      "id": "github_kubernetes_website_zh",
+      "connector": "github_markdown",
+      "input_kind": "corpus",
+      "domain": "software",
+      "language": "zh",
+      "revision": "bc7f3479bc8b0af48097b155c22c8d58e8e1afe4",
+      "license": "CC-BY-4.0",
+      "options": {
+        "dataset": "kubernetes/website",
+        "repo": "kubernetes/website",
+        "paths": [
+          "content/zh-cn/docs/_index.md",
+          "content/zh-cn/docs/concepts/_index.md",
+          "content/zh-cn/docs/concepts/architecture/_index.md",
+          "content/zh-cn/docs/concepts/architecture/cgroups.md",
+          "content/zh-cn/docs/concepts/architecture/cloud-controller.md"
+        ],
+        "extensions": [
+          ".md"
+        ],
+        "genre": "technical_documentation",
+        "translation_status": "translated_parallel",
+        "translation_group": "kubernetes-website-docs",
+        "max_bytes": 8388608,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "translation_group": "kubernetes-website-docs",
+        "source_scope": "five fixed Markdown paths selected from one commit tree"
+      }
+    },
+    {
+      "id": "github_kubernetes_website_fr",
+      "connector": "github_markdown",
+      "input_kind": "corpus",
+      "domain": "software",
+      "language": "fr",
+      "revision": "bc7f3479bc8b0af48097b155c22c8d58e8e1afe4",
+      "license": "CC-BY-4.0",
+      "options": {
+        "dataset": "kubernetes/website",
+        "repo": "kubernetes/website",
+        "paths": [
+          "content/fr/docs/_index.md",
+          "content/fr/docs/concepts/_index.md",
+          "content/fr/docs/concepts/architecture/_index.md",
+          "content/fr/docs/concepts/architecture/cgroups.md",
+          "content/fr/docs/concepts/architecture/cloud-controller.md"
+        ],
+        "extensions": [
+          ".md"
+        ],
+        "genre": "technical_documentation",
+        "translation_status": "translated_parallel",
+        "translation_group": "kubernetes-website-docs",
+        "max_bytes": 8388608,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "translation_group": "kubernetes-website-docs",
+        "source_scope": "five fixed Markdown paths selected from one commit tree"
+      }
+    },
+    {
+      "id": "github_kubernetes_website_ja",
+      "connector": "github_markdown",
+      "input_kind": "corpus",
+      "domain": "software",
+      "language": "ja",
+      "revision": "bc7f3479bc8b0af48097b155c22c8d58e8e1afe4",
+      "license": "CC-BY-4.0",
+      "options": {
+        "dataset": "kubernetes/website",
+        "repo": "kubernetes/website",
+        "paths": [
+          "content/ja/docs/_index.md",
+          "content/ja/docs/concepts/_index.md",
+          "content/ja/docs/concepts/architecture/_index.md",
+          "content/ja/docs/concepts/architecture/cgroups.md",
+          "content/ja/docs/concepts/architecture/cloud-controller.md"
+        ],
+        "extensions": [
+          ".md"
+        ],
+        "genre": "technical_documentation",
+        "translation_status": "translated_parallel",
+        "translation_group": "kubernetes-website-docs",
+        "max_bytes": 8388608,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "translation_group": "kubernetes-website-docs",
+        "source_scope": "five fixed Markdown paths selected from one commit tree"
+      }
+    },
+    {
+      "id": "github_kubernetes_website_ru",
+      "connector": "github_markdown",
+      "input_kind": "corpus",
+      "domain": "software",
+      "language": "ru",
+      "revision": "bc7f3479bc8b0af48097b155c22c8d58e8e1afe4",
+      "license": "CC-BY-4.0",
+      "options": {
+        "dataset": "kubernetes/website",
+        "repo": "kubernetes/website",
+        "paths": [
+          "content/ru/docs/_index.md",
+          "content/ru/docs/concepts/_index.md",
+          "content/ru/docs/concepts/architecture/_index.md",
+          "content/ru/docs/concepts/architecture/cloud-controller.md"
+        ],
+        "extensions": [
+          ".md"
+        ],
+        "genre": "technical_documentation",
+        "translation_status": "translated_parallel",
+        "translation_group": "kubernetes-website-docs",
+        "max_bytes": 8388608,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "translation_group": "kubernetes-website-docs",
+        "source_scope": "five fixed Markdown paths selected from one commit tree"
+      }
+    },
+    {
+      "id": "tydiqa_goldp_dev",
+      "connector": "squad",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "language": "mul",
+      "revision": "v1.1-dev",
+      "license": "Apache-2.0",
+      "status": "blocked",
+      "options": {
+        "dataset": "google-research-datasets/tydiqa",
+        "files": [
+          {
+            "url": "https://storage.googleapis.com/tydiqa/v1.1/tydiqa-goldp-v1.1-dev.json",
+            "name": "data/tydiqa-goldp-v1.1-dev.json"
+          }
+        ],
+        "language_from_id": "tydiqa",
+        "translation_status": "native",
+        "genre": "wikipedia_passage",
+        "max_bytes": 30000000,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "source_scope": "TyDi QA GoldP dev; native en/ar/bn/fi/id/sw/ko/ru/te coverage",
+        "availability": "blocked",
+        "block_reason": "official storage.googleapis.com object returns HTTP 403; direct HF and hf-mirror paths were unavailable"
+      }
+    },
+    {
+      "id": "xquad_en",
+      "connector": "squad",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "language": "en",
+      "revision": "7d30520c717524000f0d9d2f9c10a069acd9d285",
+      "license": "CC-BY-SA-4.0",
+      "options": {
+        "dataset": "google-deepmind/xquad",
+        "files": [
+          {
+            "url": "https://raw.githubusercontent.com/google-deepmind/xquad/7d30520c717524000f0d9d2f9c10a069acd9d285/xquad.en.json",
+            "name": "data/xquad.en.json"
+          }
+        ],
+        "translation_status": "native",
+        "parallel_family": "xquad",
+        "genre": "wikipedia_passage",
+        "max_bytes": 10000000,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "source_scope": "complete language file; passage retrieval adaptation; parallel translations, not independent native coverage"
+      }
+    },
+    {
+      "id": "xquad_ar",
+      "connector": "squad",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "language": "ar",
+      "revision": "7d30520c717524000f0d9d2f9c10a069acd9d285",
+      "license": "CC-BY-SA-4.0",
+      "options": {
+        "dataset": "google-deepmind/xquad",
+        "files": [
+          {
+            "url": "https://raw.githubusercontent.com/google-deepmind/xquad/7d30520c717524000f0d9d2f9c10a069acd9d285/xquad.ar.json",
+            "name": "data/xquad.ar.json"
+          }
+        ],
+        "translation_status": "translated",
+        "parallel_family": "xquad",
+        "genre": "wikipedia_passage",
+        "max_bytes": 10000000,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "source_scope": "complete language file; passage retrieval adaptation; parallel translations, not independent native coverage"
+      }
+    },
+    {
+      "id": "xquad_de",
+      "connector": "squad",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "language": "de",
+      "revision": "7d30520c717524000f0d9d2f9c10a069acd9d285",
+      "license": "CC-BY-SA-4.0",
+      "options": {
+        "dataset": "google-deepmind/xquad",
+        "files": [
+          {
+            "url": "https://raw.githubusercontent.com/google-deepmind/xquad/7d30520c717524000f0d9d2f9c10a069acd9d285/xquad.de.json",
+            "name": "data/xquad.de.json"
+          }
+        ],
+        "translation_status": "translated",
+        "parallel_family": "xquad",
+        "genre": "wikipedia_passage",
+        "max_bytes": 10000000,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "source_scope": "complete language file; passage retrieval adaptation; parallel translations, not independent native coverage"
+      }
+    },
+    {
+      "id": "xquad_el",
+      "connector": "squad",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "language": "el",
+      "revision": "7d30520c717524000f0d9d2f9c10a069acd9d285",
+      "license": "CC-BY-SA-4.0",
+      "options": {
+        "dataset": "google-deepmind/xquad",
+        "files": [
+          {
+            "url": "https://api.github.com/repos/google-deepmind/xquad/contents/xquad.el.json?ref=7d30520c717524000f0d9d2f9c10a069acd9d285",
+            "name": "data/xquad.el.json"
+          }
+        ],
+        "translation_status": "translated",
+        "parallel_family": "xquad",
+        "genre": "wikipedia_passage",
+        "max_bytes": 10000000,
+        "timeout": 30,
+        "retries": 2,
+        "headers": {
+          "Accept": "application/vnd.github.raw+json",
+          "User-Agent": "dci-bench-data-pipeline"
+        }
+      },
+      "metadata": {
+        "source_scope": "complete language file; passage retrieval adaptation; parallel translations, not independent native coverage"
+      }
+    },
+    {
+      "id": "xquad_es",
+      "connector": "squad",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "language": "es",
+      "revision": "7d30520c717524000f0d9d2f9c10a069acd9d285",
+      "license": "CC-BY-SA-4.0",
+      "options": {
+        "dataset": "google-deepmind/xquad",
+        "files": [
+          {
+            "url": "https://raw.githubusercontent.com/google-deepmind/xquad/7d30520c717524000f0d9d2f9c10a069acd9d285/xquad.es.json",
+            "name": "data/xquad.es.json"
+          }
+        ],
+        "translation_status": "translated",
+        "parallel_family": "xquad",
+        "genre": "wikipedia_passage",
+        "max_bytes": 10000000,
+        "timeout": 30,
+        "retries": 2
+      },
+      "metadata": {
+        "source_scope": "complete language file; passage retrieval adaptation; parallel translations, not independent native coverage"
+      }
+    },
+    {
+      "id": "xquad_hi",
+      "connector": "squad",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "language": "hi",
+      "revision": "7d30520c717524000f0d9d2f9c10a069acd9d285",
+      "license": "CC-BY-SA-4.0",
+      "options": {
+        "dataset": "google-deepmind/xquad",
+        "files": [
+          {
+            "url": "https://api.github.com/repos/google-deepmind/xquad/contents/xquad.hi.json?ref=7d30520c717524000f0d9d2f9c10a069acd9d285",
+            "name": "data/xquad.hi.json"
+          }
+        ],
+        "translation_status": "translated",
+        "parallel_family": "xquad",
+        "genre": "wikipedia_passage",
+        "max_bytes": 10000000,
+        "timeout": 30,
+        "retries": 2,
+        "headers": {
+          "Accept": "application/vnd.github.raw+json",
+          "User-Agent": "dci-bench-data-pipeline"
+        }
+      },
+      "metadata": {
+        "source_scope": "complete language file; passage retrieval adaptation; parallel translations, not independent native coverage"
+      }
+    },
+    {
+      "id": "xquad_ru",
+      "connector": "squad",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "language": "ru",
+      "revision": "7d30520c717524000f0d9d2f9c10a069acd9d285",
+      "license": "CC-BY-SA-4.0",
+      "options": {
+        "dataset": "google-deepmind/xquad",
+        "files": [
+          {
+            "url": "https://api.github.com/repos/google-deepmind/xquad/contents/xquad.ru.json?ref=7d30520c717524000f0d9d2f9c10a069acd9d285",
+            "name": "data/xquad.ru.json"
+          }
+        ],
+        "translation_status": "translated",
+        "parallel_family": "xquad",
+        "genre": "wikipedia_passage",
+        "max_bytes": 10000000,
+        "timeout": 30,
+        "retries": 2,
+        "headers": {
+          "Accept": "application/vnd.github.raw+json",
+          "User-Agent": "dci-bench-data-pipeline"
+        }
+      },
+      "metadata": {
+        "source_scope": "complete language file; passage retrieval adaptation; parallel translations, not independent native coverage"
+      }
+    },
+    {
+      "id": "xquad_th",
+      "connector": "squad",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "language": "th",
+      "revision": "7d30520c717524000f0d9d2f9c10a069acd9d285",
+      "license": "CC-BY-SA-4.0",
+      "options": {
+        "dataset": "google-deepmind/xquad",
+        "files": [
+          {
+            "url": "https://api.github.com/repos/google-deepmind/xquad/contents/xquad.th.json?ref=7d30520c717524000f0d9d2f9c10a069acd9d285",
+            "name": "data/xquad.th.json"
+          }
+        ],
+        "translation_status": "translated",
+        "parallel_family": "xquad",
+        "genre": "wikipedia_passage",
+        "max_bytes": 10000000,
+        "timeout": 30,
+        "retries": 2,
+        "headers": {
+          "Accept": "application/vnd.github.raw+json",
+          "User-Agent": "dci-bench-data-pipeline"
+        }
+      },
+      "metadata": {
+        "source_scope": "complete language file; passage retrieval adaptation; parallel translations, not independent native coverage"
+      }
+    },
+    {
+      "id": "xquad_tr",
+      "connector": "squad",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "language": "tr",
+      "revision": "7d30520c717524000f0d9d2f9c10a069acd9d285",
+      "license": "CC-BY-SA-4.0",
+      "options": {
+        "dataset": "google-deepmind/xquad",
+        "files": [
+          {
+            "url": "https://api.github.com/repos/google-deepmind/xquad/contents/xquad.tr.json?ref=7d30520c717524000f0d9d2f9c10a069acd9d285",
+            "name": "data/xquad.tr.json"
+          }
+        ],
+        "translation_status": "translated",
+        "parallel_family": "xquad",
+        "genre": "wikipedia_passage",
+        "max_bytes": 10000000,
+        "timeout": 30,
+        "retries": 2,
+        "headers": {
+          "Accept": "application/vnd.github.raw+json",
+          "User-Agent": "dci-bench-data-pipeline"
+        }
+      },
+      "metadata": {
+        "source_scope": "complete language file; passage retrieval adaptation; parallel translations, not independent native coverage"
+      }
+    },
+    {
+      "id": "xquad_vi",
+      "connector": "squad",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "language": "vi",
+      "revision": "7d30520c717524000f0d9d2f9c10a069acd9d285",
+      "license": "CC-BY-SA-4.0",
+      "options": {
+        "dataset": "google-deepmind/xquad",
+        "files": [
+          {
+            "url": "https://api.github.com/repos/google-deepmind/xquad/contents/xquad.vi.json?ref=7d30520c717524000f0d9d2f9c10a069acd9d285",
+            "name": "data/xquad.vi.json"
+          }
+        ],
+        "translation_status": "translated",
+        "parallel_family": "xquad",
+        "genre": "wikipedia_passage",
+        "max_bytes": 10000000,
+        "timeout": 30,
+        "retries": 2,
+        "headers": {
+          "Accept": "application/vnd.github.raw+json",
+          "User-Agent": "dci-bench-data-pipeline"
+        }
+      },
+      "metadata": {
+        "source_scope": "complete language file; passage retrieval adaptation; parallel translations, not independent native coverage"
+      }
+    },
+    {
+      "id": "xquad_zh",
+      "connector": "squad",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "language": "zh",
+      "revision": "7d30520c717524000f0d9d2f9c10a069acd9d285",
+      "license": "CC-BY-SA-4.0",
+      "options": {
+        "dataset": "google-deepmind/xquad",
+        "files": [
+          {
+            "url": "https://api.github.com/repos/google-deepmind/xquad/contents/xquad.zh.json?ref=7d30520c717524000f0d9d2f9c10a069acd9d285",
+            "name": "data/xquad.zh.json"
+          }
+        ],
+        "translation_status": "translated",
+        "parallel_family": "xquad",
+        "genre": "wikipedia_passage",
+        "max_bytes": 10000000,
+        "timeout": 30,
+        "retries": 2,
+        "headers": {
+          "Accept": "application/vnd.github.raw+json",
+          "User-Agent": "dci-bench-data-pipeline"
+        }
+      },
+      "metadata": {
+        "source_scope": "complete language file; passage retrieval adaptation; parallel translations, not independent native coverage"
+      }
+    }
+  ]
+}

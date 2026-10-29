@@ -144,7 +144,7 @@ def inspect_generation_kwargs(
 
     resolved = resolve_generation_config(backend)
     config = resolved["generation_config"]
-    return {
+    kwargs = {
         "temperature": config["temperature"],
         "max_tokens": config["max_tokens"],
         "seed": config["seed"],
@@ -154,6 +154,10 @@ def inspect_generation_kwargs(
             }
         },
     }
+    if backend is not None and backend.get("kind") == "remote_api":
+        # chat_template_kwargs is a local serving extension, not an API field.
+        kwargs.pop("extra_body")
+    return kwargs
 
 
 def resolved_generation_config_record(
@@ -337,6 +341,29 @@ def build_vllm_manifest(
     return payload
 
 
+def build_api_manifest(*, model_key: str, served_model_name: str, provider: str,
+                       revision: str, base_url: str, context_length: int = 65536) -> dict[str, Any]:
+    """Pin a remote model identity without fabricating a local weight receipt."""
+    if not provider.strip() or not revision.strip():
+        raise ValueError("remote API requires provider and pinned model revision")
+    payload = {
+        "schema_version": BACKEND_MANIFEST_SCHEMA_VERSION,
+        "model": {"model_key": model_key, "served_model_name": served_model_name,
+                  "identity_kind": "provider_revision", "provider": provider, "revision": revision},
+        "backend": {"kind": "remote_api", "version": "openai-compatible-chat-v1",
+                    "openai_service": provider, "base_url": sanitize_base_url(base_url),
+                    "tool_call_parser": "provider_native", "sampling_backend": "provider",
+                    "tensor_parallel_size": None, "context_length": context_length, "dtype": None,
+                    "generation_config": deepcopy(GENERATION_CONFIG),
+                    "max_model_output_tokens": MAX_MODEL_OUTPUT_TOKENS},
+        "capabilities": {"usage_tokens_required": True, "provider_cost_available": False,
+                         "retry_policy": "no_implicit_retries", "rate_limit_policy": "configured_concurrency"},
+    }
+    payload["manifest_sha256"] = _canonical_sha256(payload)
+    validate_backend_manifest(payload)
+    return payload
+
+
 def validate_backend_manifest(
     payload: dict[str, Any], *, generation_contract: Mapping[str, Any] | None = None,
 ) -> None:
@@ -346,7 +373,9 @@ def validate_backend_manifest(
     backend = payload.get("backend")
     if not isinstance(model, dict) or not isinstance(backend, dict):
         raise ValueError("backend manifest requires model and backend objects")
-    required_model = ("model_key", "source_path", "served_model_name", "config_sha256", "weights")
+    remote = backend.get("kind") == "remote_api"
+    required_model = (("model_key", "served_model_name", "identity_kind", "provider", "revision") if remote
+                      else ("model_key", "source_path", "served_model_name", "config_sha256", "weights"))
     required_backend = (
         "kind",
         "version",
@@ -366,24 +395,28 @@ def validate_backend_manifest(
         raise ValueError(f"backend manifest missing fields: {', '.join(missing)}")
     if not _MODEL_KEY_RE.fullmatch(str(model["model_key"])):
         raise ValueError("backend manifest contains an unsafe model_key")
-    weights = model["weights"]
-    if not isinstance(weights, dict) or not isinstance(weights.get("files"), list) or not weights["files"]:
-        raise ValueError("backend manifest weights.files must be a non-empty array")
-    for index, entry in enumerate(weights["files"]):
-        if not isinstance(entry, dict):
-            raise ValueError(f"backend manifest weights.files[{index}] must be an object")
-        digest = entry.get("sha256")
-        if not isinstance(digest, str) or not _SHA256_RE.fullmatch(digest):
-            raise ValueError(f"backend manifest weights.files[{index}].sha256 must be SHA-256")
-        if entry.get("digest_source") not in {"huggingface_lfs", "local_sha256"}:
-            raise ValueError(
-                f"backend manifest weights.files[{index}].digest_source is unsupported"
-            )
-    all_digests_available = weights.get("all_digests_available")
-    if not isinstance(all_digests_available, bool) or all_digests_available is not True:
-        raise ValueError("backend manifest must contain SHA-256 for every model weight")
-    if weights.get("manifest_sha256") != _canonical_sha256(weights["files"]):
-        raise ValueError("backend manifest weight digest mismatch")
+    if remote:
+        if model["identity_kind"] != "provider_revision" or any(
+            not isinstance(model[key], str) or not model[key].strip()
+            for key in ("provider", "revision", "served_model_name")
+        ):
+            raise ValueError("remote backend requires explicit provider/model/revision identity")
+    else:
+        weights = model["weights"]
+        if not isinstance(weights, dict) or not isinstance(weights.get("files"), list) or not weights["files"]:
+            raise ValueError("backend manifest weights.files must be a non-empty array")
+        for index, entry in enumerate(weights["files"]):
+            if not isinstance(entry, dict):
+                raise ValueError(f"backend manifest weights.files[{index}] must be an object")
+            digest = entry.get("sha256")
+            if not isinstance(digest, str) or not _SHA256_RE.fullmatch(digest):
+                raise ValueError(f"backend manifest weights.files[{index}].sha256 must be SHA-256")
+            if entry.get("digest_source") not in {"huggingface_lfs", "local_sha256"}:
+                raise ValueError(f"backend manifest weights.files[{index}].digest_source is unsupported")
+        if weights.get("all_digests_available") is not True:
+            raise ValueError("backend manifest must contain SHA-256 for every model weight")
+        if weights.get("manifest_sha256") != _canonical_sha256(weights["files"]):
+            raise ValueError("backend manifest weight digest mismatch")
     if "runtime" in backend and not isinstance(backend["runtime"], dict):
         raise ValueError("backend manifest runtime must be a JSON object")
     if generation_contract is None:

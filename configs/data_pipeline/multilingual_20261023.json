@@ -1,0 +1,196 @@
+{
+  "schema_version": "dci-multilingual-acquisition-v1",
+  "created_at": "2026-10-23",
+  "raw_root": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data",
+  "eval_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data",
+  "research_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/source_research_20261023/multilingual",
+  "download_budget_bytes": 400000000,
+  "per_source_budget_bytes": 150000000,
+  "sources": [
+    {
+      "id": "multilingual_vihealthqa_vi",
+      "family": "BEIR ViHealthQA",
+      "format": "vihealthqa_beir",
+      "connector": "beir",
+      "input_kind": "retrieval",
+      "domain": "health",
+      "language": "vi",
+      "revision": "BEIR archive last-modified 2022-06-30; vihealthqa.zip SHA256 65329d2c4f1154f4e6314c2c9f3eee0fe0682526aefbb4b36855bb9683181bf2",
+      "license": "not specified in the BEIR archive or ViHealthQA paper; retain source attribution and check upstream terms before redistribution",
+      "translation_status": "native",
+      "query_origin": "Vietnamese health-user questions from health websites with expert answer passages; official BEIR ViHealthQA archive",
+      "document_granularity": "answer passage in BEIR corpus.jsonl, not a full article",
+      "task_adaptation": "native retrieval; official corpus, queries, and split qrels",
+      "limitations": "Official test qrels contain 83 document IDs absent from the 9896-row corpus. The verified release retains the 1930 complete query rows and 4806 valid pairs; raw qrels and scores remain unchanged in the source archive.",
+      "split": "test",
+      "counts": {
+        "documents": 9896,
+        "queries": 2013,
+        "qrels": 5019,
+        "positive_pairs": 5019
+      },
+      "resources": [
+        {
+          "role": "archive",
+          "url": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/vihealthqa.zip",
+          "bytes": 2236748,
+          "sha256": "65329d2c4f1154f4e6314c2c9f3eee0fe0682526aefbb4b36855bb9683181bf2"
+        }
+      ],
+      "release_name": "expansion-v1"
+    },
+    {
+      "id": "multilingual_korquad_ko",
+      "family": "KorQuAD v1.0",
+      "format": "korquad_squad",
+      "dataset": "korquad/korquad.github.io",
+      "connector": "generic_jsonl",
+      "input_kind": "evidence_qa",
+      "domain": "encyclopedia",
+      "language": "ko",
+      "revision": "61d7d6682948375dd8f06ef27e788fd19982af38",
+      "license": "CC BY-ND 2.0 KR (official KorQuAD page)",
+      "translation_status": "native",
+      "query_origin": "Korean human-authored KorQuAD questions over Korean Wikipedia paragraphs; official public dev evaluation split",
+      "document_granularity": "Korean Wikipedia paragraph",
+      "task_adaptation": "qa-derived passage retrieval; score-1 seed qrels from question-to-source-paragraph relation; unjudged paragraphs are not negatives",
+      "limitations": "The GitHub release publishes train and public dev JSON but no hidden test JSON. The release uses all train+dev paragraphs as corpus and only official public dev questions as held-out evaluation queries. Optional malformed answer spans are retained in raw JSON and span_audit.json, omitted from evidence, and do not remove their source-paragraph qrel. The generic quality policy flags 55 dev questions whose positive paragraph has an exact duplicate elsewhere as review_required and excludes those query/evidence rows from expansion-v1; the raw source and canonical input retain all 5774 dev questions.",
+      "split": "official_public_dev",
+      "counts": {
+        "train_documents": 9681,
+        "dev_documents": 964,
+        "train_queries": 60407,
+        "dev_queries": 5774
+      },
+      "resources": [
+        {
+          "role": "train",
+          "url": "https://korquad.github.io/dataset/KorQuAD_v1.0_train.json",
+          "bytes": 38527475,
+          "sha256": "40d5115879a701751781df721d901abfa736d8db5f89000f2619433f39bf2dd2"
+        },
+        {
+          "role": "dev",
+          "url": "https://korquad.github.io/dataset/KorQuAD_v1.0_dev.json",
+          "bytes": 3881058,
+          "sha256": "25ffeb51e6c51ec02c071b60a10188e10005c144110f0d876b26079d80a35bdf"
+        }
+      ],
+      "release_name": "expansion-v2-fullqrels",
+      "quality_policy": {
+        "max_positive_per_query": null,
+        "exclude_review_required": false
+      }
+    }
+  ],
+  "researched_not_downloaded": [
+    {
+      "id": "multilingual_germanquad_de",
+      "family": "deepset GermanQuAD",
+      "language": "de",
+      "status": "researched_not_downloaded",
+      "revision": "GermanQuAD release cited by Moller et al. 2021; BEIR archive last-modified 2021-07-01",
+      "license": "dataset card reports CC-BY-4.0; verify upstream terms before redistribution",
+      "translation_status": "native",
+      "query_origin": "human-authored German QA over German Wikipedia paragraphs",
+      "document_granularity": "German Wikipedia paragraph",
+      "counts": {
+        "train_documents": 2540,
+        "train_queries": 11518,
+        "test_documents": 474,
+        "test_queries": 2204
+      },
+      "urls": [
+        "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/germanquad.zip",
+        "https://germanquad.s3.amazonaws.com/GermanQuAD.zip",
+        "https://huggingface.co/datasets/deepset/germanquad"
+      ],
+      "limitations": "The official BEIR archive advertises 1363636316 bytes, above the 150 MB per-source cap; S3 URL returned 404 in this run; HF is network-blocked. Research retained without download."
+    },
+    {
+      "id": "multilingual_duretrieval_zh",
+      "family": "C-MTEB/DuRetrieval + DuRetrieval-qrels",
+      "language": "zh",
+      "status": "researched_not_downloaded",
+      "revision": "C-MTEB/DuRetrieval@a1a333e290fe30b10f3f56498e3a0d911a693ced; qrels@497b7bd1bbb25cb3757ff34d95a8be50a3de2279",
+      "license": "not specified by C-MTEB cards",
+      "translation_status": "native",
+      "query_origin": "real Chinese Baidu requests in the DuReader-Retrieval description",
+      "document_granularity": "web-search passage",
+      "counts": {
+        "documents": 100001,
+        "queries": 2000,
+        "qrels": 9839
+      },
+      "urls": [
+        "https://huggingface.co/datasets/C-MTEB/DuRetrieval",
+        "https://huggingface.co/datasets/C-MTEB/DuRetrieval-qrels"
+      ],
+      "limitations": "HF direct network was unavailable; no source bytes were accepted into raw_data."
+    },
+    {
+      "id": "multilingual_mldr_ar_de_fr_es_ja_ko_ru",
+      "family": "Shitao/MLDR",
+      "language": "ar,de,fr,es,ja,ko,ru",
+      "status": "researched_not_downloaded",
+      "revision": "Shitao/MLDR@d67138e705d963e346253a80e59676ddb418810a",
+      "license": "MIT",
+      "translation_status": "native",
+      "query_origin": "official same-language MLDR dev queries; generated from same-language passages, not translated",
+      "document_granularity": "long sampled passage from Wikipedia/mC4/Wudao",
+      "counts": {
+        "queries_per_language": 200,
+        "ar_documents": 7607,
+        "de_documents": 10000,
+        "fr_documents": 10000,
+        "es_documents": 9551,
+        "ja_documents": 10000,
+        "ko_documents": 6176,
+        "ru_documents": 10000
+      },
+      "urls": [
+        "https://huggingface.co/datasets/Shitao/MLDR"
+      ],
+      "limitations": "HF direct and mirror endpoints were unavailable; no bytes were accepted into raw_data. ru compressed corpus alone exceeds 150 MB; other languages were held as research candidates."
+    },
+    {
+      "id": "multilingual_miracl_zh",
+      "family": "MIRACL",
+      "language": "zh",
+      "status": "researched_not_downloaded",
+      "revision": "project-miracl/miracl main release",
+      "license": "Apache-2.0",
+      "translation_status": "native",
+      "query_origin": "native-speaker queries with manually judged Wikipedia passage relevance",
+      "document_granularity": "Wikipedia passage",
+      "counts": {
+        "documents": 4934368,
+        "dev_queries": 393,
+        "dev_judgments": 3928
+      },
+      "urls": [
+        "https://github.com/project-miracl/miracl/blob/main/README.md"
+      ],
+      "limitations": "Full corpus is far above the bounded download budget; research only."
+    },
+    {
+      "id": "multilingual_mrtydi_ar_ru",
+      "family": "Mr.TyDi",
+      "language": "ar,ru",
+      "status": "researched_not_downloaded",
+      "revision": "castorini/mr.tydi v1.1",
+      "license": "Apache-2.0",
+      "translation_status": "native",
+      "query_origin": "native-language information-seeking queries and annotated Wikipedia passages",
+      "document_granularity": "Wikipedia passage",
+      "counts": {
+        "arabic_queries": 1081,
+        "arabic_corpus": 2100000
+      },
+      "urls": [
+        "https://github.com/castorini/mr.tydi/blob/main/README.md"
+      ],
+      "limitations": "Official BEIR bundle is multi-gigabyte; research only."
+    }
+  ]
+}

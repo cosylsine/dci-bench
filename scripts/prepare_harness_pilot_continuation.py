@@ -188,6 +188,8 @@ def check_plan(old, new, remaining, expected_order):
 
 
 def prepare(pilot, output, repository):
+    if {'results', 'eval_data', 'raw_data', 'eval_data_code'} & set(output.resolve().parts):
+        raise ValueError('Executable bundles belong under the code repository releases/ directory')
     plan, profiles, tasks, completed, expected = remaining_plan(pilot)
     output.mkdir(parents=True, exist_ok=False)
     runtime = output / "runtime"
