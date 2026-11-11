@@ -1,0 +1,759 @@
+DCI document-pool-v2 Bash inventory — 2026-11-10
+Scope: current inspection host; not a verified GPU evaluation-node inventory.
+Policy: no command-name allowlist. PATH=/sandbox-bin:/usr/bin:/bin; /bin aliases /usr/bin.
+The complete /usr/bin, /usr/lib and /usr/lib64 are read-only mounted.
+Commands can also be called by absolute path; user-created scripts/functions are not a finite list.
+Current blocker: /usr/bin/bwrap and /usr/bin/rg are missing; v2 sandbox cannot start on this host.
+Below is a static inventory, NOT proof that every program runs with its dependencies in the sandbox.
+Network, host /proc, /etc, /usr/share, /usr/local, /root, /mnt and host /tmp are not mounted.
+Corpus is read-only; /scratch is writable. No GPU devices are explicitly mounted.
+Bash call timeout defaults to 10 seconds, maximum 60 seconds; CPU ulimit is still 60 seconds.
+V2 output cap: 8192 bytes combined; output overflow terminates the command.
+A Bash builtin named read is not the harness read tool and does not create an evidence receipt.
+
+1. Enabled Bash builtins (61):
+. : [ alias bg bind break builtin caller cd command compgen complete compopt continue declare dirs disown echo
+enable eval exec exit export false fc fg getopts hash help history jobs kill let local logout mapfile popd
+printf pushd pwd read readarray readonly return set shift shopt source suspend test times trap true type
+typeset ulimit umask unalias unset wait
+
+2. Bash keywords/syntax (22):
+if then else elif fi case esac for select while until do done in function time { } ! [[ ]] coproc
+
+3. PATH external entries with statically visible targets and execute mode (603):
+[ add-apt-repository addpart addr2line apt apt-add-repository apt-cache apt-cdrom apt-config apt-get apt-key
+apt-mark ar arch as b2sum base32 base64 basename bash bashbug bootctl bunzip2 busctl bzcat bzcmp bzdiff
+bzegrep bzexe bzfgrep bzgrep bzip2 bzip2recover bzless bzmore c++filt c89-gcc c99-gcc c_rehash captoinfo cat
+catchsegv cautious-launcher chage chardet3 chardetect3 chattr chcon chfn chgrp chmod choom chown chrt chsh
+cksum clear clear_console cmp code-server comm compose corelist corepack cp cpan cpan5.30-x86_64-linux-gnu cpp
+cpp-9 csplit curl cut cvtsudoers dash date dbus-cleanup-sockets dbus-daemon dbus-monitor dbus-run-session
+dbus-send dbus-update-activation-environment dbus-uuidgen dd deb-systemd-helper deb-systemd-invoke debconf
+debconf-apt-progress debconf-communicate debconf-copydb debconf-escape debconf-set-selections debconf-show
+delpart df dh_bash-completion diff diff3 dir dircolors dirmngr dirmngr-client dirname dmesg dnsdomainname
+domainname dpkg dpkg-architecture dpkg-buildflags dpkg-buildpackage dpkg-checkbuilddeps dpkg-deb dpkg-
+distaddfile dpkg-divert dpkg-genbuildinfo dpkg-genchanges dpkg-gencontrol dpkg-gensymbols dpkg-maintscript-
+helper dpkg-mergechangelogs dpkg-name dpkg-parsechangelog dpkg-query dpkg-scanpackages dpkg-scansources dpkg-
+shlibdeps dpkg-source dpkg-split dpkg-statoverride dpkg-trigger dpkg-vendor du dwp echo edit egrep elfedit
+enc2xs encguess env expand expiry expr factor faillog fallocate false fgrep file fincore find findmnt flock
+fmt fold free g++ g++-9 gapplication gcc gcc-9 gcc-ar gcc-ar-9 gcc-nm gcc-nm-9 gcc-ranlib gcc-ranlib-9 gcov
+gcov-9 gcov-dump gcov-dump-9 gcov-tool gcov-tool-9 gdbus gencat getconf getent getopt gio gio-querymodules git
+git-receive-pack git-shell git-upload-archive git-upload-pack glib-compile-schemas gold gpasswd gpg gpg-agent
+gpg-connect-agent gpg-wks-server gpg-zip gpg2 gpgcompose gpgconf gpgparsemail gpgsm gpgsplit gpgtar gpgv gprof
+grep gresource groups gsettings gunzip gzexe gzip h2ph h2xs head helpztags hostid hostname hostnamectl i386
+iconv id infocmp infotocap install instmodsh ionice ipcmk ipcrm ipcs ischroot join journalctl json_pp kbxutil
+kernel-install kill last lastb lastlog lcf ld ld.bfd ld.gold ldd less lessecho lessfile lesskey lesspipe
+libnetcfg link linux32 linux64 ln locale locale-check localectl localedef logger login loginctl logname ls
+lsattr lsb_release lsblk lscpu lsipc lslocks lslogins lsmem lsns lspgpot lzmainfo make make-first-existing-
+target man mawk mcookie md5sum md5sum.textutils mesg migrate-pubring-from-classic-gpg mkdir mkfifo mknod
+mktemp more mount mountpoint mtrace mv namei networkctl networkd-dispatcher newgrp nice nisdomainname nl nm
+node nohup npm nproc npx nsenter numfmt nv-fabricmanager nvidia-cuda-mps-control nvidia-cuda-mps-server
+nvidia-debugdump nvidia-persistenced nvidia-smi objcopy objdump od openssl partx passwd paste patch pathchk
+pdb3 pdb3.8 perl perl5.30-x86_64-linux-gnu perl5.30.0 perlbug perldoc perlivp perlthanks pgrep piconv
+pinentry-curses ping ping4 ping6 pinky pip pip3 pkaction pkcheck pkcon pkexec pkill pkmon pkttyagent pl2pm
+pldd pmap pod2html pod2man pod2text pod2usage podchecker podselect pr print printenv printf prlimit prove ps
+ptar ptardiff ptargrep ptx pwd pwdx py3clean py3compile pydoc3 pydoc3.8 pygettext3 pygettext3.8 python3
+python3-config python3.8 python3.8-config ranlib rbash readelf readlink realpath rename.ul renice reset
+resizepart resolvectl rev rgrep rm rmdir rpcgen run-mailcap run-parts runcon savelog scp script scriptreplay
+sdiff sed see select-editor sensible-browser sensible-editor sensible-pager seq setarch setpriv setsid setterm
+sftp sg sh sha1sum sha224sum sha256sum sha384sum sha512sum shasum shred shuf size skill slabtop sleep slogin
+snice sort sotruss splain split sprof ssh ssh-add ssh-agent ssh-argv0 ssh-copy-id ssh-import-id ssh-import-id-
+gh ssh-import-id-lp ssh-keygen ssh-keyscan stat stdbuf strings strip stty su sudo sudoedit sudoreplay sum
+symcryptrun sync systemctl systemd systemd-analyze systemd-ask-password systemd-cat systemd-cgls systemd-cgtop
+systemd-delta systemd-detect-virt systemd-escape systemd-id128 systemd-inhibit systemd-machine-id-setup
+systemd-mount systemd-notify systemd-path systemd-resolve systemd-run systemd-socket-activate systemd-stdio-
+bridge systemd-sysusers systemd-tmpfiles systemd-tty-ask-password-agent systemd-umount tabs tac tail tar
+taskset tee tempfile test tic timedatectl timeout tload toe top touch tput tr true truncate tset tsort tty
+tzselect ucf ucfq ucfr umount uname unattended-upgrade unattended-upgrades uncompress unexpand uniq unlink
+unshare unxz update-alternatives update-mime-database uptime users utmpdump vdir vim.basic vimtutor vmstat
+w.procps wall watch watchgnupg wc wdctl wget whereis which who whoami x86_64 x86_64-linux-gnu-addr2line
+x86_64-linux-gnu-ar x86_64-linux-gnu-as x86_64-linux-gnu-c++filt x86_64-linux-gnu-cpp x86_64-linux-gnu-cpp-9
+x86_64-linux-gnu-dwp x86_64-linux-gnu-elfedit x86_64-linux-gnu-g++ x86_64-linux-gnu-g++-9 x86_64-linux-gnu-gcc
+x86_64-linux-gnu-gcc-9 x86_64-linux-gnu-gcc-ar x86_64-linux-gnu-gcc-ar-9 x86_64-linux-gnu-gcc-nm x86_64-linux-
+gnu-gcc-nm-9 x86_64-linux-gnu-gcc-ranlib x86_64-linux-gnu-gcc-ranlib-9 x86_64-linux-gnu-gcov x86_64-linux-gnu-
+gcov-9 x86_64-linux-gnu-gcov-dump x86_64-linux-gnu-gcov-dump-9 x86_64-linux-gnu-gcov-tool x86_64-linux-gnu-
+gcov-tool-9 x86_64-linux-gnu-gold x86_64-linux-gnu-gprof x86_64-linux-gnu-ld x86_64-linux-gnu-ld.bfd
+x86_64-linux-gnu-ld.gold x86_64-linux-gnu-nm x86_64-linux-gnu-objcopy x86_64-linux-gnu-objdump x86_64-linux-
+gnu-python3-config x86_64-linux-gnu-python3.8-config x86_64-linux-gnu-ranlib x86_64-linux-gnu-readelf
+x86_64-linux-gnu-size x86_64-linux-gnu-strings x86_64-linux-gnu-strip xargs xauth xdg-user-dir xdg-user-dirs-
+update xsubpp xxd xz xzcat xzcmp xzdiff xzegrep xzfgrep xzgrep xzless xzmore yes ypdomainname zcat zcmp zdiff
+zdump zegrep zfgrep zforce zgrep zipdetails zless zmore znew
+
+4. Host executable entries not reachable/executable under these mounts (33):
+awk: outside mounted directories: /etc
+c++: outside mounted directories: /etc
+c89: outside mounted directories: /etc
+c99: outside mounted directories: /etc
+cc: outside mounted directories: /etc
+editor: outside mounted directories: /etc
+ex: outside mounted directories: /etc
+lzcat: outside mounted directories: /etc
+lzcmp: outside mounted directories: /etc
+lzdiff: outside mounted directories: /etc
+lzegrep: outside mounted directories: /etc
+lzfgrep: outside mounted directories: /etc
+lzgrep: outside mounted directories: /etc
+lzless: outside mounted directories: /etc
+lzma: outside mounted directories: /etc
+lzmore: outside mounted directories: /etc
+nawk: outside mounted directories: /etc
+nodejs: outside mounted directories: /etc
+pager: outside mounted directories: /etc
+pidof: outside mounted directories: /sbin
+pinentry: outside mounted directories: /etc
+py3versions: outside mounted directories: /usr/share
+rcp: outside mounted directories: /etc
+rlogin: outside mounted directories: /etc
+rsh: outside mounted directories: /etc
+rview: outside mounted directories: /etc
+rvim: outside mounted directories: /etc
+unlzma: outside mounted directories: /etc
+vi: outside mounted directories: /etc
+view: outside mounted directories: /etc
+vim: outside mounted directories: /etc
+vimdiff: outside mounted directories: /etc
+w: outside mounted directories: /etc
+
+5. Additional required command on a correctly provisioned v2 node:
+rg -> /sandbox-bin/rg (trusted /usr/bin/rg bind mount; --sort=path via RIPGREP_CONFIG_PATH).
+bwrap is the host launcher dependency, not a model tool.
+
+6. Complete host /usr/bin executable entry index (636; no omissions):
+[	/usr/bin/[	/usr/bin/[	visible; runtime dependencies unverified
+add-apt-repository	/usr/bin/add-apt-repository	/usr/bin/add-apt-repository	visible; runtime dependencies unverified
+addpart	/usr/bin/addpart	/usr/bin/addpart	visible; runtime dependencies unverified
+addr2line	/usr/bin/addr2line	/usr/bin/x86_64-linux-gnu-addr2line	visible; runtime dependencies unverified
+apt	/usr/bin/apt	/usr/bin/apt	visible; runtime dependencies unverified
+apt-add-repository	/usr/bin/apt-add-repository	/usr/bin/add-apt-repository	visible; runtime dependencies unverified
+apt-cache	/usr/bin/apt-cache	/usr/bin/apt-cache	visible; runtime dependencies unverified
+apt-cdrom	/usr/bin/apt-cdrom	/usr/bin/apt-cdrom	visible; runtime dependencies unverified
+apt-config	/usr/bin/apt-config	/usr/bin/apt-config	visible; runtime dependencies unverified
+apt-get	/usr/bin/apt-get	/usr/bin/apt-get	visible; runtime dependencies unverified
+apt-key	/usr/bin/apt-key	/usr/bin/apt-key	visible; runtime dependencies unverified
+apt-mark	/usr/bin/apt-mark	/usr/bin/apt-mark	visible; runtime dependencies unverified
+ar	/usr/bin/ar	/usr/bin/x86_64-linux-gnu-ar	visible; runtime dependencies unverified
+arch	/usr/bin/arch	/usr/bin/arch	visible; runtime dependencies unverified
+as	/usr/bin/as	/usr/bin/x86_64-linux-gnu-as	visible; runtime dependencies unverified
+awk	/usr/bin/awk	-	outside mounted directories: /etc
+b2sum	/usr/bin/b2sum	/usr/bin/b2sum	visible; runtime dependencies unverified
+base32	/usr/bin/base32	/usr/bin/base32	visible; runtime dependencies unverified
+base64	/usr/bin/base64	/usr/bin/base64	visible; runtime dependencies unverified
+basename	/usr/bin/basename	/usr/bin/basename	visible; runtime dependencies unverified
+bash	/usr/bin/bash	/usr/bin/bash	visible; runtime dependencies unverified
+bashbug	/usr/bin/bashbug	/usr/bin/bashbug	visible; runtime dependencies unverified
+bootctl	/usr/bin/bootctl	/usr/bin/bootctl	visible; runtime dependencies unverified
+bunzip2	/usr/bin/bunzip2	/usr/bin/bunzip2	visible; runtime dependencies unverified
+busctl	/usr/bin/busctl	/usr/bin/busctl	visible; runtime dependencies unverified
+bzcat	/usr/bin/bzcat	/usr/bin/bzcat	visible; runtime dependencies unverified
+bzcmp	/usr/bin/bzcmp	/usr/bin/bzdiff	visible; runtime dependencies unverified
+bzdiff	/usr/bin/bzdiff	/usr/bin/bzdiff	visible; runtime dependencies unverified
+bzegrep	/usr/bin/bzegrep	/usr/bin/bzgrep	visible; runtime dependencies unverified
+bzexe	/usr/bin/bzexe	/usr/bin/bzexe	visible; runtime dependencies unverified
+bzfgrep	/usr/bin/bzfgrep	/usr/bin/bzgrep	visible; runtime dependencies unverified
+bzgrep	/usr/bin/bzgrep	/usr/bin/bzgrep	visible; runtime dependencies unverified
+bzip2	/usr/bin/bzip2	/usr/bin/bzip2	visible; runtime dependencies unverified
+bzip2recover	/usr/bin/bzip2recover	/usr/bin/bzip2recover	visible; runtime dependencies unverified
+bzless	/usr/bin/bzless	/usr/bin/bzmore	visible; runtime dependencies unverified
+bzmore	/usr/bin/bzmore	/usr/bin/bzmore	visible; runtime dependencies unverified
+c++	/usr/bin/c++	-	outside mounted directories: /etc
+c++filt	/usr/bin/c++filt	/usr/bin/x86_64-linux-gnu-c++filt	visible; runtime dependencies unverified
+c89	/usr/bin/c89	-	outside mounted directories: /etc
+c89-gcc	/usr/bin/c89-gcc	/usr/bin/c89-gcc	visible; runtime dependencies unverified
+c99	/usr/bin/c99	-	outside mounted directories: /etc
+c99-gcc	/usr/bin/c99-gcc	/usr/bin/c99-gcc	visible; runtime dependencies unverified
+c_rehash	/usr/bin/c_rehash	/usr/bin/c_rehash	visible; runtime dependencies unverified
+captoinfo	/usr/bin/captoinfo	/usr/bin/tic	visible; runtime dependencies unverified
+cat	/usr/bin/cat	/usr/bin/cat	visible; runtime dependencies unverified
+catchsegv	/usr/bin/catchsegv	/usr/bin/catchsegv	visible; runtime dependencies unverified
+cautious-launcher	/usr/bin/cautious-launcher	/usr/bin/cautious-launcher	visible; runtime dependencies unverified
+cc	/usr/bin/cc	-	outside mounted directories: /etc
+chage	/usr/bin/chage	/usr/bin/chage	visible; runtime dependencies unverified
+chardet3	/usr/bin/chardet3	/usr/bin/chardetect3	visible; runtime dependencies unverified
+chardetect3	/usr/bin/chardetect3	/usr/bin/chardetect3	visible; runtime dependencies unverified
+chattr	/usr/bin/chattr	/usr/bin/chattr	visible; runtime dependencies unverified
+chcon	/usr/bin/chcon	/usr/bin/chcon	visible; runtime dependencies unverified
+chfn	/usr/bin/chfn	/usr/bin/chfn	visible; runtime dependencies unverified
+chgrp	/usr/bin/chgrp	/usr/bin/chgrp	visible; runtime dependencies unverified
+chmod	/usr/bin/chmod	/usr/bin/chmod	visible; runtime dependencies unverified
+choom	/usr/bin/choom	/usr/bin/choom	visible; runtime dependencies unverified
+chown	/usr/bin/chown	/usr/bin/chown	visible; runtime dependencies unverified
+chrt	/usr/bin/chrt	/usr/bin/chrt	visible; runtime dependencies unverified
+chsh	/usr/bin/chsh	/usr/bin/chsh	visible; runtime dependencies unverified
+cksum	/usr/bin/cksum	/usr/bin/cksum	visible; runtime dependencies unverified
+clear	/usr/bin/clear	/usr/bin/clear	visible; runtime dependencies unverified
+clear_console	/usr/bin/clear_console	/usr/bin/clear_console	visible; runtime dependencies unverified
+cmp	/usr/bin/cmp	/usr/bin/cmp	visible; runtime dependencies unverified
+code-server	/usr/bin/code-server	/usr/lib/node_modules/code-server/out/node/entry.js	visible; runtime dependencies unverified
+comm	/usr/bin/comm	/usr/bin/comm	visible; runtime dependencies unverified
+compose	/usr/bin/compose	/usr/bin/run-mailcap	visible; runtime dependencies unverified
+corelist	/usr/bin/corelist	/usr/bin/corelist	visible; runtime dependencies unverified
+corepack	/usr/bin/corepack	/usr/lib/node_modules/corepack/dist/corepack.js	visible; runtime dependencies unverified
+cp	/usr/bin/cp	/usr/bin/cp	visible; runtime dependencies unverified
+cpan	/usr/bin/cpan	/usr/bin/cpan	visible; runtime dependencies unverified
+cpan5.30-x86_64-linux-gnu	/usr/bin/cpan5.30-x86_64-linux-gnu	/usr/bin/cpan5.30-x86_64-linux-gnu	visible; runtime dependencies unverified
+cpp	/usr/bin/cpp	/usr/bin/x86_64-linux-gnu-cpp-9	visible; runtime dependencies unverified
+cpp-9	/usr/bin/cpp-9	/usr/bin/x86_64-linux-gnu-cpp-9	visible; runtime dependencies unverified
+csplit	/usr/bin/csplit	/usr/bin/csplit	visible; runtime dependencies unverified
+curl	/usr/bin/curl	/usr/bin/curl	visible; runtime dependencies unverified
+cut	/usr/bin/cut	/usr/bin/cut	visible; runtime dependencies unverified
+cvtsudoers	/usr/bin/cvtsudoers	/usr/bin/cvtsudoers	visible; runtime dependencies unverified
+dash	/usr/bin/dash	/usr/bin/dash	visible; runtime dependencies unverified
+date	/usr/bin/date	/usr/bin/date	visible; runtime dependencies unverified
+dbus-cleanup-sockets	/usr/bin/dbus-cleanup-sockets	/usr/bin/dbus-cleanup-sockets	visible; runtime dependencies unverified
+dbus-daemon	/usr/bin/dbus-daemon	/usr/bin/dbus-daemon	visible; runtime dependencies unverified
+dbus-monitor	/usr/bin/dbus-monitor	/usr/bin/dbus-monitor	visible; runtime dependencies unverified
+dbus-run-session	/usr/bin/dbus-run-session	/usr/bin/dbus-run-session	visible; runtime dependencies unverified
+dbus-send	/usr/bin/dbus-send	/usr/bin/dbus-send	visible; runtime dependencies unverified
+dbus-update-activation-environment	/usr/bin/dbus-update-activation-environment	/usr/bin/dbus-update-activation-environment	visible; runtime dependencies unverified
+dbus-uuidgen	/usr/bin/dbus-uuidgen	/usr/bin/dbus-uuidgen	visible; runtime dependencies unverified
+dd	/usr/bin/dd	/usr/bin/dd	visible; runtime dependencies unverified
+deb-systemd-helper	/usr/bin/deb-systemd-helper	/usr/bin/deb-systemd-helper	visible; runtime dependencies unverified
+deb-systemd-invoke	/usr/bin/deb-systemd-invoke	/usr/bin/deb-systemd-invoke	visible; runtime dependencies unverified
+debconf	/usr/bin/debconf	/usr/bin/debconf	visible; runtime dependencies unverified
+debconf-apt-progress	/usr/bin/debconf-apt-progress	/usr/bin/debconf-apt-progress	visible; runtime dependencies unverified
+debconf-communicate	/usr/bin/debconf-communicate	/usr/bin/debconf-communicate	visible; runtime dependencies unverified
+debconf-copydb	/usr/bin/debconf-copydb	/usr/bin/debconf-copydb	visible; runtime dependencies unverified
+debconf-escape	/usr/bin/debconf-escape	/usr/bin/debconf-escape	visible; runtime dependencies unverified
+debconf-set-selections	/usr/bin/debconf-set-selections	/usr/bin/debconf-set-selections	visible; runtime dependencies unverified
+debconf-show	/usr/bin/debconf-show	/usr/bin/debconf-show	visible; runtime dependencies unverified
+delpart	/usr/bin/delpart	/usr/bin/delpart	visible; runtime dependencies unverified
+df	/usr/bin/df	/usr/bin/df	visible; runtime dependencies unverified
+dh_bash-completion	/usr/bin/dh_bash-completion	/usr/bin/dh_bash-completion	visible; runtime dependencies unverified
+diff	/usr/bin/diff	/usr/bin/diff	visible; runtime dependencies unverified
+diff3	/usr/bin/diff3	/usr/bin/diff3	visible; runtime dependencies unverified
+dir	/usr/bin/dir	/usr/bin/dir	visible; runtime dependencies unverified
+dircolors	/usr/bin/dircolors	/usr/bin/dircolors	visible; runtime dependencies unverified
+dirmngr	/usr/bin/dirmngr	/usr/bin/dirmngr	visible; runtime dependencies unverified
+dirmngr-client	/usr/bin/dirmngr-client	/usr/bin/dirmngr-client	visible; runtime dependencies unverified
+dirname	/usr/bin/dirname	/usr/bin/dirname	visible; runtime dependencies unverified
+dmesg	/usr/bin/dmesg	/usr/bin/dmesg	visible; runtime dependencies unverified
+dnsdomainname	/usr/bin/dnsdomainname	/usr/bin/hostname	visible; runtime dependencies unverified
+domainname	/usr/bin/domainname	/usr/bin/hostname	visible; runtime dependencies unverified
+dpkg	/usr/bin/dpkg	/usr/bin/dpkg	visible; runtime dependencies unverified
+dpkg-architecture	/usr/bin/dpkg-architecture	/usr/bin/dpkg-architecture	visible; runtime dependencies unverified
+dpkg-buildflags	/usr/bin/dpkg-buildflags	/usr/bin/dpkg-buildflags	visible; runtime dependencies unverified
+dpkg-buildpackage	/usr/bin/dpkg-buildpackage	/usr/bin/dpkg-buildpackage	visible; runtime dependencies unverified
+dpkg-checkbuilddeps	/usr/bin/dpkg-checkbuilddeps	/usr/bin/dpkg-checkbuilddeps	visible; runtime dependencies unverified
+dpkg-deb	/usr/bin/dpkg-deb	/usr/bin/dpkg-deb	visible; runtime dependencies unverified
+dpkg-distaddfile	/usr/bin/dpkg-distaddfile	/usr/bin/dpkg-distaddfile	visible; runtime dependencies unverified
+dpkg-divert	/usr/bin/dpkg-divert	/usr/bin/dpkg-divert	visible; runtime dependencies unverified
+dpkg-genbuildinfo	/usr/bin/dpkg-genbuildinfo	/usr/bin/dpkg-genbuildinfo	visible; runtime dependencies unverified
+dpkg-genchanges	/usr/bin/dpkg-genchanges	/usr/bin/dpkg-genchanges	visible; runtime dependencies unverified
+dpkg-gencontrol	/usr/bin/dpkg-gencontrol	/usr/bin/dpkg-gencontrol	visible; runtime dependencies unverified
+dpkg-gensymbols	/usr/bin/dpkg-gensymbols	/usr/bin/dpkg-gensymbols	visible; runtime dependencies unverified
+dpkg-maintscript-helper	/usr/bin/dpkg-maintscript-helper	/usr/bin/dpkg-maintscript-helper	visible; runtime dependencies unverified
+dpkg-mergechangelogs	/usr/bin/dpkg-mergechangelogs	/usr/bin/dpkg-mergechangelogs	visible; runtime dependencies unverified
+dpkg-name	/usr/bin/dpkg-name	/usr/bin/dpkg-name	visible; runtime dependencies unverified
+dpkg-parsechangelog	/usr/bin/dpkg-parsechangelog	/usr/bin/dpkg-parsechangelog	visible; runtime dependencies unverified
+dpkg-query	/usr/bin/dpkg-query	/usr/bin/dpkg-query	visible; runtime dependencies unverified
+dpkg-scanpackages	/usr/bin/dpkg-scanpackages	/usr/bin/dpkg-scanpackages	visible; runtime dependencies unverified
+dpkg-scansources	/usr/bin/dpkg-scansources	/usr/bin/dpkg-scansources	visible; runtime dependencies unverified
+dpkg-shlibdeps	/usr/bin/dpkg-shlibdeps	/usr/bin/dpkg-shlibdeps	visible; runtime dependencies unverified
+dpkg-source	/usr/bin/dpkg-source	/usr/bin/dpkg-source	visible; runtime dependencies unverified
+dpkg-split	/usr/bin/dpkg-split	/usr/bin/dpkg-split	visible; runtime dependencies unverified
+dpkg-statoverride	/usr/bin/dpkg-statoverride	/usr/bin/dpkg-statoverride	visible; runtime dependencies unverified
+dpkg-trigger	/usr/bin/dpkg-trigger	/usr/bin/dpkg-trigger	visible; runtime dependencies unverified
+dpkg-vendor	/usr/bin/dpkg-vendor	/usr/bin/dpkg-vendor	visible; runtime dependencies unverified
+du	/usr/bin/du	/usr/bin/du	visible; runtime dependencies unverified
+dwp	/usr/bin/dwp	/usr/bin/x86_64-linux-gnu-dwp	visible; runtime dependencies unverified
+echo	/usr/bin/echo	/usr/bin/echo	visible; runtime dependencies unverified
+edit	/usr/bin/edit	/usr/bin/run-mailcap	visible; runtime dependencies unverified
+editor	/usr/bin/editor	-	outside mounted directories: /etc
+egrep	/usr/bin/egrep	/usr/bin/egrep	visible; runtime dependencies unverified
+elfedit	/usr/bin/elfedit	/usr/bin/x86_64-linux-gnu-elfedit	visible; runtime dependencies unverified
+enc2xs	/usr/bin/enc2xs	/usr/bin/enc2xs	visible; runtime dependencies unverified
+encguess	/usr/bin/encguess	/usr/bin/encguess	visible; runtime dependencies unverified
+env	/usr/bin/env	/usr/bin/env	visible; runtime dependencies unverified
+ex	/usr/bin/ex	-	outside mounted directories: /etc
+expand	/usr/bin/expand	/usr/bin/expand	visible; runtime dependencies unverified
+expiry	/usr/bin/expiry	/usr/bin/expiry	visible; runtime dependencies unverified
+expr	/usr/bin/expr	/usr/bin/expr	visible; runtime dependencies unverified
+factor	/usr/bin/factor	/usr/bin/factor	visible; runtime dependencies unverified
+faillog	/usr/bin/faillog	/usr/bin/faillog	visible; runtime dependencies unverified
+fallocate	/usr/bin/fallocate	/usr/bin/fallocate	visible; runtime dependencies unverified
+false	/usr/bin/false	/usr/bin/false	visible; runtime dependencies unverified
+fgrep	/usr/bin/fgrep	/usr/bin/fgrep	visible; runtime dependencies unverified
+file	/usr/bin/file	/usr/bin/file	visible; runtime dependencies unverified
+fincore	/usr/bin/fincore	/usr/bin/fincore	visible; runtime dependencies unverified
+find	/usr/bin/find	/usr/bin/find	visible; runtime dependencies unverified
+findmnt	/usr/bin/findmnt	/usr/bin/findmnt	visible; runtime dependencies unverified
+flock	/usr/bin/flock	/usr/bin/flock	visible; runtime dependencies unverified
+fmt	/usr/bin/fmt	/usr/bin/fmt	visible; runtime dependencies unverified
+fold	/usr/bin/fold	/usr/bin/fold	visible; runtime dependencies unverified
+free	/usr/bin/free	/usr/bin/free	visible; runtime dependencies unverified
+g++	/usr/bin/g++	/usr/bin/x86_64-linux-gnu-g++-9	visible; runtime dependencies unverified
+g++-9	/usr/bin/g++-9	/usr/bin/x86_64-linux-gnu-g++-9	visible; runtime dependencies unverified
+gapplication	/usr/bin/gapplication	/usr/bin/gapplication	visible; runtime dependencies unverified
+gcc	/usr/bin/gcc	/usr/bin/x86_64-linux-gnu-gcc-9	visible; runtime dependencies unverified
+gcc-9	/usr/bin/gcc-9	/usr/bin/x86_64-linux-gnu-gcc-9	visible; runtime dependencies unverified
+gcc-ar	/usr/bin/gcc-ar	/usr/bin/x86_64-linux-gnu-gcc-ar-9	visible; runtime dependencies unverified
+gcc-ar-9	/usr/bin/gcc-ar-9	/usr/bin/x86_64-linux-gnu-gcc-ar-9	visible; runtime dependencies unverified
+gcc-nm	/usr/bin/gcc-nm	/usr/bin/x86_64-linux-gnu-gcc-nm-9	visible; runtime dependencies unverified
+gcc-nm-9	/usr/bin/gcc-nm-9	/usr/bin/x86_64-linux-gnu-gcc-nm-9	visible; runtime dependencies unverified
+gcc-ranlib	/usr/bin/gcc-ranlib	/usr/bin/x86_64-linux-gnu-gcc-ranlib-9	visible; runtime dependencies unverified
+gcc-ranlib-9	/usr/bin/gcc-ranlib-9	/usr/bin/x86_64-linux-gnu-gcc-ranlib-9	visible; runtime dependencies unverified
+gcov	/usr/bin/gcov	/usr/bin/x86_64-linux-gnu-gcov-9	visible; runtime dependencies unverified
+gcov-9	/usr/bin/gcov-9	/usr/bin/x86_64-linux-gnu-gcov-9	visible; runtime dependencies unverified
+gcov-dump	/usr/bin/gcov-dump	/usr/bin/x86_64-linux-gnu-gcov-dump-9	visible; runtime dependencies unverified
+gcov-dump-9	/usr/bin/gcov-dump-9	/usr/bin/x86_64-linux-gnu-gcov-dump-9	visible; runtime dependencies unverified
+gcov-tool	/usr/bin/gcov-tool	/usr/bin/x86_64-linux-gnu-gcov-tool-9	visible; runtime dependencies unverified
+gcov-tool-9	/usr/bin/gcov-tool-9	/usr/bin/x86_64-linux-gnu-gcov-tool-9	visible; runtime dependencies unverified
+gdbus	/usr/bin/gdbus	/usr/bin/gdbus	visible; runtime dependencies unverified
+gencat	/usr/bin/gencat	/usr/bin/gencat	visible; runtime dependencies unverified
+getconf	/usr/bin/getconf	/usr/bin/getconf	visible; runtime dependencies unverified
+getent	/usr/bin/getent	/usr/bin/getent	visible; runtime dependencies unverified
+getopt	/usr/bin/getopt	/usr/bin/getopt	visible; runtime dependencies unverified
+gio	/usr/bin/gio	/usr/bin/gio	visible; runtime dependencies unverified
+gio-querymodules	/usr/bin/gio-querymodules	/usr/lib/x86_64-linux-gnu/glib-2.0/gio-querymodules	visible; runtime dependencies unverified
+git	/usr/bin/git	/usr/bin/git	visible; runtime dependencies unverified
+git-receive-pack	/usr/bin/git-receive-pack	/usr/bin/git	visible; runtime dependencies unverified
+git-shell	/usr/bin/git-shell	/usr/bin/git-shell	visible; runtime dependencies unverified
+git-upload-archive	/usr/bin/git-upload-archive	/usr/bin/git	visible; runtime dependencies unverified
+git-upload-pack	/usr/bin/git-upload-pack	/usr/bin/git	visible; runtime dependencies unverified
+glib-compile-schemas	/usr/bin/glib-compile-schemas	/usr/lib/x86_64-linux-gnu/glib-2.0/glib-compile-schemas	visible; runtime dependencies unverified
+gold	/usr/bin/gold	/usr/bin/x86_64-linux-gnu-ld.gold	visible; runtime dependencies unverified
+gpasswd	/usr/bin/gpasswd	/usr/bin/gpasswd	visible; runtime dependencies unverified
+gpg	/usr/bin/gpg	/usr/bin/gpg	visible; runtime dependencies unverified
+gpg-agent	/usr/bin/gpg-agent	/usr/bin/gpg-agent	visible; runtime dependencies unverified
+gpg-connect-agent	/usr/bin/gpg-connect-agent	/usr/bin/gpg-connect-agent	visible; runtime dependencies unverified
+gpg-wks-server	/usr/bin/gpg-wks-server	/usr/bin/gpg-wks-server	visible; runtime dependencies unverified
+gpg-zip	/usr/bin/gpg-zip	/usr/bin/gpg-zip	visible; runtime dependencies unverified
+gpg2	/usr/bin/gpg2	/usr/bin/gpg	visible; runtime dependencies unverified
+gpgcompose	/usr/bin/gpgcompose	/usr/bin/gpgcompose	visible; runtime dependencies unverified
+gpgconf	/usr/bin/gpgconf	/usr/bin/gpgconf	visible; runtime dependencies unverified
+gpgparsemail	/usr/bin/gpgparsemail	/usr/bin/gpgparsemail	visible; runtime dependencies unverified
+gpgsm	/usr/bin/gpgsm	/usr/bin/gpgsm	visible; runtime dependencies unverified
+gpgsplit	/usr/bin/gpgsplit	/usr/bin/gpgsplit	visible; runtime dependencies unverified
+gpgtar	/usr/bin/gpgtar	/usr/bin/gpgtar	visible; runtime dependencies unverified
+gpgv	/usr/bin/gpgv	/usr/bin/gpgv	visible; runtime dependencies unverified
+gprof	/usr/bin/gprof	/usr/bin/x86_64-linux-gnu-gprof	visible; runtime dependencies unverified
+grep	/usr/bin/grep	/usr/bin/grep	visible; runtime dependencies unverified
+gresource	/usr/bin/gresource	/usr/bin/gresource	visible; runtime dependencies unverified
+groups	/usr/bin/groups	/usr/bin/groups	visible; runtime dependencies unverified
+gsettings	/usr/bin/gsettings	/usr/bin/gsettings	visible; runtime dependencies unverified
+gunzip	/usr/bin/gunzip	/usr/bin/gunzip	visible; runtime dependencies unverified
+gzexe	/usr/bin/gzexe	/usr/bin/gzexe	visible; runtime dependencies unverified
+gzip	/usr/bin/gzip	/usr/bin/gzip	visible; runtime dependencies unverified
+h2ph	/usr/bin/h2ph	/usr/bin/h2ph	visible; runtime dependencies unverified
+h2xs	/usr/bin/h2xs	/usr/bin/h2xs	visible; runtime dependencies unverified
+head	/usr/bin/head	/usr/bin/head	visible; runtime dependencies unverified
+helpztags	/usr/bin/helpztags	/usr/bin/helpztags	visible; runtime dependencies unverified
+hostid	/usr/bin/hostid	/usr/bin/hostid	visible; runtime dependencies unverified
+hostname	/usr/bin/hostname	/usr/bin/hostname	visible; runtime dependencies unverified
+hostnamectl	/usr/bin/hostnamectl	/usr/bin/hostnamectl	visible; runtime dependencies unverified
+i386	/usr/bin/i386	/usr/bin/setarch	visible; runtime dependencies unverified
+iconv	/usr/bin/iconv	/usr/bin/iconv	visible; runtime dependencies unverified
+id	/usr/bin/id	/usr/bin/id	visible; runtime dependencies unverified
+infocmp	/usr/bin/infocmp	/usr/bin/infocmp	visible; runtime dependencies unverified
+infotocap	/usr/bin/infotocap	/usr/bin/tic	visible; runtime dependencies unverified
+install	/usr/bin/install	/usr/bin/install	visible; runtime dependencies unverified
+instmodsh	/usr/bin/instmodsh	/usr/bin/instmodsh	visible; runtime dependencies unverified
+ionice	/usr/bin/ionice	/usr/bin/ionice	visible; runtime dependencies unverified
+ipcmk	/usr/bin/ipcmk	/usr/bin/ipcmk	visible; runtime dependencies unverified
+ipcrm	/usr/bin/ipcrm	/usr/bin/ipcrm	visible; runtime dependencies unverified
+ipcs	/usr/bin/ipcs	/usr/bin/ipcs	visible; runtime dependencies unverified
+ischroot	/usr/bin/ischroot	/usr/bin/ischroot	visible; runtime dependencies unverified
+join	/usr/bin/join	/usr/bin/join	visible; runtime dependencies unverified
+journalctl	/usr/bin/journalctl	/usr/bin/journalctl	visible; runtime dependencies unverified
+json_pp	/usr/bin/json_pp	/usr/bin/json_pp	visible; runtime dependencies unverified
+kbxutil	/usr/bin/kbxutil	/usr/bin/kbxutil	visible; runtime dependencies unverified
+kernel-install	/usr/bin/kernel-install	/usr/bin/kernel-install	visible; runtime dependencies unverified
+kill	/usr/bin/kill	/usr/bin/kill	visible; runtime dependencies unverified
+last	/usr/bin/last	/usr/bin/last	visible; runtime dependencies unverified
+lastb	/usr/bin/lastb	/usr/bin/last	visible; runtime dependencies unverified
+lastlog	/usr/bin/lastlog	/usr/bin/lastlog	visible; runtime dependencies unverified
+lcf	/usr/bin/lcf	/usr/bin/lcf	visible; runtime dependencies unverified
+ld	/usr/bin/ld	/usr/bin/x86_64-linux-gnu-ld.bfd	visible; runtime dependencies unverified
+ld.bfd	/usr/bin/ld.bfd	/usr/bin/x86_64-linux-gnu-ld.bfd	visible; runtime dependencies unverified
+ld.gold	/usr/bin/ld.gold	/usr/bin/x86_64-linux-gnu-ld.gold	visible; runtime dependencies unverified
+ldd	/usr/bin/ldd	/usr/bin/ldd	visible; runtime dependencies unverified
+less	/usr/bin/less	/usr/bin/less	visible; runtime dependencies unverified
+lessecho	/usr/bin/lessecho	/usr/bin/lessecho	visible; runtime dependencies unverified
+lessfile	/usr/bin/lessfile	/usr/bin/lesspipe	visible; runtime dependencies unverified
+lesskey	/usr/bin/lesskey	/usr/bin/lesskey	visible; runtime dependencies unverified
+lesspipe	/usr/bin/lesspipe	/usr/bin/lesspipe	visible; runtime dependencies unverified
+libnetcfg	/usr/bin/libnetcfg	/usr/bin/libnetcfg	visible; runtime dependencies unverified
+link	/usr/bin/link	/usr/bin/link	visible; runtime dependencies unverified
+linux32	/usr/bin/linux32	/usr/bin/setarch	visible; runtime dependencies unverified
+linux64	/usr/bin/linux64	/usr/bin/setarch	visible; runtime dependencies unverified
+ln	/usr/bin/ln	/usr/bin/ln	visible; runtime dependencies unverified
+locale	/usr/bin/locale	/usr/bin/locale	visible; runtime dependencies unverified
+locale-check	/usr/bin/locale-check	/usr/bin/locale-check	visible; runtime dependencies unverified
+localectl	/usr/bin/localectl	/usr/bin/localectl	visible; runtime dependencies unverified
+localedef	/usr/bin/localedef	/usr/bin/localedef	visible; runtime dependencies unverified
+logger	/usr/bin/logger	/usr/bin/logger	visible; runtime dependencies unverified
+login	/usr/bin/login	/usr/bin/login	visible; runtime dependencies unverified
+loginctl	/usr/bin/loginctl	/usr/bin/loginctl	visible; runtime dependencies unverified
+logname	/usr/bin/logname	/usr/bin/logname	visible; runtime dependencies unverified
+ls	/usr/bin/ls	/usr/bin/ls	visible; runtime dependencies unverified
+lsattr	/usr/bin/lsattr	/usr/bin/lsattr	visible; runtime dependencies unverified
+lsb_release	/usr/bin/lsb_release	/usr/bin/lsb_release	visible; runtime dependencies unverified
+lsblk	/usr/bin/lsblk	/usr/bin/lsblk	visible; runtime dependencies unverified
+lscpu	/usr/bin/lscpu	/usr/bin/lscpu	visible; runtime dependencies unverified
+lsipc	/usr/bin/lsipc	/usr/bin/lsipc	visible; runtime dependencies unverified
+lslocks	/usr/bin/lslocks	/usr/bin/lslocks	visible; runtime dependencies unverified
+lslogins	/usr/bin/lslogins	/usr/bin/lslogins	visible; runtime dependencies unverified
+lsmem	/usr/bin/lsmem	/usr/bin/lsmem	visible; runtime dependencies unverified
+lsns	/usr/bin/lsns	/usr/bin/lsns	visible; runtime dependencies unverified
+lspgpot	/usr/bin/lspgpot	/usr/bin/lspgpot	visible; runtime dependencies unverified
+lzcat	/usr/bin/lzcat	-	outside mounted directories: /etc
+lzcmp	/usr/bin/lzcmp	-	outside mounted directories: /etc
+lzdiff	/usr/bin/lzdiff	-	outside mounted directories: /etc
+lzegrep	/usr/bin/lzegrep	-	outside mounted directories: /etc
+lzfgrep	/usr/bin/lzfgrep	-	outside mounted directories: /etc
+lzgrep	/usr/bin/lzgrep	-	outside mounted directories: /etc
+lzless	/usr/bin/lzless	-	outside mounted directories: /etc
+lzma	/usr/bin/lzma	-	outside mounted directories: /etc
+lzmainfo	/usr/bin/lzmainfo	/usr/bin/lzmainfo	visible; runtime dependencies unverified
+lzmore	/usr/bin/lzmore	-	outside mounted directories: /etc
+make	/usr/bin/make	/usr/bin/make	visible; runtime dependencies unverified
+make-first-existing-target	/usr/bin/make-first-existing-target	/usr/bin/make-first-existing-target	visible; runtime dependencies unverified
+man	/usr/bin/man	/usr/bin/man	visible; runtime dependencies unverified
+mawk	/usr/bin/mawk	/usr/bin/mawk	visible; runtime dependencies unverified
+mcookie	/usr/bin/mcookie	/usr/bin/mcookie	visible; runtime dependencies unverified
+md5sum	/usr/bin/md5sum	/usr/bin/md5sum	visible; runtime dependencies unverified
+md5sum.textutils	/usr/bin/md5sum.textutils	/usr/bin/md5sum	visible; runtime dependencies unverified
+mesg	/usr/bin/mesg	/usr/bin/mesg	visible; runtime dependencies unverified
+migrate-pubring-from-classic-gpg	/usr/bin/migrate-pubring-from-classic-gpg	/usr/bin/migrate-pubring-from-classic-gpg	visible; runtime dependencies unverified
+mkdir	/usr/bin/mkdir	/usr/bin/mkdir	visible; runtime dependencies unverified
+mkfifo	/usr/bin/mkfifo	/usr/bin/mkfifo	visible; runtime dependencies unverified
+mknod	/usr/bin/mknod	/usr/bin/mknod	visible; runtime dependencies unverified
+mktemp	/usr/bin/mktemp	/usr/bin/mktemp	visible; runtime dependencies unverified
+more	/usr/bin/more	/usr/bin/more	visible; runtime dependencies unverified
+mount	/usr/bin/mount	/usr/bin/mount	visible; runtime dependencies unverified
+mountpoint	/usr/bin/mountpoint	/usr/bin/mountpoint	visible; runtime dependencies unverified
+mtrace	/usr/bin/mtrace	/usr/bin/mtrace	visible; runtime dependencies unverified
+mv	/usr/bin/mv	/usr/bin/mv	visible; runtime dependencies unverified
+namei	/usr/bin/namei	/usr/bin/namei	visible; runtime dependencies unverified
+nawk	/usr/bin/nawk	-	outside mounted directories: /etc
+networkctl	/usr/bin/networkctl	/usr/bin/networkctl	visible; runtime dependencies unverified
+networkd-dispatcher	/usr/bin/networkd-dispatcher	/usr/bin/networkd-dispatcher	visible; runtime dependencies unverified
+newgrp	/usr/bin/newgrp	/usr/bin/newgrp	visible; runtime dependencies unverified
+nice	/usr/bin/nice	/usr/bin/nice	visible; runtime dependencies unverified
+nisdomainname	/usr/bin/nisdomainname	/usr/bin/hostname	visible; runtime dependencies unverified
+nl	/usr/bin/nl	/usr/bin/nl	visible; runtime dependencies unverified
+nm	/usr/bin/nm	/usr/bin/x86_64-linux-gnu-nm	visible; runtime dependencies unverified
+node	/usr/bin/node	/usr/bin/node	visible; runtime dependencies unverified
+nodejs	/usr/bin/nodejs	-	outside mounted directories: /etc
+nohup	/usr/bin/nohup	/usr/bin/nohup	visible; runtime dependencies unverified
+npm	/usr/bin/npm	/usr/lib/node_modules/npm/bin/npm-cli.js	visible; runtime dependencies unverified
+nproc	/usr/bin/nproc	/usr/bin/nproc	visible; runtime dependencies unverified
+npx	/usr/bin/npx	/usr/lib/node_modules/npm/bin/npx-cli.js	visible; runtime dependencies unverified
+nsenter	/usr/bin/nsenter	/usr/bin/nsenter	visible; runtime dependencies unverified
+numfmt	/usr/bin/numfmt	/usr/bin/numfmt	visible; runtime dependencies unverified
+nv-fabricmanager	/usr/bin/nv-fabricmanager	/usr/bin/nv-fabricmanager	visible; runtime dependencies unverified
+nvidia-cuda-mps-control	/usr/bin/nvidia-cuda-mps-control	/usr/bin/nvidia-cuda-mps-control	visible; runtime dependencies unverified
+nvidia-cuda-mps-server	/usr/bin/nvidia-cuda-mps-server	/usr/bin/nvidia-cuda-mps-server	visible; runtime dependencies unverified
+nvidia-debugdump	/usr/bin/nvidia-debugdump	/usr/bin/nvidia-debugdump	visible; runtime dependencies unverified
+nvidia-persistenced	/usr/bin/nvidia-persistenced	/usr/bin/nvidia-persistenced	visible; runtime dependencies unverified
+nvidia-smi	/usr/bin/nvidia-smi	/usr/bin/nvidia-smi	visible; runtime dependencies unverified
+objcopy	/usr/bin/objcopy	/usr/bin/x86_64-linux-gnu-objcopy	visible; runtime dependencies unverified
+objdump	/usr/bin/objdump	/usr/bin/x86_64-linux-gnu-objdump	visible; runtime dependencies unverified
+od	/usr/bin/od	/usr/bin/od	visible; runtime dependencies unverified
+openssl	/usr/bin/openssl	/usr/bin/openssl	visible; runtime dependencies unverified
+pager	/usr/bin/pager	-	outside mounted directories: /etc
+partx	/usr/bin/partx	/usr/bin/partx	visible; runtime dependencies unverified
+passwd	/usr/bin/passwd	/usr/bin/passwd	visible; runtime dependencies unverified
+paste	/usr/bin/paste	/usr/bin/paste	visible; runtime dependencies unverified
+patch	/usr/bin/patch	/usr/bin/patch	visible; runtime dependencies unverified
+pathchk	/usr/bin/pathchk	/usr/bin/pathchk	visible; runtime dependencies unverified
+pdb3	/usr/bin/pdb3	/usr/lib/python3.8/pdb.py	visible; runtime dependencies unverified
+pdb3.8	/usr/bin/pdb3.8	/usr/lib/python3.8/pdb.py	visible; runtime dependencies unverified
+perl	/usr/bin/perl	/usr/bin/perl	visible; runtime dependencies unverified
+perl5.30-x86_64-linux-gnu	/usr/bin/perl5.30-x86_64-linux-gnu	/usr/bin/perl5.30-x86_64-linux-gnu	visible; runtime dependencies unverified
+perl5.30.0	/usr/bin/perl5.30.0	/usr/bin/perl5.30.0	visible; runtime dependencies unverified
+perlbug	/usr/bin/perlbug	/usr/bin/perlbug	visible; runtime dependencies unverified
+perldoc	/usr/bin/perldoc	/usr/bin/perldoc	visible; runtime dependencies unverified
+perlivp	/usr/bin/perlivp	/usr/bin/perlivp	visible; runtime dependencies unverified
+perlthanks	/usr/bin/perlthanks	/usr/bin/perlthanks	visible; runtime dependencies unverified
+pgrep	/usr/bin/pgrep	/usr/bin/pgrep	visible; runtime dependencies unverified
+piconv	/usr/bin/piconv	/usr/bin/piconv	visible; runtime dependencies unverified
+pidof	/usr/bin/pidof	-	outside mounted directories: /sbin
+pinentry	/usr/bin/pinentry	-	outside mounted directories: /etc
+pinentry-curses	/usr/bin/pinentry-curses	/usr/bin/pinentry-curses	visible; runtime dependencies unverified
+ping	/usr/bin/ping	/usr/bin/ping	visible; runtime dependencies unverified
+ping4	/usr/bin/ping4	/usr/bin/ping	visible; runtime dependencies unverified
+ping6	/usr/bin/ping6	/usr/bin/ping	visible; runtime dependencies unverified
+pinky	/usr/bin/pinky	/usr/bin/pinky	visible; runtime dependencies unverified
+pip	/usr/bin/pip	/usr/bin/pip	visible; runtime dependencies unverified
+pip3	/usr/bin/pip3	/usr/bin/pip3	visible; runtime dependencies unverified
+pkaction	/usr/bin/pkaction	/usr/bin/pkaction	visible; runtime dependencies unverified
+pkcheck	/usr/bin/pkcheck	/usr/bin/pkcheck	visible; runtime dependencies unverified
+pkcon	/usr/bin/pkcon	/usr/bin/pkcon	visible; runtime dependencies unverified
+pkexec	/usr/bin/pkexec	/usr/bin/pkexec	visible; runtime dependencies unverified
+pkill	/usr/bin/pkill	/usr/bin/pgrep	visible; runtime dependencies unverified
+pkmon	/usr/bin/pkmon	/usr/bin/pkmon	visible; runtime dependencies unverified
+pkttyagent	/usr/bin/pkttyagent	/usr/bin/pkttyagent	visible; runtime dependencies unverified
+pl2pm	/usr/bin/pl2pm	/usr/bin/pl2pm	visible; runtime dependencies unverified
+pldd	/usr/bin/pldd	/usr/bin/pldd	visible; runtime dependencies unverified
+pmap	/usr/bin/pmap	/usr/bin/pmap	visible; runtime dependencies unverified
+pod2html	/usr/bin/pod2html	/usr/bin/pod2html	visible; runtime dependencies unverified
+pod2man	/usr/bin/pod2man	/usr/bin/pod2man	visible; runtime dependencies unverified
+pod2text	/usr/bin/pod2text	/usr/bin/pod2text	visible; runtime dependencies unverified
+pod2usage	/usr/bin/pod2usage	/usr/bin/pod2usage	visible; runtime dependencies unverified
+podchecker	/usr/bin/podchecker	/usr/bin/podchecker	visible; runtime dependencies unverified
+podselect	/usr/bin/podselect	/usr/bin/podselect	visible; runtime dependencies unverified
+pr	/usr/bin/pr	/usr/bin/pr	visible; runtime dependencies unverified
+print	/usr/bin/print	/usr/bin/run-mailcap	visible; runtime dependencies unverified
+printenv	/usr/bin/printenv	/usr/bin/printenv	visible; runtime dependencies unverified
+printf	/usr/bin/printf	/usr/bin/printf	visible; runtime dependencies unverified
+prlimit	/usr/bin/prlimit	/usr/bin/prlimit	visible; runtime dependencies unverified
+prove	/usr/bin/prove	/usr/bin/prove	visible; runtime dependencies unverified
+ps	/usr/bin/ps	/usr/bin/ps	visible; runtime dependencies unverified
+ptar	/usr/bin/ptar	/usr/bin/ptar	visible; runtime dependencies unverified
+ptardiff	/usr/bin/ptardiff	/usr/bin/ptardiff	visible; runtime dependencies unverified
+ptargrep	/usr/bin/ptargrep	/usr/bin/ptargrep	visible; runtime dependencies unverified
+ptx	/usr/bin/ptx	/usr/bin/ptx	visible; runtime dependencies unverified
+pwd	/usr/bin/pwd	/usr/bin/pwd	visible; runtime dependencies unverified
+pwdx	/usr/bin/pwdx	/usr/bin/pwdx	visible; runtime dependencies unverified
+py3clean	/usr/bin/py3clean	/usr/bin/py3clean	visible; runtime dependencies unverified
+py3compile	/usr/bin/py3compile	/usr/bin/py3compile	visible; runtime dependencies unverified
+py3versions	/usr/bin/py3versions	-	outside mounted directories: /usr/share
+pydoc3	/usr/bin/pydoc3	/usr/bin/pydoc3.8	visible; runtime dependencies unverified
+pydoc3.8	/usr/bin/pydoc3.8	/usr/bin/pydoc3.8	visible; runtime dependencies unverified
+pygettext3	/usr/bin/pygettext3	/usr/bin/pygettext3.8	visible; runtime dependencies unverified
+pygettext3.8	/usr/bin/pygettext3.8	/usr/bin/pygettext3.8	visible; runtime dependencies unverified
+python3	/usr/bin/python3	/usr/bin/python3.8	visible; runtime dependencies unverified
+python3-config	/usr/bin/python3-config	/usr/bin/x86_64-linux-gnu-python3.8-config	visible; runtime dependencies unverified
+python3.8	/usr/bin/python3.8	/usr/bin/python3.8	visible; runtime dependencies unverified
+python3.8-config	/usr/bin/python3.8-config	/usr/bin/x86_64-linux-gnu-python3.8-config	visible; runtime dependencies unverified
+ranlib	/usr/bin/ranlib	/usr/bin/x86_64-linux-gnu-ranlib	visible; runtime dependencies unverified
+rbash	/usr/bin/rbash	/usr/bin/bash	visible; runtime dependencies unverified
+rcp	/usr/bin/rcp	-	outside mounted directories: /etc
+readelf	/usr/bin/readelf	/usr/bin/x86_64-linux-gnu-readelf	visible; runtime dependencies unverified
+readlink	/usr/bin/readlink	/usr/bin/readlink	visible; runtime dependencies unverified
+realpath	/usr/bin/realpath	/usr/bin/realpath	visible; runtime dependencies unverified
+rename.ul	/usr/bin/rename.ul	/usr/bin/rename.ul	visible; runtime dependencies unverified
+renice	/usr/bin/renice	/usr/bin/renice	visible; runtime dependencies unverified
+reset	/usr/bin/reset	/usr/bin/tset	visible; runtime dependencies unverified
+resizepart	/usr/bin/resizepart	/usr/bin/resizepart	visible; runtime dependencies unverified
+resolvectl	/usr/bin/resolvectl	/usr/bin/resolvectl	visible; runtime dependencies unverified
+rev	/usr/bin/rev	/usr/bin/rev	visible; runtime dependencies unverified
+rgrep	/usr/bin/rgrep	/usr/bin/rgrep	visible; runtime dependencies unverified
+rlogin	/usr/bin/rlogin	-	outside mounted directories: /etc
+rm	/usr/bin/rm	/usr/bin/rm	visible; runtime dependencies unverified
+rmdir	/usr/bin/rmdir	/usr/bin/rmdir	visible; runtime dependencies unverified
+rpcgen	/usr/bin/rpcgen	/usr/bin/rpcgen	visible; runtime dependencies unverified
+rsh	/usr/bin/rsh	-	outside mounted directories: /etc
+run-mailcap	/usr/bin/run-mailcap	/usr/bin/run-mailcap	visible; runtime dependencies unverified
+run-parts	/usr/bin/run-parts	/usr/bin/run-parts	visible; runtime dependencies unverified
+runcon	/usr/bin/runcon	/usr/bin/runcon	visible; runtime dependencies unverified
+rview	/usr/bin/rview	-	outside mounted directories: /etc
+rvim	/usr/bin/rvim	-	outside mounted directories: /etc
+savelog	/usr/bin/savelog	/usr/bin/savelog	visible; runtime dependencies unverified
+scp	/usr/bin/scp	/usr/bin/scp	visible; runtime dependencies unverified
+script	/usr/bin/script	/usr/bin/script	visible; runtime dependencies unverified
+scriptreplay	/usr/bin/scriptreplay	/usr/bin/scriptreplay	visible; runtime dependencies unverified
+sdiff	/usr/bin/sdiff	/usr/bin/sdiff	visible; runtime dependencies unverified
+sed	/usr/bin/sed	/usr/bin/sed	visible; runtime dependencies unverified
+see	/usr/bin/see	/usr/bin/run-mailcap	visible; runtime dependencies unverified
+select-editor	/usr/bin/select-editor	/usr/bin/select-editor	visible; runtime dependencies unverified
+sensible-browser	/usr/bin/sensible-browser	/usr/bin/sensible-browser	visible; runtime dependencies unverified
+sensible-editor	/usr/bin/sensible-editor	/usr/bin/sensible-editor	visible; runtime dependencies unverified
+sensible-pager	/usr/bin/sensible-pager	/usr/bin/sensible-pager	visible; runtime dependencies unverified
+seq	/usr/bin/seq	/usr/bin/seq	visible; runtime dependencies unverified
+setarch	/usr/bin/setarch	/usr/bin/setarch	visible; runtime dependencies unverified
+setpriv	/usr/bin/setpriv	/usr/bin/setpriv	visible; runtime dependencies unverified
+setsid	/usr/bin/setsid	/usr/bin/setsid	visible; runtime dependencies unverified
+setterm	/usr/bin/setterm	/usr/bin/setterm	visible; runtime dependencies unverified
+sftp	/usr/bin/sftp	/usr/bin/sftp	visible; runtime dependencies unverified
+sg	/usr/bin/sg	/usr/bin/newgrp	visible; runtime dependencies unverified
+sh	/usr/bin/sh	/usr/bin/dash	visible; runtime dependencies unverified
+sha1sum	/usr/bin/sha1sum	/usr/bin/sha1sum	visible; runtime dependencies unverified
+sha224sum	/usr/bin/sha224sum	/usr/bin/sha224sum	visible; runtime dependencies unverified
+sha256sum	/usr/bin/sha256sum	/usr/bin/sha256sum	visible; runtime dependencies unverified
+sha384sum	/usr/bin/sha384sum	/usr/bin/sha384sum	visible; runtime dependencies unverified
+sha512sum	/usr/bin/sha512sum	/usr/bin/sha512sum	visible; runtime dependencies unverified
+shasum	/usr/bin/shasum	/usr/bin/shasum	visible; runtime dependencies unverified
+shred	/usr/bin/shred	/usr/bin/shred	visible; runtime dependencies unverified
+shuf	/usr/bin/shuf	/usr/bin/shuf	visible; runtime dependencies unverified
+size	/usr/bin/size	/usr/bin/x86_64-linux-gnu-size	visible; runtime dependencies unverified
+skill	/usr/bin/skill	/usr/bin/skill	visible; runtime dependencies unverified
+slabtop	/usr/bin/slabtop	/usr/bin/slabtop	visible; runtime dependencies unverified
+sleep	/usr/bin/sleep	/usr/bin/sleep	visible; runtime dependencies unverified
+slogin	/usr/bin/slogin	/usr/bin/ssh	visible; runtime dependencies unverified
+snice	/usr/bin/snice	/usr/bin/skill	visible; runtime dependencies unverified
+sort	/usr/bin/sort	/usr/bin/sort	visible; runtime dependencies unverified
+sotruss	/usr/bin/sotruss	/usr/bin/sotruss	visible; runtime dependencies unverified
+splain	/usr/bin/splain	/usr/bin/splain	visible; runtime dependencies unverified
+split	/usr/bin/split	/usr/bin/split	visible; runtime dependencies unverified
+sprof	/usr/bin/sprof	/usr/bin/sprof	visible; runtime dependencies unverified
+ssh	/usr/bin/ssh	/usr/bin/ssh	visible; runtime dependencies unverified
+ssh-add	/usr/bin/ssh-add	/usr/bin/ssh-add	visible; runtime dependencies unverified
+ssh-agent	/usr/bin/ssh-agent	/usr/bin/ssh-agent	visible; runtime dependencies unverified
+ssh-argv0	/usr/bin/ssh-argv0	/usr/bin/ssh-argv0	visible; runtime dependencies unverified
+ssh-copy-id	/usr/bin/ssh-copy-id	/usr/bin/ssh-copy-id	visible; runtime dependencies unverified
+ssh-import-id	/usr/bin/ssh-import-id	/usr/bin/ssh-import-id	visible; runtime dependencies unverified
+ssh-import-id-gh	/usr/bin/ssh-import-id-gh	/usr/bin/ssh-import-id-gh	visible; runtime dependencies unverified
+ssh-import-id-lp	/usr/bin/ssh-import-id-lp	/usr/bin/ssh-import-id-lp	visible; runtime dependencies unverified
+ssh-keygen	/usr/bin/ssh-keygen	/usr/bin/ssh-keygen	visible; runtime dependencies unverified
+ssh-keyscan	/usr/bin/ssh-keyscan	/usr/bin/ssh-keyscan	visible; runtime dependencies unverified
+stat	/usr/bin/stat	/usr/bin/stat	visible; runtime dependencies unverified
+stdbuf	/usr/bin/stdbuf	/usr/bin/stdbuf	visible; runtime dependencies unverified
+strings	/usr/bin/strings	/usr/bin/x86_64-linux-gnu-strings	visible; runtime dependencies unverified
+strip	/usr/bin/strip	/usr/bin/x86_64-linux-gnu-strip	visible; runtime dependencies unverified
+stty	/usr/bin/stty	/usr/bin/stty	visible; runtime dependencies unverified
+su	/usr/bin/su	/usr/bin/su	visible; runtime dependencies unverified
+sudo	/usr/bin/sudo	/usr/bin/sudo	visible; runtime dependencies unverified
+sudoedit	/usr/bin/sudoedit	/usr/bin/sudo	visible; runtime dependencies unverified
+sudoreplay	/usr/bin/sudoreplay	/usr/bin/sudoreplay	visible; runtime dependencies unverified
+sum	/usr/bin/sum	/usr/bin/sum	visible; runtime dependencies unverified
+symcryptrun	/usr/bin/symcryptrun	/usr/bin/symcryptrun	visible; runtime dependencies unverified
+sync	/usr/bin/sync	/usr/bin/sync	visible; runtime dependencies unverified
+systemctl	/usr/bin/systemctl	/usr/bin/systemctl	visible; runtime dependencies unverified
+systemd	/usr/bin/systemd	/usr/lib/systemd/systemd	visible; runtime dependencies unverified
+systemd-analyze	/usr/bin/systemd-analyze	/usr/bin/systemd-analyze	visible; runtime dependencies unverified
+systemd-ask-password	/usr/bin/systemd-ask-password	/usr/bin/systemd-ask-password	visible; runtime dependencies unverified
+systemd-cat	/usr/bin/systemd-cat	/usr/bin/systemd-cat	visible; runtime dependencies unverified
+systemd-cgls	/usr/bin/systemd-cgls	/usr/bin/systemd-cgls	visible; runtime dependencies unverified
+systemd-cgtop	/usr/bin/systemd-cgtop	/usr/bin/systemd-cgtop	visible; runtime dependencies unverified
+systemd-delta	/usr/bin/systemd-delta	/usr/bin/systemd-delta	visible; runtime dependencies unverified
+systemd-detect-virt	/usr/bin/systemd-detect-virt	/usr/bin/systemd-detect-virt	visible; runtime dependencies unverified
+systemd-escape	/usr/bin/systemd-escape	/usr/bin/systemd-escape	visible; runtime dependencies unverified
+systemd-id128	/usr/bin/systemd-id128	/usr/bin/systemd-id128	visible; runtime dependencies unverified
+systemd-inhibit	/usr/bin/systemd-inhibit	/usr/bin/systemd-inhibit	visible; runtime dependencies unverified
+systemd-machine-id-setup	/usr/bin/systemd-machine-id-setup	/usr/bin/systemd-machine-id-setup	visible; runtime dependencies unverified
+systemd-mount	/usr/bin/systemd-mount	/usr/bin/systemd-mount	visible; runtime dependencies unverified
+systemd-notify	/usr/bin/systemd-notify	/usr/bin/systemd-notify	visible; runtime dependencies unverified
+systemd-path	/usr/bin/systemd-path	/usr/bin/systemd-path	visible; runtime dependencies unverified
+systemd-resolve	/usr/bin/systemd-resolve	/usr/bin/resolvectl	visible; runtime dependencies unverified
+systemd-run	/usr/bin/systemd-run	/usr/bin/systemd-run	visible; runtime dependencies unverified
+systemd-socket-activate	/usr/bin/systemd-socket-activate	/usr/bin/systemd-socket-activate	visible; runtime dependencies unverified
+systemd-stdio-bridge	/usr/bin/systemd-stdio-bridge	/usr/bin/systemd-stdio-bridge	visible; runtime dependencies unverified
+systemd-sysusers	/usr/bin/systemd-sysusers	/usr/bin/systemd-sysusers	visible; runtime dependencies unverified
+systemd-tmpfiles	/usr/bin/systemd-tmpfiles	/usr/bin/systemd-tmpfiles	visible; runtime dependencies unverified
+systemd-tty-ask-password-agent	/usr/bin/systemd-tty-ask-password-agent	/usr/bin/systemd-tty-ask-password-agent	visible; runtime dependencies unverified
+systemd-umount	/usr/bin/systemd-umount	/usr/bin/systemd-mount	visible; runtime dependencies unverified
+tabs	/usr/bin/tabs	/usr/bin/tabs	visible; runtime dependencies unverified
+tac	/usr/bin/tac	/usr/bin/tac	visible; runtime dependencies unverified
+tail	/usr/bin/tail	/usr/bin/tail	visible; runtime dependencies unverified
+tar	/usr/bin/tar	/usr/bin/tar	visible; runtime dependencies unverified
+taskset	/usr/bin/taskset	/usr/bin/taskset	visible; runtime dependencies unverified
+tee	/usr/bin/tee	/usr/bin/tee	visible; runtime dependencies unverified
+tempfile	/usr/bin/tempfile	/usr/bin/tempfile	visible; runtime dependencies unverified
+test	/usr/bin/test	/usr/bin/test	visible; runtime dependencies unverified
+tic	/usr/bin/tic	/usr/bin/tic	visible; runtime dependencies unverified
+timedatectl	/usr/bin/timedatectl	/usr/bin/timedatectl	visible; runtime dependencies unverified
+timeout	/usr/bin/timeout	/usr/bin/timeout	visible; runtime dependencies unverified
+tload	/usr/bin/tload	/usr/bin/tload	visible; runtime dependencies unverified
+toe	/usr/bin/toe	/usr/bin/toe	visible; runtime dependencies unverified
+top	/usr/bin/top	/usr/bin/top	visible; runtime dependencies unverified
+touch	/usr/bin/touch	/usr/bin/touch	visible; runtime dependencies unverified
+tput	/usr/bin/tput	/usr/bin/tput	visible; runtime dependencies unverified
+tr	/usr/bin/tr	/usr/bin/tr	visible; runtime dependencies unverified
+true	/usr/bin/true	/usr/bin/true	visible; runtime dependencies unverified
+truncate	/usr/bin/truncate	/usr/bin/truncate	visible; runtime dependencies unverified
+tset	/usr/bin/tset	/usr/bin/tset	visible; runtime dependencies unverified
+tsort	/usr/bin/tsort	/usr/bin/tsort	visible; runtime dependencies unverified
+tty	/usr/bin/tty	/usr/bin/tty	visible; runtime dependencies unverified
+tzselect	/usr/bin/tzselect	/usr/bin/tzselect	visible; runtime dependencies unverified
+ucf	/usr/bin/ucf	/usr/bin/ucf	visible; runtime dependencies unverified
+ucfq	/usr/bin/ucfq	/usr/bin/ucfq	visible; runtime dependencies unverified
+ucfr	/usr/bin/ucfr	/usr/bin/ucfr	visible; runtime dependencies unverified
+umount	/usr/bin/umount	/usr/bin/umount	visible; runtime dependencies unverified
+uname	/usr/bin/uname	/usr/bin/uname	visible; runtime dependencies unverified
+unattended-upgrade	/usr/bin/unattended-upgrade	/usr/bin/unattended-upgrade	visible; runtime dependencies unverified
+unattended-upgrades	/usr/bin/unattended-upgrades	/usr/bin/unattended-upgrade	visible; runtime dependencies unverified
+uncompress	/usr/bin/uncompress	/usr/bin/uncompress	visible; runtime dependencies unverified
+unexpand	/usr/bin/unexpand	/usr/bin/unexpand	visible; runtime dependencies unverified
+uniq	/usr/bin/uniq	/usr/bin/uniq	visible; runtime dependencies unverified
+unlink	/usr/bin/unlink	/usr/bin/unlink	visible; runtime dependencies unverified
+unlzma	/usr/bin/unlzma	-	outside mounted directories: /etc
+unshare	/usr/bin/unshare	/usr/bin/unshare	visible; runtime dependencies unverified
+unxz	/usr/bin/unxz	/usr/bin/xz	visible; runtime dependencies unverified
+update-alternatives	/usr/bin/update-alternatives	/usr/bin/update-alternatives	visible; runtime dependencies unverified
+update-mime-database	/usr/bin/update-mime-database	/usr/bin/update-mime-database	visible; runtime dependencies unverified
+uptime	/usr/bin/uptime	/usr/bin/uptime	visible; runtime dependencies unverified
+users	/usr/bin/users	/usr/bin/users	visible; runtime dependencies unverified
+utmpdump	/usr/bin/utmpdump	/usr/bin/utmpdump	visible; runtime dependencies unverified
+vdir	/usr/bin/vdir	/usr/bin/vdir	visible; runtime dependencies unverified
+vi	/usr/bin/vi	-	outside mounted directories: /etc
+view	/usr/bin/view	-	outside mounted directories: /etc
+vim	/usr/bin/vim	-	outside mounted directories: /etc
+vim.basic	/usr/bin/vim.basic	/usr/bin/vim.basic	visible; runtime dependencies unverified
+vimdiff	/usr/bin/vimdiff	-	outside mounted directories: /etc
+vimtutor	/usr/bin/vimtutor	/usr/bin/vimtutor	visible; runtime dependencies unverified
+vmstat	/usr/bin/vmstat	/usr/bin/vmstat	visible; runtime dependencies unverified
+w	/usr/bin/w	-	outside mounted directories: /etc
+w.procps	/usr/bin/w.procps	/usr/bin/w.procps	visible; runtime dependencies unverified
+wall	/usr/bin/wall	/usr/bin/wall	visible; runtime dependencies unverified
+watch	/usr/bin/watch	/usr/bin/watch	visible; runtime dependencies unverified
+watchgnupg	/usr/bin/watchgnupg	/usr/bin/watchgnupg	visible; runtime dependencies unverified
+wc	/usr/bin/wc	/usr/bin/wc	visible; runtime dependencies unverified
+wdctl	/usr/bin/wdctl	/usr/bin/wdctl	visible; runtime dependencies unverified
+wget	/usr/bin/wget	/usr/bin/wget	visible; runtime dependencies unverified
+whereis	/usr/bin/whereis	/usr/bin/whereis	visible; runtime dependencies unverified
+which	/usr/bin/which	/usr/bin/which	visible; runtime dependencies unverified
+who	/usr/bin/who	/usr/bin/who	visible; runtime dependencies unverified
+whoami	/usr/bin/whoami	/usr/bin/whoami	visible; runtime dependencies unverified
+x86_64	/usr/bin/x86_64	/usr/bin/setarch	visible; runtime dependencies unverified
+x86_64-linux-gnu-addr2line	/usr/bin/x86_64-linux-gnu-addr2line	/usr/bin/x86_64-linux-gnu-addr2line	visible; runtime dependencies unverified
+x86_64-linux-gnu-ar	/usr/bin/x86_64-linux-gnu-ar	/usr/bin/x86_64-linux-gnu-ar	visible; runtime dependencies unverified
+x86_64-linux-gnu-as	/usr/bin/x86_64-linux-gnu-as	/usr/bin/x86_64-linux-gnu-as	visible; runtime dependencies unverified
+x86_64-linux-gnu-c++filt	/usr/bin/x86_64-linux-gnu-c++filt	/usr/bin/x86_64-linux-gnu-c++filt	visible; runtime dependencies unverified
+x86_64-linux-gnu-cpp	/usr/bin/x86_64-linux-gnu-cpp	/usr/bin/x86_64-linux-gnu-cpp-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-cpp-9	/usr/bin/x86_64-linux-gnu-cpp-9	/usr/bin/x86_64-linux-gnu-cpp-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-dwp	/usr/bin/x86_64-linux-gnu-dwp	/usr/bin/x86_64-linux-gnu-dwp	visible; runtime dependencies unverified
+x86_64-linux-gnu-elfedit	/usr/bin/x86_64-linux-gnu-elfedit	/usr/bin/x86_64-linux-gnu-elfedit	visible; runtime dependencies unverified
+x86_64-linux-gnu-g++	/usr/bin/x86_64-linux-gnu-g++	/usr/bin/x86_64-linux-gnu-g++-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-g++-9	/usr/bin/x86_64-linux-gnu-g++-9	/usr/bin/x86_64-linux-gnu-g++-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcc	/usr/bin/x86_64-linux-gnu-gcc	/usr/bin/x86_64-linux-gnu-gcc-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcc-9	/usr/bin/x86_64-linux-gnu-gcc-9	/usr/bin/x86_64-linux-gnu-gcc-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcc-ar	/usr/bin/x86_64-linux-gnu-gcc-ar	/usr/bin/x86_64-linux-gnu-gcc-ar-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcc-ar-9	/usr/bin/x86_64-linux-gnu-gcc-ar-9	/usr/bin/x86_64-linux-gnu-gcc-ar-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcc-nm	/usr/bin/x86_64-linux-gnu-gcc-nm	/usr/bin/x86_64-linux-gnu-gcc-nm-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcc-nm-9	/usr/bin/x86_64-linux-gnu-gcc-nm-9	/usr/bin/x86_64-linux-gnu-gcc-nm-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcc-ranlib	/usr/bin/x86_64-linux-gnu-gcc-ranlib	/usr/bin/x86_64-linux-gnu-gcc-ranlib-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcc-ranlib-9	/usr/bin/x86_64-linux-gnu-gcc-ranlib-9	/usr/bin/x86_64-linux-gnu-gcc-ranlib-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcov	/usr/bin/x86_64-linux-gnu-gcov	/usr/bin/x86_64-linux-gnu-gcov-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcov-9	/usr/bin/x86_64-linux-gnu-gcov-9	/usr/bin/x86_64-linux-gnu-gcov-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcov-dump	/usr/bin/x86_64-linux-gnu-gcov-dump	/usr/bin/x86_64-linux-gnu-gcov-dump-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcov-dump-9	/usr/bin/x86_64-linux-gnu-gcov-dump-9	/usr/bin/x86_64-linux-gnu-gcov-dump-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcov-tool	/usr/bin/x86_64-linux-gnu-gcov-tool	/usr/bin/x86_64-linux-gnu-gcov-tool-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gcov-tool-9	/usr/bin/x86_64-linux-gnu-gcov-tool-9	/usr/bin/x86_64-linux-gnu-gcov-tool-9	visible; runtime dependencies unverified
+x86_64-linux-gnu-gold	/usr/bin/x86_64-linux-gnu-gold	/usr/bin/x86_64-linux-gnu-ld.gold	visible; runtime dependencies unverified
+x86_64-linux-gnu-gprof	/usr/bin/x86_64-linux-gnu-gprof	/usr/bin/x86_64-linux-gnu-gprof	visible; runtime dependencies unverified
+x86_64-linux-gnu-ld	/usr/bin/x86_64-linux-gnu-ld	/usr/bin/x86_64-linux-gnu-ld.bfd	visible; runtime dependencies unverified
+x86_64-linux-gnu-ld.bfd	/usr/bin/x86_64-linux-gnu-ld.bfd	/usr/bin/x86_64-linux-gnu-ld.bfd	visible; runtime dependencies unverified
+x86_64-linux-gnu-ld.gold	/usr/bin/x86_64-linux-gnu-ld.gold	/usr/bin/x86_64-linux-gnu-ld.gold	visible; runtime dependencies unverified
+x86_64-linux-gnu-nm	/usr/bin/x86_64-linux-gnu-nm	/usr/bin/x86_64-linux-gnu-nm	visible; runtime dependencies unverified
+x86_64-linux-gnu-objcopy	/usr/bin/x86_64-linux-gnu-objcopy	/usr/bin/x86_64-linux-gnu-objcopy	visible; runtime dependencies unverified
+x86_64-linux-gnu-objdump	/usr/bin/x86_64-linux-gnu-objdump	/usr/bin/x86_64-linux-gnu-objdump	visible; runtime dependencies unverified
+x86_64-linux-gnu-python3-config	/usr/bin/x86_64-linux-gnu-python3-config	/usr/bin/x86_64-linux-gnu-python3.8-config	visible; runtime dependencies unverified
+x86_64-linux-gnu-python3.8-config	/usr/bin/x86_64-linux-gnu-python3.8-config	/usr/bin/x86_64-linux-gnu-python3.8-config	visible; runtime dependencies unverified
+x86_64-linux-gnu-ranlib	/usr/bin/x86_64-linux-gnu-ranlib	/usr/bin/x86_64-linux-gnu-ranlib	visible; runtime dependencies unverified
+x86_64-linux-gnu-readelf	/usr/bin/x86_64-linux-gnu-readelf	/usr/bin/x86_64-linux-gnu-readelf	visible; runtime dependencies unverified
+x86_64-linux-gnu-size	/usr/bin/x86_64-linux-gnu-size	/usr/bin/x86_64-linux-gnu-size	visible; runtime dependencies unverified
+x86_64-linux-gnu-strings	/usr/bin/x86_64-linux-gnu-strings	/usr/bin/x86_64-linux-gnu-strings	visible; runtime dependencies unverified
+x86_64-linux-gnu-strip	/usr/bin/x86_64-linux-gnu-strip	/usr/bin/x86_64-linux-gnu-strip	visible; runtime dependencies unverified
+xargs	/usr/bin/xargs	/usr/bin/xargs	visible; runtime dependencies unverified
+xauth	/usr/bin/xauth	/usr/bin/xauth	visible; runtime dependencies unverified
+xdg-user-dir	/usr/bin/xdg-user-dir	/usr/bin/xdg-user-dir	visible; runtime dependencies unverified
+xdg-user-dirs-update	/usr/bin/xdg-user-dirs-update	/usr/bin/xdg-user-dirs-update	visible; runtime dependencies unverified
+xsubpp	/usr/bin/xsubpp	/usr/bin/xsubpp	visible; runtime dependencies unverified
+xxd	/usr/bin/xxd	/usr/bin/xxd	visible; runtime dependencies unverified
+xz	/usr/bin/xz	/usr/bin/xz	visible; runtime dependencies unverified
+xzcat	/usr/bin/xzcat	/usr/bin/xz	visible; runtime dependencies unverified
+xzcmp	/usr/bin/xzcmp	/usr/bin/xzdiff	visible; runtime dependencies unverified
+xzdiff	/usr/bin/xzdiff	/usr/bin/xzdiff	visible; runtime dependencies unverified
+xzegrep	/usr/bin/xzegrep	/usr/bin/xzgrep	visible; runtime dependencies unverified
+xzfgrep	/usr/bin/xzfgrep	/usr/bin/xzgrep	visible; runtime dependencies unverified
+xzgrep	/usr/bin/xzgrep	/usr/bin/xzgrep	visible; runtime dependencies unverified
+xzless	/usr/bin/xzless	/usr/bin/xzless	visible; runtime dependencies unverified
+xzmore	/usr/bin/xzmore	/usr/bin/xzmore	visible; runtime dependencies unverified
+yes	/usr/bin/yes	/usr/bin/yes	visible; runtime dependencies unverified
+ypdomainname	/usr/bin/ypdomainname	/usr/bin/hostname	visible; runtime dependencies unverified
+zcat	/usr/bin/zcat	/usr/bin/zcat	visible; runtime dependencies unverified
+zcmp	/usr/bin/zcmp	/usr/bin/zcmp	visible; runtime dependencies unverified
+zdiff	/usr/bin/zdiff	/usr/bin/zdiff	visible; runtime dependencies unverified
+zdump	/usr/bin/zdump	/usr/bin/zdump	visible; runtime dependencies unverified
+zegrep	/usr/bin/zegrep	/usr/bin/zegrep	visible; runtime dependencies unverified
+zfgrep	/usr/bin/zfgrep	/usr/bin/zfgrep	visible; runtime dependencies unverified
+zforce	/usr/bin/zforce	/usr/bin/zforce	visible; runtime dependencies unverified
+zgrep	/usr/bin/zgrep	/usr/bin/zgrep	visible; runtime dependencies unverified
+zipdetails	/usr/bin/zipdetails	/usr/bin/zipdetails	visible; runtime dependencies unverified
+zless	/usr/bin/zless	/usr/bin/zless	visible; runtime dependencies unverified
+zmore	/usr/bin/zmore	/usr/bin/zmore	visible; runtime dependencies unverified
+znew	/usr/bin/znew	/usr/bin/znew	visible; runtime dependencies unverified
+
+Source: pi-dci/scripts/dci-run.ts sandboxArgs, validateCorpusSandbox, createBashTool;
+dci_bench/protocol/contract.json bash input schema; document_pools_v2.json output limits.

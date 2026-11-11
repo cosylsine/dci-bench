@@ -11,6 +11,20 @@ from dci_bench.protocol.contracts import TRAJECTORY_SCHEMA_VERSION
 
 
 class PiTimeoutFallbackTest(unittest.TestCase):
+    def test_no_timeout_does_not_send_deadline_or_limit_subprocess(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            process = Mock(pid=12345, returncode=1)
+            process.communicate.return_value = ('', '')
+            with patch('dci_bench.agents.pi_agent.subprocess.Popen', return_value=process) as popen, \
+                 patch('dci_bench.agents.pi_agent.os.killpg'):
+                with self.assertRaisesRegex(RuntimeError, 'exit code 1'):
+                    run_pi_dci(query='q', workspace=root, output_path=root / 'final.json', timeout_seconds=None)
+            command = popen.call_args.args[0]
+            self.assertNotIn('--deadline-at-ms', command)
+            self.assertEqual(command[command.index('--timeout-seconds') + 1], 'none')
+            process.communicate.assert_called_once_with(timeout=None)
+
     def test_timeout_preserves_receipts_and_handles_exit_during_kill(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

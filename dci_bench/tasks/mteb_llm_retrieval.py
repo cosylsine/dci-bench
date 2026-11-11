@@ -362,15 +362,15 @@ async def _serialized_bridge_start(pool: BridgePortPool | None, bridge_context: 
         yield bridge
 
 
-def _remaining_pi_timeout_seconds() -> float:
+def _remaining_pi_timeout_seconds() -> float | None:
     time_limit = sample_limits().time
     remaining = time_limit.remaining
     if remaining is None:
-        return float(SAMPLE_TIMEOUT_SECONDS)
+        return SAMPLE_TIMEOUT_SECONDS
     if remaining <= 0:
         limit = getattr(time_limit, "limit", None)
         if limit is None:
-            limit = float(SAMPLE_TIMEOUT_SECONDS)
+            limit = SAMPLE_TIMEOUT_SECONDS if SAMPLE_TIMEOUT_SECONDS is not None else 0
         usage = getattr(time_limit, "usage", limit)
         if usage is None:
             usage = limit
@@ -381,7 +381,7 @@ def _remaining_pi_timeout_seconds() -> float:
             limit=float(limit),
             source=time_limit,
         )
-    return min(float(SAMPLE_TIMEOUT_SECONDS), float(remaining))
+    return min(SAMPLE_TIMEOUT_SECONDS, float(remaining)) if SAMPLE_TIMEOUT_SECONDS is not None else float(remaining)
 
 
 @solver
@@ -433,7 +433,11 @@ def pi_dci_solver(
                             with materialize_query_workspace(
                                 Path(str(state.metadata["workspace"])), query_id, candidate_pool
                             ) as workspace:
-                                timeout_seconds = _remaining_pi_timeout_seconds()
+                                # Inspect's live clock requires the event loop. Read it
+                                # after workspace preparation so that cost still counts.
+                                timeout_seconds = anyio.from_thread.run_sync(
+                                    _remaining_pi_timeout_seconds
+                                )
                                 return run_pi_dci(
                                     query=state.input_text,
                                     workspace=workspace,

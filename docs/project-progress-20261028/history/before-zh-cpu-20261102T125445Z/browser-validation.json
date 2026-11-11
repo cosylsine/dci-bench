@@ -1,0 +1,161 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "default_53_built",
+      "passed": true
+    },
+    {
+      "name": "default_49_cells",
+      "passed": true
+    },
+    {
+      "name": "all_source_count",
+      "passed": true
+    },
+    {
+      "name": "ready_source_count",
+      "passed": true
+    },
+    {
+      "name": "ready_only_source_count",
+      "passed": true
+    },
+    {
+      "name": "review_source_count",
+      "passed": true
+    },
+    {
+      "name": "small_source_count",
+      "passed": true
+    },
+    {
+      "name": "scientific_filter",
+      "passed": true
+    },
+    {
+      "name": "zh_filter",
+      "passed": true
+    },
+    {
+      "name": "search_filter",
+      "passed": true
+    },
+    {
+      "name": "empty_search",
+      "passed": true
+    },
+    {
+      "name": "matrix_drilldown",
+      "passed": true
+    },
+    {
+      "name": "matrix_view",
+      "passed": true
+    },
+    {
+      "name": "table_view",
+      "passed": true
+    },
+    {
+      "name": "smoke_metrics",
+      "passed": true
+    },
+    {
+      "name": "form_labels",
+      "passed": true
+    },
+    {
+      "name": "tooltip_keyboard",
+      "passed": true
+    },
+    {
+      "name": "tooltip_escape",
+      "passed": true
+    },
+    {
+      "name": "rules_default",
+      "passed": true
+    },
+    {
+      "name": "five_reading_steps",
+      "passed": true
+    },
+    {
+      "name": "technical_details_collapsed",
+      "passed": true
+    },
+    {
+      "name": "budget_details_expand",
+      "passed": true
+    },
+    {
+      "name": "budget_details_collapse",
+      "passed": true
+    },
+    {
+      "name": "rules_download",
+      "passed": true
+    },
+    {
+      "name": "overview_switch",
+      "passed": true
+    },
+    {
+      "name": "rules_switch",
+      "passed": true
+    },
+    {
+      "name": "unique_ids",
+      "passed": true
+    },
+    {
+      "name": "no_external_dependencies",
+      "passed": true
+    },
+    {
+      "name": "desktop_no_horizontal_overflow",
+      "passed": true
+    },
+    {
+      "name": "svg_text_on_canvas",
+      "passed": true
+    },
+    {
+      "name": "svg_text_in_cards",
+      "passed": true
+    },
+    {
+      "name": "mobile_no_horizontal_overflow",
+      "passed": true
+    },
+    {
+      "name": "mobile_readable_rules",
+      "passed": true
+    },
+    {
+      "name": "mobile_expanded_details_fit",
+      "passed": true
+    },
+    {
+      "name": "mobile_stacked_reasons",
+      "passed": true
+    }
+  ],
+  "overflow": [],
+  "cardOverflow": [],
+  "html_sha256": "9b24eb5867fc6716a041fae5e87633323ed2b6cf662772082b4ef016155b5817",
+  "markdown_lines": 59,
+  "relative_links_valid": [
+    "progress.md",
+    "data_matrix.json",
+    "harness-rules.svg",
+    "source_matrix.csv",
+    "manifest.json"
+  ],
+  "svg_sources_match": true,
+  "data_statistics_unchanged": true,
+  "reading_flow": "Five sequential steps with purpose, a continuous example, and collapsed technical references",
+  "desktop_and_mobile_visually_reviewed": true,
+  "standalone_diagrams_visually_reviewed": true
+}

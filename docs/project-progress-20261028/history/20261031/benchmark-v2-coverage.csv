@@ -1,0 +1,21 @@
+﻿task,domain,language,status,selected_source,source_or_candidate,dev_queries,test_queries,smoke_queries,lite,full,detail
+encyclopedia_en,encyclopedia,en,ready,gapfill_mlqa_en,gapfill_mlqa_en,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除19条
+encyclopedia_zh,encyclopedia,zh,ready,qa_cmrc2018_zh,qa_cmrc2018_zh,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除2条
+general_qa_en,general_qa,en,ready,gapfill_beir_quora_exact_dedup,gapfill_beir_quora_exact_dedup,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除2条
+general_qa_zh,general_qa,zh,ready,r4_rawqa_hc3_zh_open_qa,r4_rawqa_hc3_zh_open_qa,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除2条
+scientific_en,scientific,en,ready,domain_qasper_dev_fullcorpus,domain_qasper_dev_fullcorpus,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除27条
+scientific_zh,scientific,zh,ready,r4_rawqa_csl_zh,r4_rawqa_csl_zh,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+medical_en,medical,en,ready,gapfill_medquad_rawqa,gapfill_medquad_rawqa,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除3458条
+medical_zh,medical,zh,ready,gapfill_mteb_cmedqa_retrieval,gapfill_mteb_cmedqa_retrieval,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+finance_en,finance,en,ready,domain_fiqa_test,domain_fiqa_test,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+finance_zh,finance,zh,ready,r4_rawqa_hc3_zh_finance,r4_rawqa_hc3_zh_finance,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除2条
+legal_en,legal,en,blocked,,ACORD（源池已完成）,0,0,0,,,源审查通过；3931文档/63查询/676正例关系；两档源池已完成；待最终suite验收。未计入最终suite就绪数。
+legal_zh,legal,zh,ready,gapfill_legal_lecardv2,gapfill_legal_lecardv2,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+enterprise_en,enterprise,en,ready,wixqa_expertwritten,wixqa_expertwritten,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+enterprise_zh,enterprise,zh,blocked,,暂缓,0,0,0,,,按本轮范围暂缓中文企业来源接入。
+web_en,web,en,blocked,,BrowseComp+（构池中）,0,0,0,,,源审查通过；99930文档/825查询/5023正例关系；编码/构池进行中，文档分片7/98；待最终suite验收。未计入最终suite就绪数。
+web_zh,web,zh,ready,gapfill_mteb_duretrieval,gapfill_mteb_duretrieval,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+software_en,software,en,blocked,,CQADupStack Android（源池已完成）,0,0,0,,,源审查通过；22998文档/697查询/1432正例关系；两档源池已完成；待最终suite验收。未计入最终suite就绪数。
+software_zh,software,zh,blocked,,DQA-Bench（审查未通过）,0,0,0,,,公开样例7490 query / 7481 answer / 7490 QA；缺逐条原生中文来源证明，仍阻塞，未接入。
+argumentation_en,argumentation,en,blocked,,ArguAna（源池已完成）,0,0,0,,,源审查通过；8674文档/1183查询/1183正例关系；两档源池已完成；待最终suite验收。未计入最终suite就绪数。
+argumentation_zh,argumentation,zh,blocked,,CEDAR（构池中）,0,0,0,,,源审查通过；25794文档/241查询/463正例关系；编码/构池进行中，文档分片0/26；待最终suite验收。未计入最终suite就绪数。

@@ -39,7 +39,8 @@ class BenchmarkV2ResultsTest(unittest.TestCase):
     def test_cost_gate_requires_measurement_and_reserve(self):
         self.assertFalse(cost_gate(execution_count=2000, calibration=None, mode='local')['passed'])
         self.assertTrue(cost_gate(execution_count=2000, calibration={'measured': True, 'queries_per_hour': 200}, mode='local')['passed'])
-        self.assertFalse(cost_gate(execution_count=2000, calibration={'measured': True, 'queries_per_hour': 100}, mode='local')['passed'])
+        self.assertTrue(cost_gate(execution_count=2000, calibration={'measured': True, 'queries_per_hour': 100}, mode='local')['passed'])
+        self.assertFalse(cost_gate(execution_count=2000, calibration={'measured': True, 'queries_per_hour': 100}, mode='local', hours=24)['passed'])
         self.assertTrue(cost_gate(execution_count=2000, calibration={'measured': True, 'mean_usage': row()['usage']}, mode='api', price=quote())['passed'])
 
     def test_macro_equal_cells_not_equal_query_volume(self):
@@ -132,7 +133,7 @@ class BenchmarkV2ResultsTest(unittest.TestCase):
     def test_concurrency_selection_rejects_fast_error_prone_trial(self):
         base = {'samples': [row()], 'completed': 1, 'split': 'dev', 'measured': True,
                 'token_budget': 64000, 'selection_sha256': 'same', 'backend_sha256': 'same',
-                'source_fingerprint': 'same', 'p95_seconds': 200, 'gpu_utilization': None, 'complete_scope': False}
+                'source_fingerprint': 'same', 'p95_seconds': 1200, 'gpu_utilization': None, 'complete_scope': False}
         reports = {c: {**copy.deepcopy(base), 'concurrency': c, 'queries_per_hour': c * 10,
                        'failure_rate': .02 if c == 16 else 0} for c in (4, 8, 16)}
         result = compare_concurrency(reports)

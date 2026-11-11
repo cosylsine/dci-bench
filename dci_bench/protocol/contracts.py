@@ -68,7 +68,7 @@ if PROTOCOL_PROFILE != "v3":
         if pool.get("schema_version") == "document-pool-v2":
             _CONTRACT["max_agent_steps"] = int(pool["max_agent_steps"])
             _CONTRACT["max_final_repair_turns"] = int(pool["max_final_repair_turns"])
-            _CONTRACT["sample_timeout_seconds"] = int(pool["sample_timeout_seconds"])
+            _CONTRACT["sample_timeout_seconds"] = pool["sample_timeout_seconds"]
             _CONTRACT["tool_result_max_bytes"] = int(pool["tool_result_max_bytes"])
             _CONTRACT["max_model_output_tokens"] = int(pool["max_model_output_tokens"])
             _CONTRACT["max_final_output_tokens"] = int(pool["max_final_output_tokens"])
@@ -110,7 +110,7 @@ TRAJECTORY_SCHEMA_VERSION = str(_CONTRACT["trajectory_schema_version"])
 TOP_K = int(_CONTRACT["top_k"])
 MAX_AGENT_STEPS = int(_CONTRACT["max_agent_steps"])
 MAX_FINAL_REPAIR_TURNS = int(_CONTRACT["max_final_repair_turns"])
-SAMPLE_TIMEOUT_SECONDS = int(_CONTRACT["sample_timeout_seconds"])
+SAMPLE_TIMEOUT_SECONDS: int | None = _CONTRACT["sample_timeout_seconds"]
 TOOL_RESULT_MAX_BYTES = int(_CONTRACT["tool_result_max_bytes"])
 MAX_SCRATCH_BYTES = int(_CONTRACT["max_scratch_bytes"])
 MAX_TOTAL_MODEL_TOKENS = int(_CONTRACT["max_total_model_tokens"])

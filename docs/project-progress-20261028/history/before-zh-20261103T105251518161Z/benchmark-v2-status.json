@@ -1,0 +1,315 @@
+{
+  "as_of": "2026-11-03T18:50:29+08:00",
+  "summary": "数据就绪19/20：保留旧17任务，新增T2Ranking中文软件和CFQA中文企业业务。开发190、正式950、Smoke19；BrowseComp+ 排名与200/1000源池已完成；完成回执、排名及元数据哈希已核验，尚未合入当前19任务suite。KaLM仅用于数据准备，正式评测模型未执行。",
+  "data_tasks": [
+    {
+      "task": "encyclopedia_en",
+      "status": "已准备",
+      "source": "gapfill_mlqa_en",
+      "detail": "开发10 / 正式50 / Smoke1；排除19条"
+    },
+    {
+      "task": "encyclopedia_zh",
+      "status": "已准备",
+      "source": "qa_cmrc2018_zh",
+      "detail": "开发10 / 正式50 / Smoke1；排除2条"
+    },
+    {
+      "task": "general_qa_en",
+      "status": "已准备",
+      "source": "gapfill_beir_quora_exact_dedup",
+      "detail": "开发10 / 正式50 / Smoke1；排除2条"
+    },
+    {
+      "task": "general_qa_zh",
+      "status": "已准备",
+      "source": "r4_rawqa_hc3_zh_open_qa",
+      "detail": "开发10 / 正式50 / Smoke1；排除2条"
+    },
+    {
+      "task": "scientific_en",
+      "status": "已准备",
+      "source": "domain_qasper_dev_fullcorpus",
+      "detail": "开发10 / 正式50 / Smoke1；排除27条"
+    },
+    {
+      "task": "scientific_zh",
+      "status": "已准备",
+      "source": "r4_rawqa_csl_zh",
+      "detail": "开发10 / 正式50 / Smoke1；排除0条"
+    },
+    {
+      "task": "medical_en",
+      "status": "已准备",
+      "source": "gapfill_medquad_rawqa",
+      "detail": "开发10 / 正式50 / Smoke1；排除3458条"
+    },
+    {
+      "task": "medical_zh",
+      "status": "已准备",
+      "source": "gapfill_mteb_cmedqa_retrieval",
+      "detail": "开发10 / 正式50 / Smoke1；排除0条"
+    },
+    {
+      "task": "finance_en",
+      "status": "已准备",
+      "source": "domain_fiqa_test",
+      "detail": "开发10 / 正式50 / Smoke1；排除0条"
+    },
+    {
+      "task": "finance_zh",
+      "status": "已准备",
+      "source": "r4_rawqa_hc3_zh_finance",
+      "detail": "开发10 / 正式50 / Smoke1；排除2条"
+    },
+    {
+      "task": "legal_en",
+      "status": "已准备",
+      "source": "gapfill_acord_en_v3",
+      "detail": "ACORD：只取官方valid6+test57，排除train51；3/4/5星→relevance1/2/3；DCI采样不等于官方评分。 源规模3931/63/676；注入前Recall@200=0.7048、@1000=0.9707；suite与选中正文hash验收通过。"
+    },
+    {
+      "task": "legal_zh",
+      "status": "已准备",
+      "source": "gapfill_legal_lecardv2",
+      "detail": "开发10 / 正式50 / Smoke1；排除0条"
+    },
+    {
+      "task": "enterprise_en",
+      "status": "已准备",
+      "source": "wixqa_expertwritten",
+      "detail": "开发10 / 正式50 / Smoke1；排除0条"
+    },
+    {
+      "task": "enterprise_zh",
+      "status": "已准备",
+      "source": "gapfill_cfqa_enterprise_zh",
+      "detail": "原生中文；1728文档/63查询/67正例关系；每题1–4正例。dev10/test50/smoke1，seed42；原始人工标签全保留，Lite200⊂Full1000；新两任务所选Full正文hash通过。"
+    },
+    {
+      "task": "web_en",
+      "status": "阻塞",
+      "source": "BrowseComp+（待四卡5090续跑）",
+      "detail": "BrowseComp+ 排名与200/1000源池已完成；完成回执、排名及元数据哈希已核验，尚未合入当前19任务suite。"
+    },
+    {
+      "task": "web_zh",
+      "status": "已准备",
+      "source": "gapfill_mteb_duretrieval",
+      "detail": "开发10 / 正式50 / Smoke1；排除0条"
+    },
+    {
+      "task": "software_en",
+      "status": "已准备",
+      "source": "gapfill_android_en",
+      "detail": "Android：排除78472歧义题与19971的262正例溢出；其余官方qrels保留。 源规模22998/697/1432；注入前Recall@200=0.9205、@1000=0.9752；suite与选中正文hash验收通过。"
+    },
+    {
+      "task": "software_zh",
+      "status": "已准备",
+      "source": "gapfill_t2ranking_software_zh",
+      "detail": "原生中文；5635文档/61查询/131正例关系；每题1–6正例。dev10/test50/smoke1，seed42；原始人工标签全保留，Lite200⊂Full1000；新两任务所选Full正文hash通过。"
+    },
+    {
+      "task": "argumentation_en",
+      "status": "已准备",
+      "source": "gapfill_arguana_en",
+      "detail": "ArguAna：排除218个歧义query，topic整组隔离；排除query自身。 源规模8674/1183/1183；注入前Recall@200=1.0000、@1000=1.0000；suite与选中正文hash验收通过。"
+    },
+    {
+      "task": "argumentation_zh",
+      "status": "已准备",
+      "source": "gapfill_cedar_zh_v2",
+      "detail": "CEDAR：显式support/against关系、精确文本alias合并、每topic一题、排除自身；未标注不作负例。 源规模25794/241/463；注入前Recall@200=0.8420、@1000=0.9253；suite与选中正文hash验收通过。"
+    }
+  ],
+  "stages": [
+    {
+      "name": "中文来源与正文验收",
+      "status": "通过",
+      "detail": "固定原始版本、split、许可及SHA-256；T2Ranking人工grade≥2，CFQA原始人工证据物理页；领域过滤丢失正例时排除整题。"
+    },
+    {
+      "name": "四卡KaLM排名与构池",
+      "status": "完成",
+      "detail": "两源编码、排名与200/1000源池完成，完成回执和内容hash已核验。未标注候选不作为已确认负例。"
+    },
+    {
+      "name": "19任务suite",
+      "status": "通过",
+      "detail": "旧17任务source/query选择保持不变；新两任务seed42分组隔离，dev10/test50/smoke1；最终Lite⊂Full且包含全部已知正例。"
+    },
+    {
+      "name": "正文与元数据",
+      "status": "通过",
+      "detail": "全suite元数据审计及38个数据预检；新两任务所选Full正文实际SHA-256另行核验，覆盖Lite子集。旧17任务正文沿用已有证据。"
+    },
+    {
+      "name": "剩余网页与模型评测",
+      "status": "未完成",
+      "detail": "BrowseComp+ 排名与200/1000源池已完成；完成回执、排名及元数据哈希已核验，尚未合入当前19任务suite。全20任务正式门禁仍关闭。没有进行agent GPU/API标定或正式模型评测。"
+    }
+  ],
+  "limitations": [
+    "BrowseComp+ 排名与200/1000源池已完成；完成回执、排名及元数据哈希已核验，尚未合入当前19任务suite。全20任务正式启动门禁仍阻塞。",
+    "enterprise_zh是公司年报中的企业业务、研发、治理与经营风险知识，不代表内部制度或组织办事流程库。",
+    "CFQA标注仓库MIT；官方公司年报保留原来源与权利，不将标注许可扩展到PDF正文。",
+    "T2Ranking保留原train/dev信息后重新抽样；此处DCI结果不能称为上游官方测试成绩。",
+    "KaLM编码是数据准备；正例注入后的覆盖率不表示检索或agent模型得分。"
+  ],
+  "evidence": [
+    {
+      "label": "中文接入说明与四卡命令",
+      "path": "../zh_gapfill_20261102.md"
+    },
+    {
+      "label": "BrowseComp+源池完成回执",
+      "path": "../../../../../../afs2/202609/embedding_models/dci-bench/eval_data/benchmark_gapfill_20261031_v1/gapfill_browsecomp_plus_en/catalog-row.json"
+    },
+    {
+      "label": "两源真实CPU就绪回执",
+      "path": "../../../dci-bench-zh-data/20261102_v4/source-readiness.json"
+    },
+    {
+      "label": "19任务准备清单",
+      "path": "../../../dci-bench-zh-data/20261102_v4/evidence/suite-acceptance/prepared-manifest.json"
+    },
+    {
+      "label": "中文源池闭合",
+      "path": "../../../dci-bench-zh-data/20261102_v4/evidence/suite-acceptance/source-closure.json"
+    },
+    {
+      "label": "19任务验收与正文哈希",
+      "path": "../../../dci-bench-zh-data/20261102_v4/evidence/suite-acceptance/data-audit.json"
+    },
+    {
+      "label": "软件正文/正例保全与划分",
+      "path": "../../../dci-bench-zh-data/20261102_v4/evidence/t2ranking/summary.json"
+    },
+    {
+      "label": "软件50篇正文内容复核",
+      "path": "../../../dci-bench-zh-data/20261102_v4/evidence/t2ranking/sample_50_hash_audit.jsonl"
+    },
+    {
+      "label": "企业PDF与正文验收",
+      "path": "../../../dci-bench-zh-data/20261102_v4/evidence/cfqa/receipt.json"
+    },
+    {
+      "label": "真实四卡只读启动计划",
+      "path": "../../results/implementation/20261102-zh-gapfill/real-v4-launcher-check-only.json"
+    },
+    {
+      "label": "最终CPU回归测试",
+      "path": "../../results/implementation/20261102-zh-gapfill/final-targeted-tests.log"
+    },
+    {
+      "label": "本轮前17任务报告快照",
+      "path": "history/before-zh-cpu-20261102T125445Z/index.html"
+    },
+    {
+      "label": "17任务准备清单",
+      "path": "../../results/implementation/20261102-gapfill-suite-v2/prepared-manifest.json"
+    },
+    {
+      "label": "17任务元数据审计",
+      "path": "../../results/implementation/20261102-gapfill-suite-v2/data-audit.json"
+    },
+    {
+      "label": "抽样、嵌套、self-match与ACORD划分核验",
+      "path": "../../results/implementation/20261102-gapfill-suite-v2/suite-validation.json"
+    },
+    {
+      "label": "新增四任务选中Full正文hash与标签隔离",
+      "path": "../../results/implementation/20261102-gapfill-suite-v2/selected-body-validation.json"
+    },
+    {
+      "label": "四源排名质量（注入前召回）",
+      "path": "../../results/implementation/20261102-gapfill-suite-v2/retrieval-quality.json"
+    },
+    {
+      "label": "34个数据预检，0模型调用",
+      "path": "../../results/implementation/20261102-gapfill-suite-v2/data-preflight/preflight.json"
+    },
+    {
+      "label": "冻结源与池元数据闭合",
+      "path": "../../results/implementation/20261102-gapfill-suite-v2/source-closure.json"
+    },
+    {
+      "label": "内联布局数据回归14项",
+      "path": "../../results/implementation/20261102-gapfill-suite/inline-layout-data-tests.log"
+    },
+    {
+      "label": "Runtime回归10通过/1跳过",
+      "path": "../../results/implementation/20261102-gapfill-suite/inline-layout-runtime-tests-2.log"
+    },
+    {
+      "label": "四卡启动器与发布门禁11项CPU检查",
+      "path": "../../results/implementation/20261102-gapfill-suite-v2/launcher-and-publication-tests.log"
+    },
+    {
+      "label": "分片截断审计保留回归7项",
+      "path": "../../results/implementation/20261102-gapfill-suite-v2/launcher-truncation-tests.log"
+    },
+    {
+      "label": "四卡实际数据只读启动计划",
+      "path": "../../results/implementation/20261102-gapfill-suite-v2/launcher-check-only.json"
+    },
+    {
+      "label": "数据接入记录与5090启动说明",
+      "path": "../gapfill_20261102.md"
+    },
+    {
+      "label": "2026-10-31中间报告快照",
+      "path": "history/20261031/index.html"
+    }
+  ],
+  "timing_rows": [
+    {
+      "phase": "工作区准备",
+      "lite": 2.5696,
+      "full": 11.7388
+    },
+    {
+      "phase": "前台等待工作区",
+      "lite": 0.2309,
+      "full": 3.9115
+    },
+    {
+      "phase": "桥接启动",
+      "lite": 9.9737,
+      "full": 8.9109
+    },
+    {
+      "phase": "Pi执行",
+      "lite": 19.8684,
+      "full": 24.2752
+    },
+    {
+      "phase": "工作区清理",
+      "lite": 0.6636,
+      "full": 3.9401
+    },
+    {
+      "phase": "候选沙箱校验",
+      "lite": 0.0314,
+      "full": 0.0654
+    },
+    {
+      "phase": "Bubblewrap预检",
+      "lite": 0.0721,
+      "full": 0.1126
+    },
+    {
+      "phase": "bash执行（含命令）",
+      "lite": 0.0564,
+      "full": 0.0757
+    }
+  ],
+  "data_preparation": {
+    "embedding_gpu_inference_completed": true,
+    "accepted_sources_embedding_completed": true,
+    "accepted_source_count": 6,
+    "pending_source_count": 1,
+    "benchmark_model_inference_completed": false
+  }
+}

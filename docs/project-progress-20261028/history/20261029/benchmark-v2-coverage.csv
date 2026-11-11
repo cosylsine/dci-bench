@@ -1,0 +1,21 @@
+﻿task,domain,language,status,selected_source,source_or_candidate,dev_queries,test_queries,smoke_queries,lite,full,detail
+encyclopedia_en,encyclopedia,en,ready,gapfill_mlqa_en,gapfill_mlqa_en,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除19条
+encyclopedia_zh,encyclopedia,zh,ready,qa_cmrc2018_zh,qa_cmrc2018_zh,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除2条
+general_qa_en,general_qa,en,ready,gapfill_beir_quora_exact_dedup,gapfill_beir_quora_exact_dedup,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除2条
+general_qa_zh,general_qa,zh,ready,r4_rawqa_hc3_zh_open_qa,r4_rawqa_hc3_zh_open_qa,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除2条
+scientific_en,scientific,en,ready,domain_qasper_dev_fullcorpus,domain_qasper_dev_fullcorpus,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除27条
+scientific_zh,scientific,zh,ready,r4_rawqa_csl_zh,r4_rawqa_csl_zh,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+medical_en,medical,en,ready,gapfill_medquad_rawqa,gapfill_medquad_rawqa,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除3458条
+medical_zh,medical,zh,ready,gapfill_mteb_cmedqa_retrieval,gapfill_mteb_cmedqa_retrieval,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+finance_en,finance,en,ready,domain_fiqa_test,domain_fiqa_test,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+finance_zh,finance,zh,ready,r4_rawqa_hc3_zh_finance,r4_rawqa_hc3_zh_finance,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除2条
+legal_en,legal,en,blocked,,LLMAILAStatutes / LLMLegalBenchConsumerContractsQA（小语料）,0,0,0,,,仅82/154文档，不足Full1000；需合格英文法律来源
+legal_zh,legal,zh,ready,gapfill_legal_lecardv2,gapfill_legal_lecardv2,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+enterprise_en,enterprise,en,ready,wixqa_expertwritten,wixqa_expertwritten,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+enterprise_zh,enterprise,zh,blocked,,待补齐,0,0,0,,,缺原生中文企业检索来源与候选池；现有企业来源为英文
+web_en,web,en,blocked,,browsecomp_plus（候选）,0,0,0,,,已有99930文档/825查询；待原生来源审查与排名/构池
+web_zh,web,zh,ready,gapfill_mteb_duretrieval,gapfill_mteb_duretrieval,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+software_en,software,en,blocked,,gapfill_beir_cqadupstack_android（候选）,0,0,0,,,已有22998文档/699查询；待来源审查与排名/构池
+software_zh,software,zh,blocked,,github_kubernetes_website_zh（接口样例）,0,0,0,,,仅5文档，0查询/0qrels；不能用于评测
+argumentation_en,argumentation,en,blocked,,domain_arguana_test（候选）,0,0,0,,,已有8674文档/1401查询；待原生来源审查与排名/构池
+argumentation_zh,argumentation,zh,blocked,,待补齐,0,0,0,,,缺原生中文 corpus/query/qrels 与候选池

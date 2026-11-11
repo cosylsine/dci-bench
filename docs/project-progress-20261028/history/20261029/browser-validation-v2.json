@@ -1,0 +1,187 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "default_10_domains_20_cells",
+      "passed": true
+    },
+    {
+      "name": "prepared_13_blocked_7",
+      "passed": true
+    },
+    {
+      "name": "languages_only_en_zh",
+      "passed": true
+    },
+    {
+      "name": "prepared_query_totals",
+      "passed": true
+    },
+    {
+      "name": "no_old_inventory_controls",
+      "passed": true
+    },
+    {
+      "name": "unique_ids",
+      "passed": true
+    },
+    {
+      "name": "standalone_workflow",
+      "passed": true
+    },
+    {
+      "name": "standalone_data",
+      "passed": true
+    },
+    {
+      "name": "standalone_results",
+      "passed": true
+    },
+    {
+      "name": "standalone_evidence",
+      "passed": true
+    },
+    {
+      "name": "standalone_benchmark-v2",
+      "passed": true
+    },
+    {
+      "name": "standalone_top",
+      "passed": true
+    },
+    {
+      "name": "smooth_navigation",
+      "passed": true
+    },
+    {
+      "name": "blocked_filter_keeps_coordinates",
+      "passed": true
+    },
+    {
+      "name": "blocked_drilldown",
+      "passed": true
+    },
+    {
+      "name": "reset_20_tasks",
+      "passed": true
+    },
+    {
+      "name": "zh_filter",
+      "passed": true
+    },
+    {
+      "name": "zh_ready_filter",
+      "passed": true
+    },
+    {
+      "name": "empty_filter",
+      "passed": true
+    },
+    {
+      "name": "chinese_domain_search",
+      "passed": true
+    },
+    {
+      "name": "ready_drilldown",
+      "passed": true
+    },
+    {
+      "name": "desktop_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "keyboard_navigation",
+      "passed": true
+    },
+    {
+      "name": "budget_details",
+      "passed": true
+    },
+    {
+      "name": "mobile_workflow",
+      "passed": true
+    },
+    {
+      "name": "mobile_data",
+      "passed": true
+    },
+    {
+      "name": "mobile_results",
+      "passed": true
+    },
+    {
+      "name": "mobile_evidence",
+      "passed": true
+    },
+    {
+      "name": "mobile_benchmark-v2",
+      "passed": true
+    },
+    {
+      "name": "mobile_top",
+      "passed": true
+    },
+    {
+      "name": "mobile_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "reproduced_native_fragment_failure_with_host_base",
+      "passed": true
+    },
+    {
+      "name": "sandbox_srcdoc_host_base_workflow",
+      "passed": true
+    },
+    {
+      "name": "sandbox_srcdoc_host_base_data",
+      "passed": true
+    },
+    {
+      "name": "sandbox_srcdoc_host_base_results",
+      "passed": true
+    },
+    {
+      "name": "sandbox_srcdoc_host_base_evidence",
+      "passed": true
+    },
+    {
+      "name": "sandbox_srcdoc_host_base_benchmark-v2",
+      "passed": true
+    },
+    {
+      "name": "sandbox_srcdoc_host_base_top",
+      "passed": true
+    },
+    {
+      "name": "embedded_filters",
+      "passed": true
+    },
+    {
+      "name": "embedded_document_preserved",
+      "passed": true
+    },
+    {
+      "name": "no_script_all_tasks_readable",
+      "passed": true
+    },
+    {
+      "name": "no_script_dead_controls_hidden",
+      "passed": true
+    },
+    {
+      "name": "no_script_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "no_javascript_errors",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "browser": "130.0.6723.31",
+  "html_sha256": "eecb011b76d2cf85a330fa26e6926b855773ee6db3f6c8c583b46fa3fc8686b6",
+  "scope": "Standalone desktop/mobile, sandboxed srcdoc with a host base URL, no-script fallback.",
+  "yuque_host_verified": false,
+  "historical_html_sha256": "9b24eb5867fc6716a041fae5e87633323ed2b6cf662772082b4ef016155b5817"
+}

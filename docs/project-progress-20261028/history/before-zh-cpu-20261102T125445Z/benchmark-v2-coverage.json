@@ -1,0 +1,490 @@
+{
+  "schema_version": "dci-benchmark-v2-coverage-v1",
+  "as_of": "2026-11-02",
+  "scope": {
+    "domains": [
+      "encyclopedia",
+      "general_qa",
+      "scientific",
+      "medical",
+      "finance",
+      "legal",
+      "enterprise",
+      "web",
+      "software",
+      "argumentation"
+    ],
+    "languages": [
+      "en",
+      "zh"
+    ],
+    "task_count": 20
+  },
+  "sampling": {
+    "strategy": "random_without_replacement",
+    "algorithm_version": "random-without-replacement-v1",
+    "seed": 42,
+    "sizes": {
+      "dev": 10,
+      "test": 50,
+      "smoke": 1
+    },
+    "smoke_is_subset_of": "dev",
+    "input_order": "stable_sorted_by_query_id",
+    "selection_policy": "global_equivalence_group_constrained",
+    "group_assignment_version": "greedy-v1-with-task-local-exact-fallback-v2"
+  },
+  "tiers": {
+    "lite": 200,
+    "full": 1000
+  },
+  "target": {
+    "dev": 200,
+    "test": 1000,
+    "smoke": 20
+  },
+  "prepared": {
+    "dev": 170,
+    "test": 850,
+    "smoke": 17
+  },
+  "ready_tasks": 17,
+  "blocked_tasks": 3,
+  "ready_for_formal": false,
+  "tasks": [
+    {
+      "task": "encyclopedia_en",
+      "domain": "encyclopedia",
+      "domain_label": "百科",
+      "language": "en",
+      "status": "ready",
+      "source": "gapfill_mlqa_en",
+      "source_display": "gapfill_mlqa_en",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "开发10 / 正式50 / Smoke1；排除19条",
+      "excluded_query_count": 19,
+      "reason": null
+    },
+    {
+      "task": "encyclopedia_zh",
+      "domain": "encyclopedia",
+      "domain_label": "百科",
+      "language": "zh",
+      "status": "ready",
+      "source": "qa_cmrc2018_zh",
+      "source_display": "qa_cmrc2018_zh",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "开发10 / 正式50 / Smoke1；排除2条",
+      "excluded_query_count": 2,
+      "reason": null
+    },
+    {
+      "task": "general_qa_en",
+      "domain": "general_qa",
+      "domain_label": "通用问答",
+      "language": "en",
+      "status": "ready",
+      "source": "gapfill_beir_quora_exact_dedup",
+      "source_display": "gapfill_beir_quora_exact_dedup",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "开发10 / 正式50 / Smoke1；排除2条",
+      "excluded_query_count": 2,
+      "reason": null
+    },
+    {
+      "task": "general_qa_zh",
+      "domain": "general_qa",
+      "domain_label": "通用问答",
+      "language": "zh",
+      "status": "ready",
+      "source": "r4_rawqa_hc3_zh_open_qa",
+      "source_display": "r4_rawqa_hc3_zh_open_qa",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "开发10 / 正式50 / Smoke1；排除2条",
+      "excluded_query_count": 2,
+      "reason": null
+    },
+    {
+      "task": "scientific_en",
+      "domain": "scientific",
+      "domain_label": "科研",
+      "language": "en",
+      "status": "ready",
+      "source": "domain_qasper_dev_fullcorpus",
+      "source_display": "domain_qasper_dev_fullcorpus",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "开发10 / 正式50 / Smoke1；排除27条",
+      "excluded_query_count": 27,
+      "reason": null
+    },
+    {
+      "task": "scientific_zh",
+      "domain": "scientific",
+      "domain_label": "科研",
+      "language": "zh",
+      "status": "ready",
+      "source": "r4_rawqa_csl_zh",
+      "source_display": "r4_rawqa_csl_zh",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "开发10 / 正式50 / Smoke1；排除0条",
+      "excluded_query_count": 0,
+      "reason": null
+    },
+    {
+      "task": "medical_en",
+      "domain": "medical",
+      "domain_label": "医疗",
+      "language": "en",
+      "status": "ready",
+      "source": "gapfill_medquad_rawqa",
+      "source_display": "gapfill_medquad_rawqa",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "开发10 / 正式50 / Smoke1；排除3458条",
+      "excluded_query_count": 3458,
+      "reason": null
+    },
+    {
+      "task": "medical_zh",
+      "domain": "medical",
+      "domain_label": "医疗",
+      "language": "zh",
+      "status": "ready",
+      "source": "gapfill_mteb_cmedqa_retrieval",
+      "source_display": "gapfill_mteb_cmedqa_retrieval",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "开发10 / 正式50 / Smoke1；排除0条",
+      "excluded_query_count": 0,
+      "reason": null
+    },
+    {
+      "task": "finance_en",
+      "domain": "finance",
+      "domain_label": "金融",
+      "language": "en",
+      "status": "ready",
+      "source": "domain_fiqa_test",
+      "source_display": "domain_fiqa_test",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "开发10 / 正式50 / Smoke1；排除0条",
+      "excluded_query_count": 0,
+      "reason": null
+    },
+    {
+      "task": "finance_zh",
+      "domain": "finance",
+      "domain_label": "金融",
+      "language": "zh",
+      "status": "ready",
+      "source": "r4_rawqa_hc3_zh_finance",
+      "source_display": "r4_rawqa_hc3_zh_finance",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "开发10 / 正式50 / Smoke1；排除2条",
+      "excluded_query_count": 2,
+      "reason": null
+    },
+    {
+      "task": "legal_en",
+      "domain": "legal",
+      "domain_label": "法律",
+      "language": "en",
+      "status": "ready",
+      "source": "gapfill_acord_en_v3",
+      "source_display": "gapfill_acord_en_v3",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "ACORD：只取官方valid6+test57，排除train51；3/4/5星→relevance1/2/3；DCI采样不等于官方评分。 源规模3931/63/676；注入前Recall@200=0.7048、@1000=0.9707；suite与选中正文hash验收通过。",
+      "excluded_query_count": 0,
+      "reason": null
+    },
+    {
+      "task": "legal_zh",
+      "domain": "legal",
+      "domain_label": "法律",
+      "language": "zh",
+      "status": "ready",
+      "source": "gapfill_legal_lecardv2",
+      "source_display": "gapfill_legal_lecardv2",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "开发10 / 正式50 / Smoke1；排除0条",
+      "excluded_query_count": 0,
+      "reason": null
+    },
+    {
+      "task": "enterprise_en",
+      "domain": "enterprise",
+      "domain_label": "企业知识",
+      "language": "en",
+      "status": "ready",
+      "source": "wixqa_expertwritten",
+      "source_display": "wixqa_expertwritten",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "开发10 / 正式50 / Smoke1；排除0条",
+      "excluded_query_count": 0,
+      "reason": null
+    },
+    {
+      "task": "enterprise_zh",
+      "domain": "enterprise",
+      "domain_label": "企业知识",
+      "language": "zh",
+      "status": "blocked",
+      "source": null,
+      "source_display": "暂缓",
+      "counts": {
+        "dev": 0,
+        "test": 0,
+        "smoke": 0
+      },
+      "pools": {
+        "lite": null,
+        "full": null
+      },
+      "detail": "按本轮范围暂缓中文企业来源接入。",
+      "excluded_query_count": 0,
+      "reason": "missing_native_source"
+    },
+    {
+      "task": "web_en",
+      "domain": "web",
+      "domain_label": "网页检索",
+      "language": "en",
+      "status": "blocked",
+      "source": null,
+      "source_display": "BrowseComp+（待四卡5090续跑）",
+      "counts": {
+        "dev": 0,
+        "test": 0,
+        "smoke": 0
+      },
+      "pools": {
+        "lite": null,
+        "full": null
+      },
+      "detail": "99930文档/825 query/5023正例关系；已保留44/98个文档分片，尚无完成源池。启动环境lychee_reranker_5090_kalm451，四卡分片并行；本轮未启动GPU任务。",
+      "excluded_query_count": 0,
+      "reason": "no source with evidenced provenance"
+    },
+    {
+      "task": "web_zh",
+      "domain": "web",
+      "domain_label": "网页检索",
+      "language": "zh",
+      "status": "ready",
+      "source": "gapfill_mteb_duretrieval",
+      "source_display": "gapfill_mteb_duretrieval",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "开发10 / 正式50 / Smoke1；排除0条",
+      "excluded_query_count": 0,
+      "reason": null
+    },
+    {
+      "task": "software_en",
+      "domain": "software",
+      "domain_label": "软件技术",
+      "language": "en",
+      "status": "ready",
+      "source": "gapfill_android_en",
+      "source_display": "gapfill_android_en",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "Android：排除78472歧义题与19971的262正例溢出；其余官方qrels保留。 源规模22998/697/1432；注入前Recall@200=0.9205、@1000=0.9752；suite与选中正文hash验收通过。",
+      "excluded_query_count": 0,
+      "reason": null
+    },
+    {
+      "task": "software_zh",
+      "domain": "software",
+      "domain_label": "软件技术",
+      "language": "zh",
+      "status": "blocked",
+      "source": null,
+      "source_display": "DQA-Bench（原生来源证据不足）",
+      "counts": {
+        "dev": 0,
+        "test": 0,
+        "smoke": 0
+      },
+      "pools": {
+        "lite": null,
+        "full": null
+      },
+      "detail": "7490 query/7481 answer/7490 QA样例；缺逐条原生中文来源证明，保持阻塞。",
+      "excluded_query_count": 0,
+      "reason": "DQA-Bench reviewed: Chinese row-level native provenance unverified; bilingual translation and generated material cannot count as native coverage"
+    },
+    {
+      "task": "argumentation_en",
+      "domain": "argumentation",
+      "domain_label": "论证检索",
+      "language": "en",
+      "status": "ready",
+      "source": "gapfill_arguana_en",
+      "source_display": "gapfill_arguana_en",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "ArguAna：排除218个歧义query，topic整组隔离；排除query自身。 源规模8674/1183/1183；注入前Recall@200=1.0000、@1000=1.0000；suite与选中正文hash验收通过。",
+      "excluded_query_count": 0,
+      "reason": null
+    },
+    {
+      "task": "argumentation_zh",
+      "domain": "argumentation",
+      "domain_label": "论证检索",
+      "language": "zh",
+      "status": "ready",
+      "source": "gapfill_cedar_zh_v2",
+      "source_display": "gapfill_cedar_zh_v2",
+      "counts": {
+        "dev": 10,
+        "test": 50,
+        "smoke": 1
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "CEDAR：显式support/against关系、精确文本alias合并、每topic一题、排除自身；未标注不作负例。 源规模25794/241/463；注入前Recall@200=0.8420、@1000=0.9253；suite与选中正文hash验收通过。",
+      "excluded_query_count": 0,
+      "reason": null
+    }
+  ],
+  "supplementary_translations": [
+    {
+      "task": "encyclopedia_zh",
+      "source": "gapfill_mlqa_zh",
+      "domain_label": "百科",
+      "language": "zh"
+    }
+  ],
+  "evidence": {
+    "prepared_manifest_sha256": "6cb5943a90afc43fc63235fc1921c29d8a498ba2897497d1e370f6c80d1564da",
+    "config_sha256": "93d01084e533a20c5499476b8d080beac7a71475007134c9b17b406b768d3c76",
+    "body_hashes_checked": false,
+    "boundary": "Selected query IDs and pool metadata; not model execution."
+  }
+}

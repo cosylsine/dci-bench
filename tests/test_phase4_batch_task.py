@@ -2,14 +2,16 @@ import importlib.util
 import json
 import sys
 import tempfile
+import threading
+import time
 import unittest
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import anyio
-from inspect_ai.util import LimitExceededError
+from inspect_ai.util import LimitExceededError, time_limit
 
 
 try:
@@ -220,6 +222,15 @@ class Phase4BatchTaskTest(unittest.TestCase):
 
         anyio.run(exercise)
 
+    def test_v2_has_no_implicit_sample_deadline(self):
+        from dci_bench.tasks.mteb_llm_retrieval import _remaining_pi_timeout_seconds
+        limits = SimpleNamespace(time=SimpleNamespace(remaining=None, limit=None, usage=0))
+        with patch('dci_bench.tasks.mteb_llm_retrieval.SAMPLE_TIMEOUT_SECONDS', None), \
+             patch('dci_bench.tasks.mteb_llm_retrieval.sample_limits', return_value=limits):
+            self.assertIsNone(_remaining_pi_timeout_seconds())
+            limits.time.remaining = 900
+            self.assertEqual(_remaining_pi_timeout_seconds(), 900)
+
     def test_pi_timeout_limit_exhaustion_skips_pi_runner(self):
         async def exercise():
             observed = {"bridge_ready": False}
@@ -257,6 +268,47 @@ class Phase4BatchTaskTest(unittest.TestCase):
             self.assertGreaterEqual(raised.exception.value, raised.exception.limit)
             self.assertEqual(raised.exception.limit, 600.0)
             run_pi.assert_not_called()
+
+        anyio.run(exercise)
+
+    def test_pi_timeout_reads_live_inspect_clock_after_workspace_preparation(self):
+        async def exercise():
+            loop_thread = threading.get_ident()
+
+            @asynccontextmanager
+            async def ready_bridge():
+                yield object()
+
+            @contextmanager
+            def prepare_workspace(*args):
+                self.assertNotEqual(threading.get_ident(), loop_thread)
+                time.sleep(0.05)
+                yield Path("/tmp/workspace")
+
+            def fake_run(**kwargs):
+                self.assertNotEqual(threading.get_ident(), loop_thread)
+                self.assertGreater(kwargs["timeout_seconds"], 0)
+                self.assertLessEqual(kwargs["timeout_seconds"], 60 - 0.05)
+                raise RuntimeError("stop after live timeout capture")
+
+            state = SimpleNamespace(
+                metadata={"task": "Task", "query_id": "Q1", "workspace": "/tmp/workspace"},
+                input_text="query",
+                output=SimpleNamespace(),
+            )
+            solve = pi_dci_solver(output_dir="/tmp/output")
+            with (
+                time_limit(60) as limit,
+                patch("dci_bench.tasks.mteb_llm_retrieval.sandbox_agent_bridge",
+                      return_value=ready_bridge()),
+                patch("dci_bench.tasks.mteb_llm_retrieval.materialize_query_workspace",
+                      side_effect=prepare_workspace),
+                patch("dci_bench.tasks.mteb_llm_retrieval.sample_limits",
+                      return_value=SimpleNamespace(time=limit)),
+                patch("dci_bench.tasks.mteb_llm_retrieval.run_pi_dci", side_effect=fake_run),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "live timeout capture"):
+                    await solve(state, None)
 
         anyio.run(exercise)
 

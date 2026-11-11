@@ -755,13 +755,26 @@ def export_dci(
     provenance = bundle.get("provenance", {})
     if not isinstance(provenance, Mapping):
         provenance = {}
+    exported_queries = []
+    for row in bundle["queries"]:
+        group_fields = {**(row.get("metadata") or {}), **row}
+        exported_queries.append({
+            **{k: row[k] for k in ("_id", "text")},
+            **{k: group_fields[k] for k in (
+                "group_id", "leakage_group", "parallel_group", "translation_group",
+                "equivalent_group", "query_group", "source_query_id", "original_query_id",
+                "equivalent_query_id", "parallel_query_id",
+            ) if k in group_fields},
+        })
     data = {
         "name": task, "dataset": bundle["source"]["dataset"],
         "revision": bundle["source"]["revision"],
         "resolved_revision": bundle["source"].get("resolved_revision", bundle["source"]["revision"]),
         "track": "document", "task_instruction": provenance.get("task_instruction", ""),
         "corpus": [{k: row[k] for k in ("_id", "title", "text")} for row in bundle["documents"]],
-        "queries": [{k: row[k] for k in ("_id", "text")} for row in bundle["queries"]],
+        # The benchmark sampler reads these fields from the query row. Keep
+        # leakage groups across export without exposing answers or judgments.
+        "queries": exported_queries,
         "qrels": bundle["qrels"],
         "host_labels": {"evidence": bundle["evidence"], "judgments": bundle["judgments"],
                         "query_metadata": {q["_id"]: q.get("metadata", {}) for q in bundle["queries"]}},

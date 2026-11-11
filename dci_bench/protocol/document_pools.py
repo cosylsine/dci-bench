@@ -210,7 +210,10 @@ def load_document_pools_v2(path: Path | None = None) -> dict[str, Any]:
         if not isinstance(tier, dict):
             raise ValueError(f"document pool v2 tier {tier_name!r} must be an object")
         for field in _V2_TIER_FIELDS:
-            if field == "reserve_tokens":
+            if field == "sample_timeout_seconds":
+                if field not in tier or tier[field] is not None:
+                    raise ValueError("document pool v2 has no protocol wall-time limit")
+            elif field == "reserve_tokens":
                 if type(tier.get(field)) is not int or tier[field] < 0:
                     raise ValueError(f"document pool v2 {tier_name}.{field} must be a non-negative integer")
             else:
@@ -219,8 +222,6 @@ def load_document_pools_v2(path: Path | None = None) -> dict[str, Any]:
             raise ValueError("all document pool v2 tiers must use a 65536 context window")
         if tier["max_model_output_tokens"] != 1024 or tier["max_final_output_tokens"] != 1024:
             raise ValueError("all document pool v2 tiers must use 1024 response limits")
-        if tier["sample_timeout_seconds"] != 300:
-            raise ValueError("all document pool v2 tiers must use the 300 second timeout")
         if tier["max_search_turns"] != 12 or tier["max_tool_invocations"] != 24:
             raise ValueError("all document pool v2 tiers must use 12 search turns and 24 tool invocations")
         if tier["max_final_repair_turns"] != 1 or tier["max_agent_steps"] != 14:

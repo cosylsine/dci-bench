@@ -19,6 +19,8 @@ LANGUAGE_MODEL_ONLY="${LANGUAGE_MODEL_ONLY:-0}"
 VLLM_EXTRA_ARGS="${VLLM_EXTRA_ARGS:-}"
 VLLM_MAX_NUM_SEQS="${VLLM_MAX_NUM_SEQS:-}"
 VLLM_GPU_MEMORY_UTILIZATION="${VLLM_GPU_MEMORY_UTILIZATION:-}"
+VLLM_MAX_NUM_BATCHED_TOKENS="${VLLM_MAX_NUM_BATCHED_TOKENS:-}"
+VLLM_WORKER_CLS="${VLLM_WORKER_CLS:-}"
 
 EXTRA_ARGS=()
 if [[ -n "$REASONING_PARSER" ]]; then
@@ -39,6 +41,12 @@ if [[ -n "$VLLM_MAX_NUM_SEQS" ]]; then
 fi
 if [[ -n "$VLLM_GPU_MEMORY_UTILIZATION" ]]; then
   EXTRA_ARGS+=(--gpu-memory-utilization "$VLLM_GPU_MEMORY_UTILIZATION")
+fi
+if [[ -n "$VLLM_MAX_NUM_BATCHED_TOKENS" ]]; then
+  EXTRA_ARGS+=(--max-num-batched-tokens "$VLLM_MAX_NUM_BATCHED_TOKENS")
+fi
+if [[ -n "$VLLM_WORKER_CLS" ]]; then
+  EXTRA_ARGS+=(--worker-cls "$VLLM_WORKER_CLS")
 fi
 
 python -m vllm.entrypoints.openai.api_server \

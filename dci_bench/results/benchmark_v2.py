@@ -73,11 +73,11 @@ class PriceQuote:
 
 def cost_gate(*, execution_count: int, calibration: dict | None, mode: str,
               price: PriceQuote | None = None, budget_cny: float = 1000,
-              hours: float = 24, reserve_fraction: float = .2) -> dict:
+              hours: float | None = None, reserve_fraction: float = .2) -> dict:
     if mode not in ('local', 'api') or execution_count <= 0:
         raise ValueError('invalid cost gate mode or execution count')
     if (not 0 <= reserve_fraction < 1 or not math.isfinite(budget_cny)
-            or not math.isfinite(hours) or budget_cny <= 0 or hours <= 0):
+            or budget_cny <= 0 or (hours is not None and (not math.isfinite(hours) or hours <= 0))):
         raise ValueError('invalid cost limits')
     failures = []
     projections = {}
@@ -90,7 +90,7 @@ def cost_gate(*, execution_count: int, calibration: dict | None, mode: str,
         else:
             projected = execution_count / throughput / (1 - reserve_fraction)
             projections['wall_hours_with_reserve'] = projected
-            if projected > hours:
+            if hours is not None and projected > hours:
                 failures.append('projected wall time exceeds limit')
     else:
         if price is None:
@@ -281,8 +281,7 @@ def compare_concurrency(reports: dict[int, dict]) -> dict:
                 or {(s['task_id'], s['tier'], s['query_id']) for s in report['samples']} != identities):
             raise ValueError('concurrency trials require matching measured dev samples')
         throughput, p95 = report['queries_per_hour'], report['p95_seconds']
-        eligible = (report['failure_rate'] <= .01 and throughput is not None and throughput > 0
-                    and p95 is not None and p95 <= 300)
+        eligible = report['failure_rate'] <= .01 and throughput is not None and throughput > 0
         candidates.append({'concurrency': concurrency, 'eligible': eligible,
                            'queries_per_hour': throughput, 'p95_seconds': p95,
                            'failure_rate': report['failure_rate'], 'gpu_utilization': report['gpu_utilization']})
@@ -290,5 +289,5 @@ def compare_concurrency(reports: dict[int, dict]) -> dict:
     chosen = max(eligible, key=lambda row: (row['queries_per_hour'], -row['concurrency'])) if eligible else None
     return {'selected_concurrency': chosen['concurrency'] if chosen else None, 'candidates': candidates,
             'complete_scope': all(report.get('complete_scope') is True for report in reports.values()),
-            'interpretation': 'Highest observed completion throughput among trials with <=1% failures and P95 <=300s. '
+            'interpretation': 'Highest observed completion throughput among trials with <=1% failures. P95 is descriptive only. '
                               'GPU values describe the driver metric; inspect sharing/MIG before interpreting them.'}

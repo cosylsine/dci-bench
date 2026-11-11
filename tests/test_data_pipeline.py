@@ -128,6 +128,7 @@ def test_export_keeps_supervision_host_only_and_pools_share_documents(tmp_path):
     from dci_bench.data.document_pools import prepare_document_pools, verify_document_pool_suite
     b = bundle("evidence_qa")
     b["queries"][0]["metadata"]["answer"] = "HOST_ONLY_CANARY"
+    b["queries"][0]["metadata"]["group_id"] = "original-topic-7"
     b["queries"].append({"_id": "q/2", "text": "Which planet has no moons?", "language": "en", "metadata": {}})
     b["qrels"]["q/2"] = {"source/b": 1}
     target = tmp_path / "release"
@@ -135,6 +136,9 @@ def test_export_keeps_supervision_host_only_and_pools_share_documents(tmp_path):
     m = export_dci(target, tmp_path / "dci", "astronomy")
     assert m["num_docs"] == 2
     assert m["num_queries"] == 2
+    exported = [json.loads(line) for line in (tmp_path / "dci/metadata/astronomy/queries.jsonl").read_text().splitlines()]
+    assert exported[0]["group_id"] == "original-topic-7"
+    assert "answer" not in exported[0]
     for p in (tmp_path / "dci/workspaces").rglob("*"):
         if p.is_file():
             assert "HOST_ONLY_CANARY" not in p.read_text()
@@ -144,6 +148,22 @@ def test_export_keeps_supervision_host_only_and_pools_share_documents(tmp_path):
     assert len(list((result.workspace_dir / "corpus").glob("*.md"))) == 2
     assert all(row["num_docs"] == 2 for row in pool["pools"].values())
     assert all(row["candidate_scores"] is None for row in pool["pools"].values())
+
+
+@pytest.mark.parametrize("metadata", [None, {}, {"group_id": "old-metadata-group"}])
+def test_export_preserves_top_level_groups_with_optional_metadata(tmp_path, metadata):
+    b = bundle()
+    b["queries"][0]["metadata"] = metadata
+    b["queries"][0]["group_id"] = "original-query-family"
+    publish_bundle(b, tmp_path / "release")
+    export_dci(tmp_path / "release", tmp_path / "dci", "astronomy")
+    exported = json.loads((tmp_path / "dci/metadata/astronomy/queries.jsonl").read_text())
+    assert exported["group_id"] == "original-query-family"
+    b["queries"][0].pop("metadata")
+    publish_bundle(b, tmp_path / "release-no-metadata")
+    export_dci(tmp_path / "release-no-metadata", tmp_path / "dci-no-metadata", "astronomy")
+    exported = json.loads((tmp_path / "dci-no-metadata/metadata/astronomy/queries.jsonl").read_text())
+    assert exported["group_id"] == "original-query-family"
 
 
 def test_selection_preserves_full_corpus_and_selected_qrels(tmp_path):

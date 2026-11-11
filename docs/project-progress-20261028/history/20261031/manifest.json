@@ -1,0 +1,37 @@
+{
+  "schema_version": "dci-project-progress-manifest-v2",
+  "as_of": "2026-10-31",
+  "historical_manifest": "history/20261028/manifest.json",
+  "outputs": {
+    "benchmark-v2-coverage.csv": "3f19914b56f241b76421cb868d63d5f85993d5287641a9467e28ee3c78ca9f43",
+    "benchmark-v2-coverage.json": "047a1ae581fac496ba38df13e006f2c99459662f0caa8cbd427c8fe69878166f",
+    "benchmark-v2-status.json": "1f149e4cd06c5c6daabbd3e094d8ca7c9a095c2382f546adcb458cb72ce460cb",
+    "browser-validation-v2.json": "a3cff3d6808133397fc757db84eca38090ae6241e6b71a8a55432b752a5322bb",
+    "browser-validation.json": "0380373d9b2042d5acf8c3991750d5f065dcd28f8f1af81c0b6ff0271ba71c4c",
+    "data_matrix.json": "f7729ad0f705b8edcab859c65ed76461886899ae14e96bfe258688b7f4640aaf",
+    "harness-rules.png": "95e242c86ea3eef7b2fdf409064d387f0e385cfb375244af51385e74536a4065",
+    "harness-rules.svg": "b19f14453f8077889dc91ae44f4a9904a59002dc555e29571e25c7de42bf68fc",
+    "index.html": "1713e7e14688be66a9c8982e5936bab94d82d328a9d925c058ec22135022038d",
+    "progress.md": "f80e02fb084c663b3c9eb786ed771a33649ef0a17d58f6dddd7123749803bd23",
+    "source_matrix.csv": "06fd462f02625afda0bd9f9b70fb3492608878e25e9f4458e40451fa10aff306",
+    "workflow.png": "fae5f026813156dd597d10f589a5244ea869f159f1a057c1b80c9a78e7ff527b",
+    "workflow.svg": "a8f8b06129a2e014844bed620582323f131a8f7cdca5f4544c2b485128712a2e"
+  },
+  "inputs": {
+    "results/implementation/20261031-gapfill/report-interim-20261031T192913/coverage-config.json": "d2e5e3a27ebe1696d62c5aeaa3319320abcf85686f5ab7a0ee8b3f03dc1af287",
+    "results/implementation/20261029-lite-full/prepared-manifest.json": "969aef3a47e80d2a9b42c80b520516225b0b0a8f9a49350a1bf6e05c8f0a2a1c",
+    "results/implementation/20261029-lite-full/data-audit.json": "8a1adcad9ba8dd6c94a2e743a25fecfab5957b9e0bb227f565c8ea9ce56f55ba",
+    "docs/templates/benchmark_progress.html": "bf81bb46cddbded91565cc52a39ecc9a5fd080b84596ee1ca3069c7c08251dcf"
+  },
+  "checks": {
+    "markdown_lines": 41,
+    "historical_matrix_preserved": true,
+    "coverage_task_count": 20,
+    "coverage_ready_tasks": 13,
+    "new_gpu_inference_completed": false,
+    "benchmark_model_inference_completed": false,
+    "data_embedding_gpu_inference_completed": false,
+    "browser_validation_current": true,
+    "yuque_host_verified": false
+  }
+}

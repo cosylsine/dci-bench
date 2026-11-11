@@ -66,7 +66,7 @@ def run_pi_dci(
     openai_base_url: str = "http://localhost:13131/v1",
     openai_api_key: str = "inspect",
     model: str = "inspect",
-    timeout_seconds: float = SAMPLE_TIMEOUT_SECONDS,
+    timeout_seconds: float | None = SAMPLE_TIMEOUT_SECONDS,
     max_agent_steps: int = MAX_AGENT_STEPS,
     context_window: int = int(CONTEXT_POLICY.get("context_window", MAX_TOTAL_MODEL_TOKENS)),
     task_instruction: str = "",
@@ -130,7 +130,7 @@ def run_pi_dci(
             "--context-window",
             str(context_window),
             "--timeout-seconds",
-            str(timeout_seconds),
+            str(timeout_seconds) if timeout_seconds is not None else "none",
         ]
         if mock_script is not None:
             command.extend(["--mock-script", str(mock_script)])
@@ -159,7 +159,8 @@ def run_pi_dci(
 
         # Pass the same deadline to Pi before Node/tsx startup. Import/preflight
         # time must not grant the agent a new timeout window.
-        command.extend(["--deadline-at-ms", str(time.time() * 1000 + timeout_seconds * 1000)])
+        if timeout_seconds is not None:
+            command.extend(["--deadline-at-ms", str(time.time() * 1000 + timeout_seconds * 1000)])
         process = subprocess.Popen(
             command,
             cwd=pi_dci_root(),

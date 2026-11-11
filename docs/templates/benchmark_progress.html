@@ -50,19 +50,19 @@ footer{padding:25px 0 40px;font-size:12px;color:var(--muted)}code{font:12px ui-m
 <div class="shell" id="top" tabindex="-1">
 <nav class="nav" aria-label="页面导航">
 <a class="brand" href="#top">DCI-BENCH <span class="muted">/ 项目进展</span></a>
-<div class="navlinks"><a href="#benchmark-v2">改造进展</a><a href="#workflow">评测流程</a><a href="#data">数据覆盖</a><a href="#results">验证结果</a><a href="#evidence">证据与后续</a></div>
+<div class="navlinks"><a href="#benchmark-v2">改造进展</a><a href="#workflow">评测流程</a><a href="#data">数据覆盖</a><a href="#kalm-recall">KaLM召回率</a><a href="#results">验证结果</a><a href="#evidence">证据与后续</a></div>
 </nav>
 <main>
 <section id="benchmark-v2" tabindex="-1" aria-labelledby="progress-title">
 <div class="hero"><div><div class="eyebrow">__AS_OF__ · LITE / FULL</div>
 <h1 id="progress-title">Lite / Full<br>项目进展与数据覆盖</h1><p>__SUMMARY__</p>
 <div class="links"><a class="primary-link" href="#data">查看当前20任务</a><a href="progress.md">简短进展</a><a href="../benchmark_v2.md">运行说明</a></div></div>
-<aside class="status-card"><strong>数据已准备 __READY__ / 20 任务</strong><p>其余 __BLOCKED__ 格仍有缺口，正式启动保持阻塞。</p><small>准备完成 ≠ 模型评测完成。当前验收以CPU链路为止；真实模型质量、GPU利用率和API费用仍待标定。</small></aside></div>
+<aside class="status-card"><strong>数据已准备 __READY__ / 20 任务</strong><p>__READINESS_NOTE__</p><small>准备完成 ≠ 模型评测完成。候选池编码属于数据准备；真实评测模型质量、GPU吞吐和API费用仍待标定。</small></aside></div>
 <div class="stats"><div class="stat"><strong>10 × 2</strong><span>领域 × 中英双语</span></div><div class="stat"><strong>200 / 1000</strong><span>Lite / Full 候选文档数</span></div><div class="stat"><strong>__DEV__ / 200</strong><span>已准备 / 目标开发query</span></div><div class="stat"><strong>__TEST__ / 1000</strong><span>已准备 / 目标正式query</span></div></div>
 <h3>目标规模与当前准备量</h3>
 <div class="table-wrap"><table><thead><tr><th>集合</th><th>每任务query</th><th>目标总query</th><th>目标两档执行数</th><th>已准备 / 目标query</th></tr></thead><tbody>__SCOPE_ROWS__</tbody></table></div>
 <p class="muted">Smoke是开发集子集，不额外计入独立query。两档及所有模型复用同一抽样清单；执行数是计划工作量，未代表实际完成次数。</p>
-<p>成本目标：每模型本地 ≤24小时或 API ≤¥1000，预留20%；正式执行平均费用需 ≤¥0.40 / 次。2,000次按2分钟计算为66.7小时串行工作量，8并发约8.3小时仅为理想估算。正式集固定50题，成本不达标时暂停启动。</p>
+<p>时间策略更新（2026-11-10）：耗时受硬件影响，仅作参考，默认不设时间准入阈值或运行上限。可通过 <code>--wall-time-limit-hours</code> 显式配置作业保护；中断记录保留并可续跑。API成本仍为每模型≤¥1000、预留20%；正式集固定50题。</p>
 </section>
 <section id="workflow" tabindex="-1" aria-labelledby="workflow-title">
 <h2 id="workflow-title">评测流程</h2><p class="muted">同一份query、两档嵌套候选池、相同执行预算；按阶段保留可复核记录。</p>
@@ -79,7 +79,8 @@ footer{padding:25px 0 40px;font-size:12px;color:var(--muted)}code{font:12px ui-m
 <tr><th>上下文 / 单次输出</th><td>65,536 / 1,024 token</td></tr>
 <tr><th>搜索 / 工具</th><td>最多12轮搜索、24次工具调用；工具返回8 KiB</td></tr>
 <tr><th>提交 / 修复</th><td>另留一次提交和一次修复；动态预留，均计入总token预算</td></tr>
-<tr><th>单题硬超时</th><td>300秒</td></tr>
+<tr><th>时间策略</th><td>默认无单题／整轮时间上限；按token、轮数和工具调用预算停止。耗时仅作参考。</td></tr>
+<tr><th>硬件与耗时记录</th><td>结果记录运行器及模型服务端硬件来源、GPU型号／数量／显存、CPU／内存、并发、单题与批次及整轮耗时。未知服务端硬件显式标注，不用客户端硬件代替。</td></tr>
 </tbody></table></div>
 <p>开发集比较32k / 64k / 96k，每配置400次执行。选择相对96k宏平均Recall@10下降≤2个百分点、有效率≥99%的最低预算，并报告配对区间。模型服务常驻，按4→8→16并发测量完成query/小时、GPU实际利用率、P95延迟和错误率。</p>
 <p>数据、质量、吞吐与API价格门禁通过后，冻结采样、协议和模型配置。两档分别报告领域和语言等权宏平均、配对置信区间、费用、耗时与失败率；领域分数主要用于诊断。</p>
@@ -88,7 +89,7 @@ footer{padding:25px 0 40px;font-size:12px;color:var(--muted)}code{font:12px ui-m
 <section id="data" tabindex="-1" aria-labelledby="data-title">
 <div class="section-head"><div><h2 id="data-title">数据覆盖 · 当前20任务</h2><p>固定10个领域 × 英文 / 中文。每格对应一个任务，显示实际准备状态与缺口。</p></div>
 <div class="links"><a href="benchmark-v2-coverage.csv" download>当前覆盖CSV</a><a href="benchmark-v2-coverage.json">覆盖JSON</a></div></div>
-<div class="note">已准备 <b>__READY__ / 20</b>，阻塞 <b>__BLOCKED__ / 20</b>。已准备任务均为开发10 / 正式50 / Smoke1题，Lite 200 / Full 1000；仅表示抽样与候选池准备，未完成正式推理或全量正文hash复核。</div>
+<div class="note">已准备 <b>__READY__ / 20</b>，数据阻塞 <b>__BLOCKED__ / 20</b>。已准备任务均为开发10 / 正式50 / Smoke1题，Lite 200 / Full 1000。__BODY_VALIDATION_NOTE__</div>
 <div class="controls" id="coverage-controls" hidden>
 <label>状态<select id="stage"><option value="">全部20任务</option><option value="ready">已准备</option><option value="blocked">阻塞 / 缺口</option></select></label>
 <label>领域<select id="domain"><option value="">全部领域</option></select></label>
@@ -100,13 +101,19 @@ footer{padding:25px 0 40px;font-size:12px;color:var(--muted)}code{font:12px ui-m
 <div id="matrix-panel" hidden><div class="table-wrap" tabindex="0" aria-label="当前10领域与中英双语覆盖矩阵">
 <table class="coverage" id="matrix"><thead><tr><th scope="col">领域 / 语言</th><th scope="col">英文 en</th><th scope="col">中文 zh</th></tr></thead><tbody></tbody></table></div>
 <div class="legend"><b>绿色：抽样与两档池已准备</b><b>黄色：尚未满足准备条件</b><span>点击任一任务查看来源和缺口；筛选保留矩阵坐标。</span></div></div>
-<div id="table-panel"><div class="table-wrap" tabindex="0" aria-label="当前20任务来源、准备数量和缺口"><table id="sources"><thead><tr><th>领域 / 任务</th><th>语言</th><th>状态</th><th>来源 / 待审查候选</th><th>已准备开发 / 正式 / Smoke</th><th>Lite / Full</th><th>数量或缺口</th></tr></thead><tbody>__TASK_ROWS__</tbody></table></div></div>
+<div id="table-panel"><div class="table-wrap" tabindex="0" aria-label="当前20任务来源、准备数量和缺口"><table id="sources"><thead><tr><th>领域 / 任务</th><th>语言</th><th>状态</th><th>来源 / 接入进度</th><th>已准备开发 / 正式 / Smoke</th><th>Lite / Full</th><th>数量或缺口</th></tr></thead><tbody>__TASK_ROWS__</tbody></table></div></div>
 <details><summary>译本补充候选 · 不计入20个原生任务</summary><ul>__SUPPLEMENTS__</ul></details>
 <p class="muted">覆盖数字来自配置及经审计的抽样清单，不按原始来源总query数累计。旧来源库存与其他语言仍保留在<a href="history/20261028/index.html#data">2026-10-28历史数据矩阵</a>。</p>
 </section>
+<section id="kalm-recall" tabindex="-1" aria-labelledby="kalm-recall-title">
+<h2 id="kalm-recall-title">KaLM · 补入正例前的召回率</h2>
+<p>衡量构池时KaLM原始检索结果对已标注正例的覆盖。Recall@K = 原始前K篇命中的正例数 / 该query的全部正例数，再对query取平均；K=200 / 1000对应Lite / Full的容量。</p>
+__KALM_RECALL__
+<div class="note">补入遗漏正例后，候选池的已标注正例覆盖为100%；该覆盖率不能用作KaLM召回率。这里是离线构池检索指标，不是DCI agent正式评测成绩，也不使用历史53来源的总体均值代替当前20任务结果。</div>
+</section>
 <section id="results" tabindex="-1" aria-labelledby="results-title">
 <h2 id="results-title">验证结果与执行边界</h2>
-<p>本版完成到CPU验收。真实模型预算／并发标定与正式评测尚未运行；历史159次smoke属于旧协议。</p>
+<p>__VALIDATION_NOTE__</p>
 <div class="table-wrap"><table><thead><tr><th>阶段</th><th>状态</th><th>证据与完成边界</th></tr></thead><tbody>__STAGE_ROWS__</tbody></table></div>
 __TIMING__
 </section>
@@ -115,7 +122,7 @@ __TIMING__
 <details><summary>本版验收记录与数据依据</summary><ul>__EVIDENCE__</ul>
 <div class="links"><a href="benchmark-v2-status.json">执行状态</a><a href="benchmark-v2-coverage.json">当前覆盖数据</a><a href="browser-validation-v2.json">当前报告交互校验</a><a href="manifest.json">报告校验清单</a></div></details>
 <div class="note">历史快照单独保留：旧来源库存、200 / 500 / 1000三档规则、KaLM质量及159次真实smoke均可回查；这些结果不计入本版正式评测完成量。</div>
-<div class="links"><a href="history/20261028/index.html">打开历史完整报告</a><a href="history/20261028/index.html#results">历史验证结果</a><a href="#top">返回顶部 ↑</a></div>
+<div class="links"><a href="history/20261029/index.html">2026-10-29：13/20任务快照</a><a href="history/20261028/index.html">早期完整报告</a><a href="history/20261028/index.html#results">历史验证结果</a><a href="#top">返回顶部 ↑</a></div>
 </section>
 </main>
 <footer>DCI-Bench · __AS_OF__ 状态快照 · 本页无需联网加载脚本或数据。语雀中请替换完整HTML后重新运行。</footer>

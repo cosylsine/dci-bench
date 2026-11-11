@@ -1,0 +1,53 @@
+{
+  "schema_version": "dci-acord-gapfill-v1",
+  "raw_root": "/mnt/afs2/202609/embedding_models/dci-bench/raw_data",
+  "eval_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data",
+  "research_root": "/mnt/afs2/202609/embedding_models/dci-bench/eval_data/source_research_20261031_v1/acord",
+  "acquisition_script": "scripts/acquire_acord_20261031.py",
+  "quality_policy": {
+    "max_positive_per_query": null,
+    "exclude_review_required": true,
+    "drop_near_duplicates": false
+  },
+  "sources": [
+    {
+      "id": "gapfill_acord_en_20261031_v1",
+      "connector": "generic_jsonl",
+      "input_kind": "retrieval",
+      "dataset": "The-Atticus-Project/acord",
+      "revision": "942b33a7c6fed7ead362c7c296401086f8bc0321",
+      "domain": "legal-contract",
+      "language": "en",
+      "genre": "contract-clause-retrieval",
+      "license": "CC BY 4.0 for dataset text (README); MIT for repository wrapper (LICENSE)",
+      "official_urls": [
+        "https://github.com/The-Atticus-Project/acord"
+      ],
+      "options": {
+        "archive_url": "https://codeload.github.com/The-Atticus-Project/acord/zip/942b33a7c6fed7ead362c7c296401086f8bc0321",
+        "archive_member": "ACORD Dataset & ReadMe.zip",
+        "archive_bytes": 3131196,
+        "archive_sha256": "c9e851456a14aed161033b856e9f40f3cc9f46cf7282c2007b143420e93a65c3",
+        "archive_git_blob_sha1": "6de8c6c01a5221fe7669bc3117cfc02e5bc02fbc",
+        "split": "all",
+        "query_source": "queries.jsonl only",
+        "supplement_queries": "excluded",
+        "canonical_label_mapping": "max(raw_grade-1,0); positive raw_grade>=2",
+        "grade_1_semantics": "2 stars: irrelevant but helpful",
+        "unjudged_policy": "not negatives"
+      },
+      "metadata": {
+        "raw_snapshot": "raw_data/gapfill_acord_en/20261031_v1",
+        "release": "eval_data/pipeline_v1/gapfill_acord_en/20261031_v1",
+        "research_receipt": "eval_data/source_research_20261031_v1/acord/acord_20261031_receipt.json",
+        "expected_documents": 3931,
+        "expected_queries": 114,
+        "source_query_splits": {
+          "train": 51,
+          "valid": 6,
+          "test": 57
+        }
+      }
+    }
+  ]
+}

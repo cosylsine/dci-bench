@@ -29,7 +29,7 @@ $PY scripts/run_benchmark_v2.py --suite "$SUITE" --split smoke --allow-partial \
 
 ## 协议与运行
 
-两个profile为`document-pool-v2-lite`、`document-pool-v2-full`。默认64,000累计输入＋输出token，缓存输入同样计入协议；上下文65,536、单次输出1,024、工具输出8KiB、硬超时300秒。最多12轮搜索／读取、24次工具执行，另留提交和一次修复；提交与修复均消耗累计预算。32k／64k／96k通过`--token-budget`选择并纳入运行指纹。
+两个profile为`document-pool-v2-lite`、`document-pool-v2-full`。默认64,000累计输入＋输出token，缓存输入同样计入协议；上下文65,536、单次输出1,024、工具输出8KiB、默认无单题时间上限；耗时仅作参考。最多12轮搜索／读取、24次工具执行，另留提交和一次修复；提交与修复均消耗累计预算。32k／64k／96k通过`--token-budget`选择并纳入运行指纹。
 
 每任务、每档位一个batch，内部query并发且Pi会话独立。运行器复用常驻模型服务及一次准备的Inspect工具包；工作区预取默认由新版运行器启用，`DCI_WORKSPACE_PREFETCH_BATCH_SIZE`不超过并发数，可用`DCI_WORKSPACE_PREFETCH_MAX_BYTES`约束正文占用。逐bash Bubblewrap隔离、候选精确隔离与复制后的正文hash验证保留。逐query记录准备、等待、桥启动、Pi执行与清理时间，以及沙箱校验、预检和bash调用耗时；bash耗时包含命令执行，不能当作纯沙箱开销。
 
@@ -50,7 +50,7 @@ $PY scripts/analyze_benchmark_v2.py compare-concurrency \
   --output results/benchmark-v2/concurrency-selection.json
 ```
 
-并发比较输出完成query／小时、P95、失败率和GPU driver利用率；推荐有效率≥99%、P95≤300秒的最高实测吞吐配置。MIG或共享GPU的driver指标不等于本进程利用率，不可据此宣称GPU已充分利用。部分开发集只能用于工程诊断。
+并发比较输出完成query／小时、P95、失败率和GPU driver利用率；推荐有效率≥99%的最高实测吞吐配置；P95仅作参考，不设统一时间阈值。MIG或共享GPU的driver指标不等于本进程利用率，不可据此宣称GPU已充分利用。部分开发集只能用于工程诊断。
 
 ## 质量、费用和正式启动
 
@@ -67,7 +67,7 @@ $PY scripts/run_benchmark_v2.py --suite "$SUITE" --split test \
   --execute --output results/benchmark-v2/formal
 ```
 
-正式启动要求全20任务、完整开发标定、匹配的数据／代码／模型／并发／预算指纹、三组预算报告及其可复算的选择证据和成本门禁。本地按实测吞吐加20%预留估算≤24小时；API正常正式执行≤¥800，探测及重试计入单模型≤¥1000总额。正式50题固定，门禁失败就停止。
+正式启动要求全20任务、完整开发标定、匹配的数据／代码／模型／并发／预算指纹、三组预算报告及其可复算的选择证据和成本门禁。本地按实测吞吐加20%预留报告预计耗时，默认不以耗时阻止启动；只有显式指定`--wall-time-limit-hours`时才执行作业时间保护；API正常正式执行≤¥800，探测及重试计入单模型≤¥1000总额。正式50题固定，门禁失败就停止。
 
 API执行额外传`--prices /path/to/prices.json`，字段为`currency: CNY`、`model_key`、`as_of`、`source`及每百万token的`input_per_million`、`output_per_million`、`cache_read_per_million`、`cache_write_per_million`。报价来源须含实际单价依据，换汇时记录汇率和日期；仓库不内置可能过期的市场价格。缓存拆分未知时保守估算；usage缺失时在当前batch结束后停止派发，保留该批预留额度，不能按免费处理。费用为provider usage乘固定报价，最终账单仍需核对供应商账单。
 
@@ -76,3 +76,9 @@ API执行额外传`--prices /path/to/prices.json`，字段为`currency: CNY`、`
 API正式启动会自动计入三组开发预算报告中已记账或保留的费用；另须显式传`--prior-cost-cny <金额>`记录这三组之外的Smoke、并发探测等已发生费用，确无其他费用时传`0`。未知费用不能填零。启动前预测与运行中余额检查都包含这些前期费用；Inspect重试和底层SDK重试均关闭。
 
 报告分别输出Lite、Full的20任务等权宏平均、配对区间、领域与语言诊断分数、费用、耗时、失败率和阶段计时。失败query按零计入主指标。`analyze_benchmark_v2.py compare-models --left ... --right ... --output ...`仅比较同一冻结正式集和协议下的两模型结果；置信区间按同源组配对，不能把两档重复query当独立样本。
+
+## 硬件与执行时间参考
+
+`summary.json`中的`hardware_sessions`记录每次启动／续跑的运行器硬件，以及backend清单提供的模型服务端硬件（GPU型号、数量、显存、CPU、内存及采集时间）；`task_executions`通过`hardware_session`索引关联每批任务及其`elapsed_seconds`。单题耗时保留在`samples[].wall_seconds`，整轮耗时为`elapsed_seconds`；并行单题耗时不能相加充当整轮耗时，异常退出后恢复的整轮计时可能包含停机间隔。
+
+模型服务端记录来自`backend.runtime`；现有部署脚本通过`--runtime-info`传入，旧清单缺失的字段记为未知。远程API没有公开服务端配置时也标为未知。运行器本机的GPU清单不等于模型实际分配的GPU。硬件和耗时用于解释结果，不进入质量评分。`--wall-time-limit-hours <小时>`为可选作业保护，默认关闭；该参数记入启动指纹，中断结果保留供续跑。

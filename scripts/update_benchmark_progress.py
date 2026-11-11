@@ -62,7 +62,9 @@ def build_coverage(config: dict, manifest: dict, audit: dict, status: dict) -> d
                           'language': language, 'status': row['status'],
                           'source': row['source_id'], 'source_display': note['source'],
                           'counts': counts, 'pools': pools, 'detail': note['detail'],
-                          'excluded_query_count': row['excluded_query_count'], 'reason': row['reason']})
+                          'excluded_query_count': row['excluded_query_count'],
+                          'reason': row['reason'] if ready else note.get('pending_reason', row['reason']),
+                          'selection_reason': row['reason']})
             for candidate in config['sources'][task]['candidates']:
                 if candidate['provenance'] == 'translated':
                     supplementary.append({'task': task, 'source': candidate['source_id'],
@@ -96,6 +98,40 @@ def update(report: Path, status: dict, *, config_path: Path = ROOT / 'configs/be
             if path.is_file():
                 shutil.copy2(path, history / path.name)
     esc = html.escape
+    recall_path = report / 'kalm-pre-injection-recall.json'
+    recall = json.loads(recall_path.read_text()) if recall_path.exists() else None
+    recall_html = '<p class="muted">当前冻结查询的补正例前召回统计尚未生成。</p>'
+    if recall is not None:
+        if recall['prepared_manifest_sha256'] != prepared['overall_sha256']:
+            raise ValueError('KaLM recall statistics refer to a different frozen query selection')
+        if {row['task'] for row in recall['tasks']} != {row['task'] for row in coverage['tasks']}:
+            raise ValueError('KaLM recall task coverage differs from the report')
+        summary_rows = ''.join(
+            f'<tr><th scope="row">{label}</th><td>{recall["aggregate"][split]["query_count"]:,}</td>'
+            f'<td>{recall["aggregate"][split]["recall_at_200"]:.2%}</td>'
+            f'<td>{recall["aggregate"][split]["recall_at_1000"]:.2%}</td></tr>'
+            for split, label in [('dev', '开发集'), ('test', '正式集（仅离线检索）')])
+        task_names = {row['task']: row['domain_label'] for row in coverage['tasks']}
+        recall_rows = ''.join(
+            '<tr><th scope="row">' + esc(task_names[row['task']]) + '<small>' + esc(row['task']) +
+            '</small></th><td class="source-name">' + esc(row['source']) + '</td>' +
+            ''.join(f'<td>{row["splits"][split][metric]:.2%}</td>'
+                    for split in ('dev', 'test') for metric in ('recall_at_200', 'recall_at_1000')) + '</tr>'
+            for row in recall['tasks'])
+        recall_html = (
+            '<p class="muted">统计范围：当前冻结的20任务，每任务开发10题、正式50题；Smoke属于开发集，不重复计数。'
+            '开发与正式集分别统计，任务内逐query平均，再对20任务等权平均；各任务题数相同，亦等于全部query平均。</p>'
+            '<div class="table-wrap"><table id="kalm-summary"><thead><tr><th>集合</th><th>Query数</th>'
+            '<th>Recall@200</th><th>Recall@1000</th></tr></thead><tbody>' + summary_rows + '</tbody></table></div>'
+            '<h3>各任务补正例前召回</h3><p class="muted">每行开发10题 / 正式50题；百分比按相同口径计算。下表独立展示全部20任务，不随上方数据覆盖筛选变化。</p>'
+            '<div class="table-wrap" tabindex="0" aria-label="20任务KaLM补正例前召回率">'
+            '<table id="kalm-tasks"><thead><tr><th>领域 / 任务</th><th>来源</th>'
+            '<th>开发 R@200</th><th>开发 R@1000</th><th>正式 R@200</th><th>正式 R@1000</th></tr></thead>'
+            '<tbody>' + recall_rows + '</tbody></table></div>'
+            '<p class="muted">统计依据：原始源池逐query审计中的注入前命中数与正例数，按当前冻结清单选题；'
+            '使用源池构建时的去重、过滤和自身文档排除口径，不从已补正例的嵌套池反推。</p>'
+            '<div class="links"><a href="kalm-pre-injection-recall.json">逐题统计与来源哈希 JSON</a>'
+            '<a href="kalm-pre-injection-recall.csv" download>任务汇总 CSV</a></div>')
     stage_rows = ''.join('<tr><th scope="row">' + esc(r['name']) + '</th><td>' + esc(r['status']) +
                          '</td><td>' + esc(r['detail']) + '</td></tr>' for r in status['stages'])
     evidence = ''.join('<li><a href="' + esc(r['path'], quote=True) + '">' + esc(r['label']) +
@@ -122,18 +158,25 @@ def update(report: Path, status: dict, *, config_path: Path = ROOT / 'configs/be
                            '（译本，仅补充候选，未计入20任务准备数）</li>' for r in coverage['supplementary_translations'])
     page = (ROOT / 'docs/templates/benchmark_progress.html').read_text(encoding='utf-8')
     substitutions = {'AS_OF': esc(status['as_of']), 'SUMMARY': esc(status['summary']),
+                     'READINESS_NOTE': esc(f"其余 {coverage['blocked_tasks']} 格仍有数据缺口，正式启动保持阻塞。"
+                                           if coverage['blocked_tasks'] else
+                                           '20项数据任务已全部验收；真实模型Smoke、开发标定与成本门禁仍待完成。'),
+                     'BODY_VALIDATION_NOTE': esc(status.get('body_validation_note',
+                         '仅表示抽样与候选池准备，未完成正式推理或全量正文hash复核。')),
+                     'VALIDATION_NOTE': esc(status.get('validation_note',
+                         '本版更新数据来源审查与接入；CPU验收和并发实现沿用既有证据。真实评测模型的预算／并发标定与正式评测尚未运行；历史159次smoke属于旧协议。')),
                      'READY': str(coverage['ready_tasks']), 'BLOCKED': str(coverage['blocked_tasks']),
                      'DEV': str(coverage['prepared']['dev']), 'TEST': str(coverage['prepared']['test']),
                      'SCOPE_ROWS': scope_rows, 'STAGE_ROWS': stage_rows, 'TIMING': timing_table,
                      'TASK_ROWS': task_rows, 'SUPPLEMENTS': supplements or '<li>无译本补充候选。</li>',
-                     'EVIDENCE': evidence, 'GAPS': gaps,
+                     'EVIDENCE': evidence, 'GAPS': gaps, 'KALM_RECALL': recall_html,
                      'COVERAGE_JSON': json.dumps(coverage, ensure_ascii=False).replace('<', '\\u003c')}
     for key, value in substitutions.items():
         page = page.replace('__' + key + '__', value)
     (report / 'index.html').write_text(page, encoding='utf-8')
     (report / 'benchmark-v2-coverage.json').write_text(json.dumps(coverage, ensure_ascii=False, indent=2) + '\n')
     with (report / 'benchmark-v2-coverage.csv').open('w', encoding='utf-8-sig', newline='') as stream:
-        writer = csv.writer(stream)
+        writer = csv.writer(stream, lineterminator='\n')
         writer.writerow(['task', 'domain', 'language', 'status', 'selected_source', 'source_or_candidate',
                          'dev_queries', 'test_queries', 'smoke_queries', 'lite', 'full', 'detail'])
         for row in coverage['tasks']:
@@ -141,18 +184,27 @@ def update(report: Path, status: dict, *, config_path: Path = ROOT / 'configs/be
                              *(row['counts'][k] for k in ('dev', 'test', 'smoke')),
                              row['pools']['lite'], row['pools']['full'], row['detail']])
     lines = ['# DCI-Bench 执行进展（' + status['as_of'] + '）', '', status['summary'], '',
-             '- [详细进展](index.html#benchmark-v2) · [当前20任务覆盖](index.html#data) · [运行说明](../benchmark_v2.md) · [历史报告](history/20261028/index.html)',
+             '- [详细进展](index.html#benchmark-v2) · [当前20任务覆盖](index.html#data) · [运行说明](../benchmark_v2.md) · [13任务历史快照](history/20261029/index.html) · [原始报告](history/20261028/index.html)',
              '- 目标：10领域 × 中英双语，共20任务；Lite=200、Full=1000。',
              '- 每任务正式50题、开发10题；Smoke取开发集1题。',
              '- 目标正式1,000 query / 2,000次执行；开发200 query / 400次执行；Smoke 40次。',
              f'- 实际准备：{coverage["ready_tasks"]}/20任务；开发{coverage["prepared"]["dev"]}/200、正式{coverage["prepared"]["test"]}/1,000、Smoke {coverage["prepared"]["smoke"]}/20题；不代表已执行。',
              '- 采样：random无放回、seed 42，保留策略接口；开发与正式集按同源组隔离。',
              '- 两档默认累计64k token；12轮搜索、24次工具调用、一次提交与一次修复。',
-             '- 上下文65,536；输出1,024 token；工具8KiB；硬超时300秒。',
-             '- 成本目标：本地≤24小时或API≤¥1000/模型，预留20%；正式集不自动缩样。', '', '## 实施状态', '']
+             '- 上下文65,536；输出1,024 token；工具8KiB；默认无单题时间上限；耗时仅作参考。',
+             '- 结果记录硬件来源、GPU型号／数量／显存、CPU／内存、并发与单题／批次／整轮耗时；服务端硬件未知时明确标注。',
+             '- 成本目标：本地耗时仅作参考，API≤¥1000/模型，预留20%；正式集不自动缩样。', '', '## 实施状态', '']
     lines += ['- **' + r['name'] + '：' + r['status'] + '**。' + r['detail'] for r in status['stages']]
     lines += ['- **报告呈现：已对齐当前设计**。主矩阵固定10领域×中英，支持状态/领域/语言筛选及任务明细；旧来源矩阵与三档结果保留在历史报告。章节导航使用页内滚动。',
               '', '## 未完成与边界', ''] + ['- ' + item for item in status['limitations']]
+    if recall is not None:
+        lines += ['', '## KaLM补入正例前召回', '',
+                  '- 当前冻结20任务，逐query平均；Smoke不重复计数。已注入正例的池覆盖率不是KaLM或agent得分。']
+        for split, label in [('dev', '开发'), ('test', '正式')]:
+            row = recall['aggregate'][split]
+            lines.append(f'- {label}{row["query_count"]:,}题：Recall@200 / @1000 = '
+                         f'{row["recall_at_200"]:.2%} / {row["recall_at_1000"]:.2%}（离线检索）。')
+        lines.append('- [20任务分项与口径](index.html#kalm-recall) · [逐题统计与来源哈希](kalm-pre-injection-recall.json) · [CSV](kalm-pre-injection-recall.csv)')
     lines += ['', '- 历史159次真实smoke保留；不代表新版协议、双语正式集或成本目标已经验证。',
               '- [20任务覆盖JSON](benchmark-v2-coverage.json) · [CSV](benchmark-v2-coverage.csv) · [执行状态与证据](benchmark-v2-status.json) · [交互校验](browser-validation-v2.json) · [报告校验](manifest.json)', '']
     assert len(lines) <= 80
@@ -165,11 +217,14 @@ def update(report: Path, status: dict, *, config_path: Path = ROOT / 'configs/be
     manifest = {'schema_version': 'dci-project-progress-manifest-v2', 'as_of': status['as_of'],
                 'historical_manifest': 'history/20261028/manifest.json', 'outputs': outputs,
                 'inputs': {str(p.relative_to(ROOT) if p.is_relative_to(ROOT) else p): hashlib.sha256(p.read_bytes()).hexdigest()
-                           for p in (config_path, prepared_path, audit_path, ROOT / 'docs/templates/benchmark_progress.html')},
+                           for p in (config_path, prepared_path, audit_path, ROOT / 'docs/templates/benchmark_progress.html',
+                                     *([recall_path] if recall is not None else []))},
                 'checks': {'markdown_lines': len(lines), 'historical_matrix_preserved':
                            (report / 'data_matrix.json').read_bytes() == (history / 'data_matrix.json').read_bytes(),
                            'coverage_task_count': len(coverage['tasks']), 'coverage_ready_tasks': coverage['ready_tasks'],
                            'new_gpu_inference_completed': False,
+                           'benchmark_model_inference_completed': False,
+                           'data_embedding_gpu_inference_completed': status.get('data_preparation', {}).get('embedding_gpu_inference_completed', False),
                            'browser_validation_current': browser.get('passed') is True and browser.get('html_sha256') == outputs['index.html'],
                            'yuque_host_verified': False}}
     (report / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')

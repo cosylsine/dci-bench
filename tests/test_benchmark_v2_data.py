@@ -22,6 +22,7 @@ from dci_bench.data.benchmark_v2 import (
     sample_global_query_splits,
     sample_query_splits,
     select_nested_pools,
+    _source_corpus_reference,
 )
 from dci_bench.data.document_pools import load_document_pool_manifest, verify_document_pool_suite
 
@@ -329,6 +330,53 @@ class BenchmarkV2PrepareAuditTests(unittest.TestCase):
         config_path = root / "config.json"
         self._write_json(config_path, config)
         return catalog_path, config_path
+
+    def test_prepare_accepts_inline_source_pool(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            catalog, config = self._build_source_fixture(root)
+            pool = root / "fixture-source/pools/1000"
+            inline = pool / "workspaces/fixture/corpus"
+            inline.parent.mkdir(parents=True)
+            (root / "fixture-source/source/workspaces/fixture/corpus").rename(inline)
+            (pool / "shared_corpus.json").unlink()
+            output = root / "benchmark-v2"
+            manifest = prepare_benchmark_v2(output_dir=output, config_path=config, catalog_path=catalog)
+            self.assertEqual(manifest["tasks"]["encyclopedia_en"]["status"], "ready")
+            self.assertEqual(audit_benchmark_v2(output)["ready_tasks"], ["encyclopedia_en"])
+            for tier in ("lite", "full"):
+                tier_root = output / "tasks/encyclopedia_en" / tier
+                marker = json.loads((tier_root / "shared_corpus.json").read_text())
+                self.assertEqual(Path(marker["corpus"]), inline.resolve())
+                self.assertEqual(list((tier_root / "workspaces/encyclopedia_en").iterdir()), [])
+                self.assertTrue((tier_root / "metadata/encyclopedia_en/qrels.json").is_file())
+            original_stat = Path.stat
+
+            def reject_document_stat(path, *args, **kwargs):
+                if path != inline and inline in path.parents:
+                    raise AssertionError(f"metadata-only audit statted source body: {path}")
+                return original_stat(path, *args, **kwargs)
+
+            with patch.object(Path, "stat", new=reject_document_stat):
+                self.assertEqual(audit_benchmark_v2(output)["ready_tasks"], ["encyclopedia_en"])
+
+    def test_inline_source_requires_real_directory_and_rejects_bad_marker(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaises(ValueError):
+                _source_corpus_reference(root, "fixture")
+            inline = root / "workspaces/fixture/corpus"
+            inline.parent.mkdir(parents=True)
+            target = root / "other-corpus"
+            target.mkdir()
+            inline.symlink_to(target, target_is_directory=True)
+            with self.assertRaises(ValueError):
+                _source_corpus_reference(root, "fixture")
+            inline.unlink()
+            inline.mkdir()
+            self._write_json(root / "shared_corpus.json", {"schema_version": "invalid"})
+            with self.assertRaisesRegex(ValueError, "unsupported source shared corpus marker"):
+                _source_corpus_reference(root, "fixture")
 
     def test_prepare_audit_filters_duplicates_overflow_and_tamper(self):
         with tempfile.TemporaryDirectory() as temporary:

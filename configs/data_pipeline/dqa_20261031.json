@@ -1,0 +1,53 @@
+{
+  "schema_version": "dqa-acquisition-config-v1",
+  "dataset": "DQA-Bench",
+  "repository": "https://github.com/XMUDM/DQABench",
+  "revision": "b2deb7a2e9267be26c35d91327e00132f4933c17",
+  "complete_package_url": "https://drive.google.com/file/d/1pOn-2-HdB4exaHT2Yh0nxZzy-8B1cuvQL/view?usp=drive_link",
+  "language": "zh",
+  "domain": "software_database",
+  "download_policy": {
+    "first_download_limit_bytes": 536870912,
+    "raw_inputs_immutable": true,
+    "refuse_unverified_mirrors": true
+  },
+  "readiness": {
+    "min_independent_documents": 1000,
+    "min_queries": 60,
+    "require_verified_native_chinese_provenance": true,
+    "no_cross_category_padding": true,
+    "no_cross_language_padding": true
+  },
+  "categories": [
+    {
+      "id": "forum_QA",
+      "official_path": "ZH/general_knowledge/forum_QA",
+      "document_relation": "published_answer_body",
+      "native_status_default": "unverified_translation",
+      "annotation_source_default": "internet_QA_with_LLM_rewrite_claimed_by_paper"
+    },
+    {
+      "id": "specific_product",
+      "official_path": "ZH/specific_product/{GaussDB,openGauss}",
+      "document_relation": "supplied_retrieval_passage",
+      "native_status_default": "unverified_translation",
+      "annotation_source_default": "llm_generated_from_product_manual"
+    },
+    {
+      "id": "specific_instance",
+      "official_path": "ZH/specific_instance/{scenarios-based,tool-based}",
+      "document_relation": "tool_trace_not_corpus_document",
+      "native_status_default": "synthetic_instance",
+      "annotation_source_default": "LLM_generated_with_manual_or_expert_seed_process",
+      "retrieval_release": false
+    },
+    {
+      "id": "general_knowledge_with_tags",
+      "official_path": "general_knowledge_with_tags/zh.json",
+      "document_relation": "published_answer_body",
+      "native_status_default": "unverified_translation",
+      "annotation_source_default": "public_tagged_QA_origin_unresolved",
+      "requires_independent_corpus": true
+    }
+  ]
+}

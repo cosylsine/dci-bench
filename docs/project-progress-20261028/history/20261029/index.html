@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DCI-Bench · Lite / Full 项目进展</title>
+<style>
+:root{--ink:#193b36;--muted:#65746b;--green:#176b56;--line:#d8dfd5;--paper:#f7f8f2}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.75 'Noto Sans CJK SC','Microsoft YaHei',system-ui,sans-serif}
+a{color:var(--green);text-underline-offset:4px}button,input,select{font:inherit;color:inherit}button,select,summary{cursor:pointer}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex="0"]:focus-visible{outline:3px solid #c89440;outline-offset:3px}
+.shell{max-width:1380px;margin:auto;padding:0 40px;min-width:0}
+.nav{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px 24px;padding:18px 0;background:var(--paper);border-bottom:1px solid var(--line)}
+.brand{font-size:19px;font-weight:800;letter-spacing:1px}.nav a{text-decoration:none}.navlinks{display:flex;flex-wrap:wrap;gap:12px 23px;font-size:14px}
+section{padding:38px 0;border-bottom:1px solid var(--line);scroll-margin-top:115px}#top{scroll-margin-top:115px}
+.hero{display:grid;grid-template-columns:1.5fr 1fr;gap:38px;align-items:center}
+.eyebrow{font:12px/1.6 ui-monospace,monospace;letter-spacing:2px;color:var(--green)}
+h1{font-size:clamp(30px,3.5vw,46px);line-height:1.35;margin:16px 0}h2{font-size:27px;line-height:1.4;margin:0 0 12px}h3{font-size:19px;margin:22px 0 8px}p{margin:10px 0}small{display:block;font-size:12px;color:var(--muted)}
+.muted{color:var(--muted)}.status-card{background:#edf2e9;border-left:3px solid var(--green);padding:20px 24px}.status-card strong{display:block;font-size:23px}.links{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;font-size:13px;margin:16px 0}
+.primary-link{background:var(--green);color:white;padding:9px 16px;border-radius:6px;text-decoration:none}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;background:white;margin:25px 0;overflow:hidden}
+.stat{padding:19px 22px;border-right:1px solid var(--line)}.stat:last-child{border:0}.stat strong{display:block;font:600 32px/1.5 ui-monospace,monospace}.stat span{font-size:13px;color:var(--muted)}
+.note{border-left:3px solid #b69a59;background:#fff4e0;padding:12px 17px;font-size:13px;margin:20px 0}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;background:white;max-width:100%}
+table{border-spacing:0;border-collapse:separate;width:100%;font-size:13px}th,td{padding:12px 14px;text-align:left;border-bottom:1px solid #e4e9df;vertical-align:top}thead th{background:#edf2e9;font-weight:600;white-space:nowrap}tbody tr:last-child>td,tbody tr:last-child>th{border-bottom:0}
+.source-name{font:12px/1.6 ui-monospace,monospace;overflow-wrap:anywhere;min-width:190px;max-width:300px}
+.section-head{display:flex;justify-content:space-between;gap:20px;align-items:start}
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;list-style:none;margin:24px 0;padding:0}
+.flow li{border-top:3px solid var(--green);padding:14px 0}.flow b{display:block;margin:6px 0;font-size:17px}.flow p{font-size:13px;color:var(--muted)}.flow .number{font:12px ui-monospace,monospace;color:var(--green)}
+details{background:white;border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin:16px 0}summary{font-weight:600;color:var(--green)}details li{margin:8px 0}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:end;background:white;border:1px solid var(--line);border-radius:10px;padding:16px;margin:18px 0}
+.controls label{display:grid;gap:5px;font-size:12px;color:var(--muted);min-width:130px}
+input,select,.reset{border:1px solid #cbd5c9;border-radius:5px;background:white;min-height:40px;padding:8px 11px}.reset{background:var(--paper);padding:8px 17px}
+.filter-count{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted);margin:14px 0}
+.view-switch{display:flex;gap:6px}.view-switch button{border:1px solid var(--line);border-radius:5px;background:white;padding:7px 13px}.view-switch button[aria-pressed="true"]{background:var(--green);color:white}
+.coverage{table-layout:fixed}.coverage th:first-child{width:18%}.coverage th{vertical-align:middle}.coverage td{padding:8px}
+.cell{width:100%;text-align:left;background:#e8f1e7;border:1px solid #cee0cb;border-radius:7px;padding:12px 14px;overflow-wrap:anywhere;font-size:13px}
+.cell.blocked{background:#fff3dc;border-color:#ecd7b1;color:#805815}.cell b{display:block;margin-bottom:4px}.cell span,.cell small{display:block}
+.cell .source-name{max-width:none;min-width:0;margin:5px 0;color:inherit}.cell.empty{background:transparent;border-color:transparent;color:var(--muted)}
+.badge{display:inline-block;font-size:12px;border-radius:4px;background:#e8f1e7;padding:3px 8px;white-space:nowrap}.badge.blocked{background:#fff3dc;color:#805815}
+.legend{display:flex;flex-wrap:wrap;gap:20px;font-size:12px;color:var(--muted);margin:12px 0}.legend b{font-weight:500}
+.empty-state{text-align:center;color:var(--muted);padding:35px}
+footer{padding:25px 0 40px;font-size:12px;color:var(--muted)}code{font:12px ui-monospace,monospace;overflow-wrap:anywhere}
+@media(max-width:850px){.shell{padding:0 18px}.nav{gap:8px;padding:12px 0}.navlinks{gap:8px 16px;font-size:13px}.hero{grid-template-columns:1fr;gap:15px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stat{padding:15px;border-bottom:1px solid var(--line)}.stat strong{font-size:27px}.flow{grid-template-columns:1fr 1fr}.section-head{display:block}.controls label{flex:1;min-width:125px}.controls input{width:100%;min-width:0}.coverage th:first-child{width:19%}.coverage th,.coverage td{padding:7px 5px}.cell{padding:9px 7px;font-size:12px}.cell .source-name{font-size:11px}section{scroll-margin-top:145px}.coverage th{font-size:12px}}
+@media print{.nav,.controls,.view-switch,.links{display:none}.shell{padding:0;max-width:none}body{font-size:12px}.hero{grid-template-columns:1.5fr 1fr}.table-wrap{overflow:visible}section{padding:20px 0}.stats{grid-template-columns:repeat(4,1fr)}.flow{grid-template-columns:repeat(5,1fr)}}
+</style>
+</head>
+<body>
+<div class="shell" id="top" tabindex="-1">
+<nav class="nav" aria-label="页面导航">
+<a class="brand" href="#top">DCI-BENCH <span class="muted">/ 项目进展</span></a>
+<div class="navlinks"><a href="#benchmark-v2">改造进展</a><a href="#workflow">评测流程</a><a href="#data">数据覆盖</a><a href="#results">验证结果</a><a href="#evidence">证据与后续</a></div>
+</nav>
+<main>
+<section id="benchmark-v2" tabindex="-1" aria-labelledby="progress-title">
+<div class="hero"><div><div class="eyebrow">2026-10-29 · LITE / FULL</div>
+<h1 id="progress-title">Lite / Full<br>项目进展与数据覆盖</h1><p>Lite / Full 核心改造已合入，20次真实沙箱CPU集成及恢复验收通过。数据已准备13/20任务；剩余来源、真实模型标定与正式评测仍未完成。</p>
+<div class="links"><a class="primary-link" href="#data">查看当前20任务</a><a href="progress.md">简短进展</a><a href="../benchmark_v2.md">运行说明</a></div></div>
+<aside class="status-card"><strong>数据已准备 13 / 20 任务</strong><p>其余 7 格仍有缺口，正式启动保持阻塞。</p><small>准备完成 ≠ 模型评测完成。当前验收以CPU链路为止；真实模型质量、GPU利用率和API费用仍待标定。</small></aside></div>
+<div class="stats"><div class="stat"><strong>10 × 2</strong><span>领域 × 中英双语</span></div><div class="stat"><strong>200 / 1000</strong><span>Lite / Full 候选文档数</span></div><div class="stat"><strong>130 / 200</strong><span>已准备 / 目标开发query</span></div><div class="stat"><strong>650 / 1000</strong><span>已准备 / 目标正式query</span></div></div>
+<h3>目标规模与当前准备量</h3>
+<div class="table-wrap"><table><thead><tr><th>集合</th><th>每任务query</th><th>目标总query</th><th>目标两档执行数</th><th>已准备 / 目标query</th></tr></thead><tbody><tr><th scope="row">Smoke（开发集子集）</th><td>1</td><td>20</td><td>40</td><td>13 / 20</td></tr><tr><th scope="row">开发集 / 配置</th><td>10</td><td>200</td><td>400</td><td>130 / 200</td></tr><tr><th scope="row">正式集 / 模型</th><td>50</td><td>1,000</td><td>2,000</td><td>650 / 1,000</td></tr></tbody></table></div>
+<p class="muted">Smoke是开发集子集，不额外计入独立query。两档及所有模型复用同一抽样清单；执行数是计划工作量，未代表实际完成次数。</p>
+<p>成本目标：每模型本地 ≤24小时或 API ≤¥1000，预留20%；正式执行平均费用需 ≤¥0.40 / 次。2,000次按2分钟计算为66.7小时串行工作量，8并发约8.3小时仅为理想估算。正式集固定50题，成本不达标时暂停启动。</p>
+</section>
+<section id="workflow" tabindex="-1" aria-labelledby="workflow-title">
+<h2 id="workflow-title">评测流程</h2><p class="muted">同一份query、两档嵌套候选池、相同执行预算；按阶段保留可复核记录。</p>
+<ol class="flow">
+<li><span class="number">01 / 资格与隔离</span><b>确定20个任务</b><p>原生中英的语料、query、qrels匹配；先去重与同源组隔离。缺格保持阻塞，译本单列。</p></li>
+<li><span class="number">02 / 采样</span><b>开发10 · 正式50</b><p>固定输入排序，random无放回，seed 42。Smoke取开发集1题；保存算法版本、输入摘要和选中ID，保留策略接口。</p></li>
+<li><span class="number">03 / 候选池</span><b>Lite ⊂ Full</b><p>保留全部正例，再按固定检索顺序补齐至200 / 1000。正例超过200的query排除并计数。</p></li>
+<li><span class="number">04 / 执行</span><b>相同预算与隔离</b><p>同任务/profile批处理，每题独立Pi会话；有界工作区预取、复制后正文hash检查、逐bash Bubblewrap隔离及退出清理。</p></li>
+<li><span class="number">05 / 评分与归档</span><b>宿主机评分</b><p>模型提交ranked_doc_ids，qrels仅宿主机可见。逐题记录结果、费用与计时，失败和重试留痕；通过身份与hash校验后恢复。</p></li>
+</ol>
+<details><summary>当前预算与正式冻结条件</summary>
+<div class="table-wrap"><table><thead><tr><th>控制项</th><th>Lite与Full统一值</th></tr></thead><tbody>
+<tr><th>累计输入＋输出token</th><td>64,000（候选默认；缓存输入也计入）</td></tr>
+<tr><th>上下文 / 单次输出</th><td>65,536 / 1,024 token</td></tr>
+<tr><th>搜索 / 工具</th><td>最多12轮搜索、24次工具调用；工具返回8 KiB</td></tr>
+<tr><th>提交 / 修复</th><td>另留一次提交和一次修复；动态预留，均计入总token预算</td></tr>
+<tr><th>单题硬超时</th><td>300秒</td></tr>
+</tbody></table></div>
+<p>开发集比较32k / 64k / 96k，每配置400次执行。选择相对96k宏平均Recall@10下降≤2个百分点、有效率≥99%的最低预算，并报告配对区间。模型服务常驻，按4→8→16并发测量完成query/小时、GPU实际利用率、P95延迟和错误率。</p>
+<p>数据、质量、吞吐与API价格门禁通过后，冻结采样、协议和模型配置。两档分别报告领域和语言等权宏平均、配对置信区间、费用、耗时与失败率；领域分数主要用于诊断。</p>
+</details>
+</section>
+<section id="data" tabindex="-1" aria-labelledby="data-title">
+<div class="section-head"><div><h2 id="data-title">数据覆盖 · 当前20任务</h2><p>固定10个领域 × 英文 / 中文。每格对应一个任务，显示实际准备状态与缺口。</p></div>
+<div class="links"><a href="benchmark-v2-coverage.csv" download>当前覆盖CSV</a><a href="benchmark-v2-coverage.json">覆盖JSON</a></div></div>
+<div class="note">已准备 <b>13 / 20</b>，阻塞 <b>7 / 20</b>。已准备任务均为开发10 / 正式50 / Smoke1题，Lite 200 / Full 1000；仅表示抽样与候选池准备，未完成正式推理或全量正文hash复核。</div>
+<div class="controls" id="coverage-controls" hidden>
+<label>状态<select id="stage"><option value="">全部20任务</option><option value="ready">已准备</option><option value="blocked">阻塞 / 缺口</option></select></label>
+<label>领域<select id="domain"><option value="">全部领域</option></select></label>
+<label>语言<select id="language"><option value="">中英双语</option><option value="en">英文 en</option><option value="zh">中文 zh</option></select></label>
+<label>搜索任务 / 来源<input id="search" type="search" placeholder="任务、来源或缺口"></label><button class="reset" id="reset" type="button">重置筛选</button>
+</div>
+<div class="filter-count"><span id="filter-count" role="status" aria-live="polite">20任务 · 13已准备 · 7阻塞</span>
+<div class="view-switch" id="coverage-views" hidden><button id="matrix-view" type="button" aria-pressed="true">领域 × 语言</button><button id="table-view" type="button" aria-pressed="false">任务明细</button></div></div>
+<div id="matrix-panel" hidden><div class="table-wrap" tabindex="0" aria-label="当前10领域与中英双语覆盖矩阵">
+<table class="coverage" id="matrix"><thead><tr><th scope="col">领域 / 语言</th><th scope="col">英文 en</th><th scope="col">中文 zh</th></tr></thead><tbody></tbody></table></div>
+<div class="legend"><b>绿色：抽样与两档池已准备</b><b>黄色：尚未满足准备条件</b><span>点击任一任务查看来源和缺口；筛选保留矩阵坐标。</span></div></div>
+<div id="table-panel"><div class="table-wrap" tabindex="0" aria-label="当前20任务来源、准备数量和缺口"><table id="sources"><thead><tr><th>领域 / 任务</th><th>语言</th><th>状态</th><th>来源 / 待审查候选</th><th>已准备开发 / 正式 / Smoke</th><th>Lite / Full</th><th>数量或缺口</th></tr></thead><tbody><tr><th scope="row">百科<small>encyclopedia_en</small></th><td>en</td><td>已准备</td><td class="source-name">gapfill_mlqa_en</td><td>10 / 50 / 1</td><td>200 / 1000</td><td>开发10 / 正式50 / Smoke1；排除19条</td></tr><tr><th scope="row">百科<small>encyclopedia_zh</small></th><td>zh</td><td>已准备</td><td class="source-name">qa_cmrc2018_zh</td><td>10 / 50 / 1</td><td>200 / 1000</td><td>开发10 / 正式50 / Smoke1；排除2条</td></tr><tr><th scope="row">通用问答<small>general_qa_en</small></th><td>en</td><td>已准备</td><td class="source-name">gapfill_beir_quora_exact_dedup</td><td>10 / 50 / 1</td><td>200 / 1000</td><td>开发10 / 正式50 / Smoke1；排除2条</td></tr><tr><th scope="row">通用问答<small>general_qa_zh</small></th><td>zh</td><td>已准备</td><td class="source-name">r4_rawqa_hc3_zh_open_qa</td><td>10 / 50 / 1</td><td>200 / 1000</td><td>开发10 / 正式50 / Smoke1；排除2条</td></tr><tr><th scope="row">科研<small>scientific_en</small></th><td>en</td><td>已准备</td><td class="source-name">domain_qasper_dev_fullcorpus</td><td>10 / 50 / 1</td><td>200 / 1000</td><td>开发10 / 正式50 / Smoke1；排除27条</td></tr><tr><th scope="row">科研<small>scientific_zh</small></th><td>zh</td><td>已准备</td><td class="source-name">r4_rawqa_csl_zh</td><td>10 / 50 / 1</td><td>200 / 1000</td><td>开发10 / 正式50 / Smoke1；排除0条</td></tr><tr><th scope="row">医疗<small>medical_en</small></th><td>en</td><td>已准备</td><td class="source-name">gapfill_medquad_rawqa</td><td>10 / 50 / 1</td><td>200 / 1000</td><td>开发10 / 正式50 / Smoke1；排除3458条</td></tr><tr><th scope="row">医疗<small>medical_zh</small></th><td>zh</td><td>已准备</td><td class="source-name">gapfill_mteb_cmedqa_retrieval</td><td>10 / 50 / 1</td><td>200 / 1000</td><td>开发10 / 正式50 / Smoke1；排除0条</td></tr><tr><th scope="row">金融<small>finance_en</small></th><td>en</td><td>已准备</td><td class="source-name">domain_fiqa_test</td><td>10 / 50 / 1</td><td>200 / 1000</td><td>开发10 / 正式50 / Smoke1；排除0条</td></tr><tr><th scope="row">金融<small>finance_zh</small></th><td>zh</td><td>已准备</td><td class="source-name">r4_rawqa_hc3_zh_finance</td><td>10 / 50 / 1</td><td>200 / 1000</td><td>开发10 / 正式50 / Smoke1；排除2条</td></tr><tr><th scope="row">法律<small>legal_en</small></th><td>en</td><td>阻塞</td><td class="source-name">LLMAILAStatutes / LLMLegalBenchConsumerContractsQA（小语料）</td><td>0 / 0 / 0</td><td>— / —</td><td>仅82/154文档，不足Full1000；需合格英文法律来源</td></tr><tr><th scope="row">法律<small>legal_zh</small></th><td>zh</td><td>已准备</td><td class="source-name">gapfill_legal_lecardv2</td><td>10 / 50 / 1</td><td>200 / 1000</td><td>开发10 / 正式50 / Smoke1；排除0条</td></tr><tr><th scope="row">企业知识<small>enterprise_en</small></th><td>en</td><td>已准备</td><td class="source-name">wixqa_expertwritten</td><td>10 / 50 / 1</td><td>200 / 1000</td><td>开发10 / 正式50 / Smoke1；排除0条</td></tr><tr><th scope="row">企业知识<small>enterprise_zh</small></th><td>zh</td><td>阻塞</td><td class="source-name">待补齐</td><td>0 / 0 / 0</td><td>— / —</td><td>缺原生中文企业检索来源与候选池；现有企业来源为英文</td></tr><tr><th scope="row">网页检索<small>web_en</small></th><td>en</td><td>阻塞</td><td class="source-name">browsecomp_plus（候选）</td><td>0 / 0 / 0</td><td>— / —</td><td>已有99930文档/825查询；待原生来源审查与排名/构池</td></tr><tr><th scope="row">网页检索<small>web_zh</small></th><td>zh</td><td>已准备</td><td class="source-name">gapfill_mteb_duretrieval</td><td>10 / 50 / 1</td><td>200 / 1000</td><td>开发10 / 正式50 / Smoke1；排除0条</td></tr><tr><th scope="row">软件技术<small>software_en</small></th><td>en</td><td>阻塞</td><td class="source-name">gapfill_beir_cqadupstack_android（候选）</td><td>0 / 0 / 0</td><td>— / —</td><td>已有22998文档/699查询；待来源审查与排名/构池</td></tr><tr><th scope="row">软件技术<small>software_zh</small></th><td>zh</td><td>阻塞</td><td class="source-name">github_kubernetes_website_zh（接口样例）</td><td>0 / 0 / 0</td><td>— / —</td><td>仅5文档，0查询/0qrels；不能用于评测</td></tr><tr><th scope="row">论证检索<small>argumentation_en</small></th><td>en</td><td>阻塞</td><td class="source-name">domain_arguana_test（候选）</td><td>0 / 0 / 0</td><td>— / —</td><td>已有8674文档/1401查询；待原生来源审查与排名/构池</td></tr><tr><th scope="row">论证检索<small>argumentation_zh</small></th><td>zh</td><td>阻塞</td><td class="source-name">待补齐</td><td>0 / 0 / 0</td><td>— / —</td><td>缺原生中文 corpus/query/qrels 与候选池</td></tr></tbody></table></div></div>
+<details><summary>译本补充候选 · 不计入20个原生任务</summary><ul><li>百科 / zh：gapfill_mlqa_zh（译本，仅补充候选，未计入20任务准备数）</li></ul></details>
+<p class="muted">覆盖数字来自配置及经审计的抽样清单，不按原始来源总query数累计。旧来源库存与其他语言仍保留在<a href="history/20261028/index.html#data">2026-10-28历史数据矩阵</a>。</p>
+</section>
+<section id="results" tabindex="-1" aria-labelledby="results-title">
+<h2 id="results-title">验证结果与执行边界</h2>
+<p>本版完成到CPU验收。真实模型预算／并发标定与正式评测尚未运行；历史159次smoke属于旧协议。</p>
+<div class="table-wrap"><table><thead><tr><th>阶段</th><th>状态</th><th>证据与完成边界</th></tr></thead><tbody><tr><th scope="row">采样与嵌套候选池</th><td>部分数据准备与审计通过</td><td>13/20任务已生成不可覆盖新产物，开发130/正式650 query；两档260/1300次。20任务元数据审计31.8秒，不含正文全扫描。其余7格明确阻塞，正式启动被禁止。</td></tr><tr><th scope="row">统一预算协议</th><td>已合入，协议与门禁验证通过</td><td>两档同预算；Pi20项无跳过通过，旧profile hashes不变。32k/64k/96k选择要求三组完整实测报告，两档Recall降幅各≤2pp；前期API费用纳入总额。</td></tr><tr><th scope="row">批量执行与工作区</th><td>已合入，CPU链路通过</td><td>同任务/profile批处理、独立Pi会话、有界预取、逐query发布和hash核验恢复；20次执行全部有效，恢复新增请求0，退出后工作区已清理。</td></tr><tr><th scope="row">CPU验收</th><td>通过</td><td>最终Python联合验收62项通过，Pi20项无跳过通过；26个任务档位数据预检通过。20次本机provider沙箱执行全部有效，60次请求，恢复新增请求0；新版严格阅读器复核20条结果身份与hash通过。</td></tr><tr><th scope="row">GPU/API标定与正式评测</th><td>未执行</td><td>尚未进行真实模型32k/64k/96k及4/8/16并发标定；13/20数据任务就绪，正式评测门禁保持阻塞。</td></tr></tbody></table></div>
+<h3>CPU链路阶段计时</h3><p class="muted">每档10题，均值秒；finance_en，4并发，脚本化本机 provider，AFS 临时工作区。准备与推理有重叠，Pi执行含工具与HTTP时间，不能相加或外推GPU吞吐。</p><div class="table-wrap"><table><thead><tr><th>阶段</th><th>Lite</th><th>Full</th></tr></thead><tbody><tr><th scope="row">工作区准备</th><td>2.5696</td><td>11.7388</td></tr><tr><th scope="row">前台等待工作区</th><td>0.2309</td><td>3.9115</td></tr><tr><th scope="row">桥接启动</th><td>9.9737</td><td>8.9109</td></tr><tr><th scope="row">Pi执行</th><td>19.8684</td><td>24.2752</td></tr><tr><th scope="row">工作区清理</th><td>0.6636</td><td>3.9401</td></tr><tr><th scope="row">候选沙箱校验</th><td>0.0314</td><td>0.0654</td></tr><tr><th scope="row">Bubblewrap预检</th><td>0.0721</td><td>0.1126</td></tr><tr><th scope="row">bash执行（含命令）</th><td>0.0564</td><td>0.0757</td></tr></tbody></table></div>
+</section>
+<section id="evidence" tabindex="-1" aria-labelledby="evidence-title">
+<h2 id="evidence-title">证据与后续</h2><h3>尚未完成</h3><ul><li>当前数据尚未补齐20个原生中英任务，缺格不能标记为就绪。</li><li>新增协议的质量、实际GPU利用率和API费用尚未验证。</li><li>原始数据、旧候选池和历史评测结果保留；报告更新前版本已归档。</li><li>当前可见为H100 3g.40gb MIG切片；此前4张H100条件不可复现，不能据此宣称完成吞吐/GPU标定。</li><li>CPU探针使用脚本化provider及AFS临时目录；计时只定位工程开销，不代表真实模型质量或生产吞吐。</li><li>恢复集成模拟query全部发布后、batch汇总前中断；中途仅部分query完成的恢复另由CPU单测覆盖。</li><li>已保留早期中断、依赖缺失及代理错误的诊断目录；成功验收以cpu-integration-4为准。</li></ul>
+<details><summary>本版验收记录与数据依据</summary><ul><li><a href="../../results/implementation/20261029-lite-full/data-audit.json">20任务数据审计（13就绪/7阻塞）</a></li><li><a href="../../results/implementation/20261029-lite-full/data-preflight/preflight.json">26个任务档位数据预检</a></li><li><a href="../../results/implementation/20261029-lite-full/benchmark-final-unit.log">51项Python定向测试</a></li><li><a href="../../results/implementation/20261029-lite-full/protocol-pi-test-verified.log">20项Pi协议与沙箱测试（无跳过）</a></li><li><a href="../../results/implementation/20261029-lite-full/protocol-pi-check-final-2.log">TypeScript类型检查</a></li><li><a href="../../results/implementation/20261029-lite-full/cpu-integration-4/result.json">20次CPU真实链路与恢复结果</a></li><li><a href="../../results/implementation/20261029-lite-full/cpu-stage-observations.json">阶段计时汇总</a></li><li><a href="../../results/implementation/20261029-lite-full/http-retry-probe.json">SDK重试实测：默认3请求，关闭后1请求</a></li><li><a href="../../results/implementation/20261029-lite-full/review-gates-unit.log">预算与发布门禁22项回归</a></li><li><a href="../../results/implementation/20261029-lite-full/final-acceptance-unit.log">最终Python联合验收62项</a></li><li><a href="../../results/implementation/20261029-lite-full/final-reader-validation.json">严格结果身份与hash复核20条</a></li><li><a href="../../results/implementation/20261029-lite-full/hardware-final.json">当前GPU可见范围</a></li><li><a href="../../results/implementation/20261029-lite-full/report-static-validation.json">报告静态校验</a></li></ul>
+<div class="links"><a href="benchmark-v2-status.json">执行状态</a><a href="benchmark-v2-coverage.json">当前覆盖数据</a><a href="browser-validation-v2.json">当前报告交互校验</a><a href="manifest.json">报告校验清单</a></div></details>
+<div class="note">历史快照单独保留：旧来源库存、200 / 500 / 1000三档规则、KaLM质量及159次真实smoke均可回查；这些结果不计入本版正式评测完成量。</div>
+<div class="links"><a href="history/20261028/index.html">打开历史完整报告</a><a href="history/20261028/index.html#results">历史验证结果</a><a href="#top">返回顶部 ↑</a></div>
+</section>
+</main>
+<footer>DCI-Bench · 2026-10-29 状态快照 · 本页无需联网加载脚本或数据。语雀中请替换完整HTML后重新运行。</footer>
+</div>
+<!-- Explicit in-document scrolling also works when srcdoc inherits a host base URL. -->
+<script>
+document.addEventListener('click', event => {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const link = event.target.closest('a[href^="#"]');
+  if (!link || link.hasAttribute('download')) return;
+  const target = document.getElementById(link.getAttribute('href').slice(1));
+  if (!target) return;
+  event.preventDefault();
+  target.focus({preventScroll:true});
+  target.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+}, true);
+</script>
+<script type="application/json" id="coverage-data">{"schema_version": "dci-benchmark-v2-coverage-v1", "as_of": "2026-10-29", "scope": {"domains": ["encyclopedia", "general_qa", "scientific", "medical", "finance", "legal", "enterprise", "web", "software", "argumentation"], "languages": ["en", "zh"], "task_count": 20}, "sampling": {"strategy": "random_without_replacement", "algorithm_version": "random-without-replacement-v1", "seed": 42, "sizes": {"dev": 10, "test": 50, "smoke": 1}, "smoke_is_subset_of": "dev", "input_order": "stable_sorted_by_query_id", "selection_policy": "global_equivalence_group_constrained"}, "tiers": {"lite": 200, "full": 1000}, "target": {"dev": 200, "test": 1000, "smoke": 20}, "prepared": {"dev": 130, "test": 650, "smoke": 13}, "ready_tasks": 13, "blocked_tasks": 7, "ready_for_formal": false, "tasks": [{"task": "encyclopedia_en", "domain": "encyclopedia", "domain_label": "百科", "language": "en", "status": "ready", "source": "gapfill_mlqa_en", "source_display": "gapfill_mlqa_en", "counts": {"dev": 10, "test": 50, "smoke": 1}, "pools": {"lite": 200, "full": 1000}, "detail": "开发10 / 正式50 / Smoke1；排除19条", "excluded_query_count": 19, "reason": null}, {"task": "encyclopedia_zh", "domain": "encyclopedia", "domain_label": "百科", "language": "zh", "status": "ready", "source": "qa_cmrc2018_zh", "source_display": "qa_cmrc2018_zh", "counts": {"dev": 10, "test": 50, "smoke": 1}, "pools": {"lite": 200, "full": 1000}, "detail": "开发10 / 正式50 / Smoke1；排除2条", "excluded_query_count": 2, "reason": null}, {"task": "general_qa_en", "domain": "general_qa", "domain_label": "通用问答", "language": "en", "status": "ready", "source": "gapfill_beir_quora_exact_dedup", "source_display": "gapfill_beir_quora_exact_dedup", "counts": {"dev": 10, "test": 50, "smoke": 1}, "pools": {"lite": 200, "full": 1000}, "detail": "开发10 / 正式50 / Smoke1；排除2条", "excluded_query_count": 2, "reason": null}, {"task": "general_qa_zh", "domain": "general_qa", "domain_label": "通用问答", "language": "zh", "status": "ready", "source": "r4_rawqa_hc3_zh_open_qa", "source_display": "r4_rawqa_hc3_zh_open_qa", "counts": {"dev": 10, "test": 50, "smoke": 1}, "pools": {"lite": 200, "full": 1000}, "detail": "开发10 / 正式50 / Smoke1；排除2条", "excluded_query_count": 2, "reason": null}, {"task": "scientific_en", "domain": "scientific", "domain_label": "科研", "language": "en", "status": "ready", "source": "domain_qasper_dev_fullcorpus", "source_display": "domain_qasper_dev_fullcorpus", "counts": {"dev": 10, "test": 50, "smoke": 1}, "pools": {"lite": 200, "full": 1000}, "detail": "开发10 / 正式50 / Smoke1；排除27条", "excluded_query_count": 27, "reason": null}, {"task": "scientific_zh", "domain": "scientific", "domain_label": "科研", "language": "zh", "status": "ready", "source": "r4_rawqa_csl_zh", "source_display": "r4_rawqa_csl_zh", "counts": {"dev": 10, "test": 50, "smoke": 1}, "pools": {"lite": 200, "full": 1000}, "detail": "开发10 / 正式50 / Smoke1；排除0条", "excluded_query_count": 0, "reason": null}, {"task": "medical_en", "domain": "medical", "domain_label": "医疗", "language": "en", "status": "ready", "source": "gapfill_medquad_rawqa", "source_display": "gapfill_medquad_rawqa", "counts": {"dev": 10, "test": 50, "smoke": 1}, "pools": {"lite": 200, "full": 1000}, "detail": "开发10 / 正式50 / Smoke1；排除3458条", "excluded_query_count": 3458, "reason": null}, {"task": "medical_zh", "domain": "medical", "domain_label": "医疗", "language": "zh", "status": "ready", "source": "gapfill_mteb_cmedqa_retrieval", "source_display": "gapfill_mteb_cmedqa_retrieval", "counts": {"dev": 10, "test": 50, "smoke": 1}, "pools": {"lite": 200, "full": 1000}, "detail": "开发10 / 正式50 / Smoke1；排除0条", "excluded_query_count": 0, "reason": null}, {"task": "finance_en", "domain": "finance", "domain_label": "金融", "language": "en", "status": "ready", "source": "domain_fiqa_test", "source_display": "domain_fiqa_test", "counts": {"dev": 10, "test": 50, "smoke": 1}, "pools": {"lite": 200, "full": 1000}, "detail": "开发10 / 正式50 / Smoke1；排除0条", "excluded_query_count": 0, "reason": null}, {"task": "finance_zh", "domain": "finance", "domain_label": "金融", "language": "zh", "status": "ready", "source": "r4_rawqa_hc3_zh_finance", "source_display": "r4_rawqa_hc3_zh_finance", "counts": {"dev": 10, "test": 50, "smoke": 1}, "pools": {"lite": 200, "full": 1000}, "detail": "开发10 / 正式50 / Smoke1；排除2条", "excluded_query_count": 2, "reason": null}, {"task": "legal_en", "domain": "legal", "domain_label": "法律", "language": "en", "status": "blocked", "source": null, "source_display": "LLMAILAStatutes / LLMLegalBenchConsumerContractsQA（小语料）", "counts": {"dev": 0, "test": 0, "smoke": 0}, "pools": {"lite": null, "full": null}, "detail": "仅82/154文档，不足Full1000；需合格英文法律来源", "excluded_query_count": 0, "reason": "insufficient_or_unverified_native_source"}, {"task": "legal_zh", "domain": "legal", "domain_label": "法律", "language": "zh", "status": "ready", "source": "gapfill_legal_lecardv2", "source_display": "gapfill_legal_lecardv2", "counts": {"dev": 10, "test": 50, "smoke": 1}, "pools": {"lite": 200, "full": 1000}, "detail": "开发10 / 正式50 / Smoke1；排除0条", "excluded_query_count": 0, "reason": null}, {"task": "enterprise_en", "domain": "enterprise", "domain_label": "企业知识", "language": "en", "status": "ready", "source": "wixqa_expertwritten", "source_display": "wixqa_expertwritten", "counts": {"dev": 10, "test": 50, "smoke": 1}, "pools": {"lite": 200, "full": 1000}, "detail": "开发10 / 正式50 / Smoke1；排除0条", "excluded_query_count": 0, "reason": null}, {"task": "enterprise_zh", "domain": "enterprise", "domain_label": "企业知识", "language": "zh", "status": "blocked", "source": null, "source_display": "待补齐", "counts": {"dev": 0, "test": 0, "smoke": 0}, "pools": {"lite": null, "full": null}, "detail": "缺原生中文企业检索来源与候选池；现有企业来源为英文", "excluded_query_count": 0, "reason": "missing_native_source"}, {"task": "web_en", "domain": "web", "domain_label": "网页检索", "language": "en", "status": "blocked", "source": null, "source_display": "browsecomp_plus（候选）", "counts": {"dev": 0, "test": 0, "smoke": 0}, "pools": {"lite": null, "full": null}, "detail": "已有99930文档/825查询；待原生来源审查与排名/构池", "excluded_query_count": 0, "reason": "missing_native_provenance"}, {"task": "web_zh", "domain": "web", "domain_label": "网页检索", "language": "zh", "status": "ready", "source": "gapfill_mteb_duretrieval", "source_display": "gapfill_mteb_duretrieval", "counts": {"dev": 10, "test": 50, "smoke": 1}, "pools": {"lite": 200, "full": 1000}, "detail": "开发10 / 正式50 / Smoke1；排除0条", "excluded_query_count": 0, "reason": null}, {"task": "software_en", "domain": "software", "domain_label": "软件技术", "language": "en", "status": "blocked", "source": null, "source_display": "gapfill_beir_cqadupstack_android（候选）", "counts": {"dev": 0, "test": 0, "smoke": 0}, "pools": {"lite": null, "full": null}, "detail": "已有22998文档/699查询；待来源审查与排名/构池", "excluded_query_count": 0, "reason": "source_requires_review"}, {"task": "software_zh", "domain": "software", "domain_label": "软件技术", "language": "zh", "status": "blocked", "source": null, "source_display": "github_kubernetes_website_zh（接口样例）", "counts": {"dev": 0, "test": 0, "smoke": 0}, "pools": {"lite": null, "full": null}, "detail": "仅5文档，0查询/0qrels；不能用于评测", "excluded_query_count": 0, "reason": "connector_demo_has_no_queries"}, {"task": "argumentation_en", "domain": "argumentation", "domain_label": "论证检索", "language": "en", "status": "blocked", "source": null, "source_display": "domain_arguana_test（候选）", "counts": {"dev": 0, "test": 0, "smoke": 0}, "pools": {"lite": null, "full": null}, "detail": "已有8674文档/1401查询；待原生来源审查与排名/构池", "excluded_query_count": 0, "reason": "missing_native_provenance"}, {"task": "argumentation_zh", "domain": "argumentation", "domain_label": "论证检索", "language": "zh", "status": "blocked", "source": null, "source_display": "待补齐", "counts": {"dev": 0, "test": 0, "smoke": 0}, "pools": {"lite": null, "full": null}, "detail": "缺原生中文 corpus/query/qrels 与候选池", "excluded_query_count": 0, "reason": "missing_native_source"}], "supplementary_translations": [{"task": "encyclopedia_zh", "source": "gapfill_mlqa_zh", "domain_label": "百科", "language": "zh"}], "evidence": {"prepared_manifest_sha256": "a756b14d8063d126b10309182208108eda86f7d5685c5080193de117f86655aa", "config_sha256": "7b8354548bf780b8cbb934cf94e3ab5dcae2cb55b13bd770f9b447f9117034d0", "body_hashes_checked": false, "boundary": "Selected query IDs and pool metadata; not model execution."}}</script>
+<script>
+(() => {
+  const coverage = JSON.parse(document.getElementById('coverage-data').textContent);
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const names = Object.fromEntries(coverage.tasks.map(r => [r.domain,r.domain_label]));
+  const label = r => r.status === 'ready' ? '已准备' : '阻塞';
+  for (const domain of coverage.scope.domains) {
+    $('#domain').insertAdjacentHTML('beforeend',`<option value="${esc(domain)}">${esc(names[domain])}</option>`);
+  }
+  function apply() {
+    const stage=$('#stage').value,domain=$('#domain').value,language=$('#language').value,q=$('#search').value.trim().toLowerCase();
+    const rows=coverage.tasks.filter(r=>(!stage||r.status===stage)&&(!domain||r.domain===domain)&&(!language||r.language===language)&&
+      (!q||[r.task,r.domain_label,r.language,r.source_display,r.detail].join(' ').toLowerCase().includes(q)));
+    const ready=rows.filter(r=>r.status==='ready').length;
+    $('#filter-count').textContent=`${rows.length} / 20任务 · ${ready}已准备 · ${rows.length-ready}阻塞 · 开发${rows.reduce((n,r)=>n+r.counts.dev,0)} / 正式${rows.reduce((n,r)=>n+r.counts.test,0)}题已准备`;
+    const selected=new Set(rows.map(r=>r.task));
+    // Keep all 20 coordinates: an absent task must never disappear as apparent coverage.
+    $('#matrix tbody').innerHTML=coverage.scope.domains.map(d=>`<tr><th scope="row">${esc(names[d])}</th>${coverage.scope.languages.map(l=>{
+      const r=coverage.tasks.find(r=>r.domain===d&&r.language===l);
+      if(!selected.has(r.task))return '<td><span class="cell empty">已筛除</span></td>';
+      const counts=r.status==='ready'?`开发 ${r.counts.dev} · 正式 ${r.counts.test} · Smoke ${r.counts.smoke}`:r.detail;
+      return `<td><button type="button" class="cell ${r.status}" data-task="${esc(r.task)}" aria-label="${esc(names[d]+' / '+l+'：'+label(r)+'，查看明细')}"><b>${label(r)}</b><span class="source-name">${esc(r.source_display)}</span><span>${esc(counts)}</span>${r.status==='ready'?'<small>Lite 200 · Full 1000</small>':''}</button></td>`;
+    }).join('')}</tr>`).join('');
+    $('#sources tbody').innerHTML=rows.length?rows.map(r=>`<tr data-task="${esc(r.task)}"><th scope="row">${esc(r.domain_label)}<small>${esc(r.task)}</small></th><td>${r.language}</td><td><span class="badge ${r.status}">${label(r)}</span></td><td class="source-name">${esc(r.source_display)}</td><td>${r.counts.dev} / ${r.counts.test} / ${r.counts.smoke}</td><td>${r.status==='ready'?'200 / 1000':'— / —'}</td><td>${esc(r.detail)}</td></tr>`).join(''):'<tr><td colspan="7" class="empty-state">没有匹配任务；重置筛选可查看全部20任务。</td></tr>';
+  }
+  function view(kind) {
+    $('#matrix-panel').hidden=kind!=='matrix';$('#table-panel').hidden=kind!=='table';
+    $('#matrix-view').setAttribute('aria-pressed',kind==='matrix');$('#table-view').setAttribute('aria-pressed',kind==='table');
+  }
+  document.querySelectorAll('#coverage-controls select,#coverage-controls input').forEach(el=>el.addEventListener('input',apply));
+  $('#reset').addEventListener('click',()=>{for(const id of ['stage','domain','language','search'])$('#'+id).value='';apply();});
+  $('#matrix-view').addEventListener('click',()=>view('matrix'));
+  $('#table-view').addEventListener('click',()=>view('table'));
+  $('#matrix').addEventListener('click',event=>{
+    const button=event.target.closest('button[data-task]');if(!button)return;
+    const r=coverage.tasks.find(r=>r.task===button.dataset.task);
+    $('#domain').value=r.domain;$('#language').value=r.language;apply();view('table');$('#table-view').focus({preventScroll:true});
+  });
+  apply();view('matrix');$('#coverage-controls').hidden=false;$('#coverage-views').hidden=false;
+})();
+</script>
+</body>
+</html>

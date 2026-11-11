@@ -702,12 +702,15 @@ def _assign_global_groups(
     counts: dict[str, int],
     attempt: int,
     strategy_ranks: Mapping[str, Mapping[str, int]] | None = None,
+    allow_task_local_fallback: bool = False,
 ) -> None:
     """Greedily assign whole equivalence groups to one split.
 
     The task-local quotas are small and source query equivalence components
     are normally singletons.  The bounded retry gives deterministic freedom
-    to avoid a poor early choice when a component spans task views.
+    to avoid a poor early choice when a component spans task views.  The
+    optional final pass can solve task-local quotas exactly without splitting
+    components shared across task views.
     """
 
     order = list(groups)
@@ -753,9 +756,66 @@ def _assign_global_groups(
                 continue
             candidates.append(group_id)
         if not candidates:
-            raise SamplingShortageError(
+            failure = SamplingShortageError(
                 f"global {split} group boundaries cannot fill {target} IDs for {task_id!r}"
             )
+            if not allow_task_local_fallback:
+                raise failure
+
+            # Only use the exact fallback after the normal retry budget is
+            # exhausted.  Components spanning tasks stay indivisible.  Undo
+            # local groups selected for the failed task in this split, solve
+            # that task's remaining quota, then resume the normal assignment.
+            failed_task_local_groups = [
+                group_id
+                for group_id in groups_by_task[task_id]
+                if assigned.get(group_id) == split
+                and set(group_counts[group_id]) == {task_id}
+            ]
+            for group_id in failed_task_local_groups:
+                assigned.pop(group_id)
+                counts[task_id] -= group_counts[group_id][task_id]
+            remaining = target - counts[task_id]
+            local_groups: list[tuple[str, list[str]]] = []
+            query_to_group: dict[str, str] = {}
+            for group_id in groups_by_task[task_id]:
+                if group_id in assigned:
+                    continue
+                per_task = group_counts[group_id]
+                if set(per_task) != {task_id}:
+                    continue
+                amount = per_task[task_id]
+                if counts[task_id] + amount > target:
+                    continue
+                query_ids = [
+                    _query_id(row)
+                    for row in groups[group_id]
+                    if row["__task_id"] == task_id
+                ]
+                local_groups.append((group_id, query_ids))
+                for query_id in query_ids:
+                    query_to_group[query_id] = group_id
+            try:
+                selected_query_ids = _choose_group_subset(
+                    local_groups,
+                    remaining,
+                    seed=seed,
+                    scope=(
+                        f"global:{split}:{attempt}:task-local-fallback:{task_id}"
+                    ),
+                )
+            except SamplingShortageError:
+                for group_id in failed_task_local_groups:
+                    assigned[group_id] = split
+                    counts[task_id] += group_counts[group_id][task_id]
+                raise failure
+            selected_group_ids = {
+                query_to_group[query_id] for query_id in selected_query_ids
+            }
+            for selected_group_id in sorted(selected_group_ids):
+                assigned[selected_group_id] = split
+                counts[task_id] += group_counts[selected_group_id][task_id]
+            continue
         task_ranks = (strategy_ranks or {}).get(task_id, {})
         candidates.sort(
             key=lambda group_id: (
@@ -834,7 +894,7 @@ def sample_global_query_splits(
         }
         for split in ("dev", "test")
     }
-    for attempt in range(64):
+    for attempt in range(65):
         # Let the configured sampler determine the per-task order used by the
         # group-constrained assignment.  Calling it with the complete eligible
         # set makes a sampler replaceable without changing this executor's
@@ -854,6 +914,7 @@ def sample_global_query_splits(
                 counts=dev_counts,
                 attempt=attempt,
                 strategy_ranks=strategy_ranks["dev"],
+                allow_task_local_fallback=attempt == 64,
             )
             _assign_global_groups(
                 groups,
@@ -865,6 +926,7 @@ def sample_global_query_splits(
                 counts=test_counts,
                 attempt=attempt,
                 strategy_ranks=strategy_ranks["test"],
+                allow_task_local_fallback=attempt == 64,
             )
         except SamplingShortageError as exc:
             last_error = exc
@@ -1531,7 +1593,14 @@ def _query_map(rows: Sequence[Mapping[str, Any]]) -> dict[str, Mapping[str, Any]
 
 
 def _source_corpus_reference(pool_root: Path, task: str) -> Path:
+    from dci_bench.data.document_pools import _safe_relative
+
     marker = pool_root / "shared_corpus.json"
+    if not os.path.lexists(marker):
+        corpus = _safe_relative(pool_root, f"workspaces/{task}/corpus")
+        if corpus.is_symlink() or not corpus.is_dir():
+            raise ValueError(f"source inline corpus directory is missing: {corpus}")
+        return corpus.resolve()
     if not marker.is_file():
         raise ValueError(f"pool has no shared_corpus.json reference: {pool_root}")
     value = _json_load(marker)

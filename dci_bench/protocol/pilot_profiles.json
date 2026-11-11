@@ -117,7 +117,7 @@
       "final_prompt": "The search phase is now complete: {reason}. The remaining cumulative model-token budget is {remaining_tokens}. Tools are disabled for the final response. Use the corpus evidence already inspected and return only the final JSON object with ranked_doc_ids, at most 10 unique document IDs. Copy doc_id values from read results exactly. Filenames are not IDs (d000001.md -> d000001). Do not add documents merely to fill slots.",
       "final_repair_prompt": "The previous final response cannot be accepted: {reason}. Tools remain disabled. Use only the corpus evidence already inspected. Copy the exact document IDs from read results or filename mappings in the validation feedback. Return only a JSON object with ranked_doc_ids containing 1 to 10 unique document IDs, ranked by relevance. Do not add documents merely to fill slots.",
       "resume_prompt": "The required nonempty corpus read is complete. Remaining cumulative token budget: {remaining_tokens}. Submit the final JSON now; the v2 search and tool caps do not permit another free search phase.",
-      "wall_time_policy": "hard_timeout_only; no time-based search or finalization decisions"
+      "wall_time_policy": "measurement_only; no protocol wall-time limit"
     }
   }
 }

@@ -6,7 +6,7 @@
       "passed": true
     },
     {
-      "name": "prepared_13_blocked_7",
+      "name": "prepared_and_blocked_match_audit",
       "passed": true
     },
     {
@@ -58,11 +58,15 @@
       "passed": true
     },
     {
-      "name": "blocked_drilldown",
+      "name": "blocked_filter_empty_state",
       "passed": true
     },
     {
       "name": "reset_20_tasks",
+      "passed": true
+    },
+    {
+      "name": "all_ready_filter",
       "passed": true
     },
     {
@@ -83,6 +87,10 @@
     },
     {
       "name": "ready_drilldown",
+      "passed": true
+    },
+    {
+      "name": "bcp_ready_drilldown",
       "passed": true
     },
     {
@@ -176,12 +184,48 @@
     {
       "name": "no_javascript_errors",
       "passed": true
+    },
+    {
+      "name": "kalm_navigation",
+      "passed": true
+    },
+    {
+      "name": "kalm_all_20_tasks",
+      "passed": true
+    },
+    {
+      "name": "kalm_aggregates_match_evidence",
+      "passed": true
+    },
+    {
+      "name": "kalm_snapshot_source_links",
+      "passed": true
+    },
+    {
+      "name": "kalm_desktop_no_overflow",
+      "passed": true
+    },
+    {
+      "name": "kalm_mobile_navigation",
+      "passed": true
+    },
+    {
+      "name": "kalm_mobile_no_overflow",
+      "passed": true
+    },
+    {
+      "name": "kalm_no_script_20_tasks",
+      "passed": true
+    },
+    {
+      "name": "kalm_no_script_no_overflow",
+      "passed": true
     }
   ],
   "errors": [],
   "browser": "130.0.6723.31",
-  "html_sha256": "eecb011b76d2cf85a330fa26e6926b855773ee6db3f6c8c583b46fa3fc8686b6",
-  "scope": "Standalone desktop/mobile, sandboxed srcdoc with a host base URL, no-script fallback.",
+  "html_sha256": "63b65e341bddd344dc2cbf0adfa425074e123fd1981135ba67328530693b08d3",
+  "scope": "Standalone desktop/mobile, sandboxed srcdoc with a host base URL, no-script fallback. KaLM section navigation, all 20 tasks, evidence links and numeric summaries, desktop/mobile/no-script layout.",
   "yuque_host_verified": false,
   "historical_html_sha256": "9b24eb5867fc6716a041fae5e87633323ed2b6cf662772082b4ef016155b5817"
 }

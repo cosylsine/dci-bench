@@ -53,7 +53,7 @@ class DocumentPoolV2BudgetTests(unittest.TestCase):
         self.assertEqual(lite["context_window"], 65536)
         self.assertEqual(lite["max_model_output_tokens"], 1024)
         self.assertEqual(lite["max_final_output_tokens"], 1024)
-        self.assertEqual(lite["sample_timeout_seconds"], 300)
+        self.assertIsNone(lite["sample_timeout_seconds"])
         self.assertEqual(lite["max_search_turns"], 12)
         self.assertEqual(lite["max_tool_invocations"], 24)
         self.assertEqual(lite["max_final_repair_turns"], 1)
@@ -74,6 +74,7 @@ class DocumentPoolV2BudgetTests(unittest.TestCase):
             resolved = python_contract("document-pool-v2-lite", raw)
             hashes.add(resolved["sha"])
             contract = resolved["contract"]
+            self.assertIsNone(contract['sample_timeout_seconds'])
             self.assertEqual(contract["max_total_model_tokens"], value)
             self.assertEqual(contract["context_policy"]["max_total_model_tokens"], value)
             self.assertEqual(contract["candidate_pool"]["max_total_model_tokens"], value)

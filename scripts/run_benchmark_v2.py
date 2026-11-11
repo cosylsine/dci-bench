@@ -37,6 +37,7 @@ from dci_bench.results.protocol import (
     verify_artifact_record,
     write_json_atomic,
 )
+from dci_bench.results.hardware import execution_hardware
 
 
 def source_fingerprint() -> str:
@@ -270,7 +271,7 @@ def completed_samples(run: Path, job: dict) -> list[dict]:
     return samples
 
 
-def run_child(command: list[str], *, env: dict, log: Path, timeout: float) -> int:
+def run_child(command: list[str], *, env: dict, log: Path, timeout: float | None) -> int:
     with log.open('w') as handle:
         child = subprocess.Popen(command, env=env, stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
         try:
@@ -348,6 +349,8 @@ def main(argv=None) -> int:
     parser.add_argument('--budget-selection', type=Path)
     parser.add_argument('--prices', type=Path)
     parser.add_argument('--budget-cny', type=float, default=1000)
+    parser.add_argument('--wall-time-limit-hours', type=float,
+                        help='optional operational run limit; default: no wall-time limit')
     parser.add_argument('--prior-cost-cny', type=float)
     parser.add_argument('--allow-partial', action='store_true')
     parser.add_argument('--output', type=Path)
@@ -357,6 +360,9 @@ def main(argv=None) -> int:
     action.add_argument('--preflight-only', action='store_true')
     action.add_argument('--execute', action='store_true')
     args = parser.parse_args(argv)
+    if args.wall_time_limit_hours is not None and (
+            not math.isfinite(args.wall_time_limit_hours) or args.wall_time_limit_hours <= 0):
+        raise ValueError('--wall-time-limit-hours must be finite and positive')
     if not math.isfinite(args.budget_cny) or args.budget_cny <= 0:
         raise ValueError('--budget-cny must be finite and positive')
     if args.prior_cost_cny is not None and (
@@ -369,6 +375,7 @@ def main(argv=None) -> int:
         args.output = args.output.resolve()
     plan = build_plan(args.suite, split=args.split, concurrency=args.concurrency, token_budget=args.token_budget,
                       backend_path=args.backend_manifest, allow_partial=args.allow_partial)
+    plan['wall_time_limit_hours'] = args.wall_time_limit_hours
     if not args.execute and not args.preflight_only:
         print(json.dumps(plan, ensure_ascii=False, indent=2))
         return 0
@@ -441,7 +448,8 @@ def main(argv=None) -> int:
             prior_total = 0.0
         plan['budget_selection_sha256'] = sha256_file(args.budget_selection)
         gate = cost_gate(execution_count=plan['execution_count'], calibration=calibration,
-                         mode=plan['mode'], price=price, budget_cny=args.budget_cny)
+                         mode=plan['mode'], price=price, budget_cny=args.budget_cny,
+                         hours=args.wall_time_limit_hours)
         if not gate['passed']:
             raise ValueError('formal cost gate failed: ' + '; '.join(gate['failures']))
         formal_projection = gate['projections'].get('formal_cost_cny')
@@ -492,11 +500,14 @@ def main(argv=None) -> int:
     prior_elapsed = ledger.get('elapsed_seconds', 0)
     if ledger.get('active_session_started_at') is not None:
         # A hard kill cannot run finally. Charge the unclosed interval, including
-        # any downtime, conservatively instead of resetting the 24-hour guard.
+        # any downtime, conservatively instead of resetting an optional run guard.
         prior_elapsed += max(0, time.time() - ledger['active_session_started_at'])
         ledger['elapsed_recovery_basis'] = 'conservative_unclosed_interval_including_downtime'
     ledger['elapsed_seconds'] = prior_elapsed
     ledger['active_session_started_at'] = time.time()
+    if args.execute:
+        hardware_session = len(ledger.setdefault('hardware_sessions', []))
+        ledger['hardware_sessions'].append(execution_hardware(backend['backend'], args.concurrency))
     write_json_atomic(ledger_path, ledger)
     (args.output / 'logs').mkdir(exist_ok=True)
     if args.execute:
@@ -542,10 +553,12 @@ def main(argv=None) -> int:
                         raise ValueError('spending guard: formal first-attempt allocation exceeds 80% ceiling')
                 ledger['reservations'][reservation_key] = reserved
                 ledger['attempts'].append({'batch': name, 'attempt': attempt, 'reservation_key': reservation_key,
-                                           'reserved_cny': reserved, 'status': 'started'})
+                                           'reserved_cny': reserved, 'status': 'started',
+                                           'hardware_session': hardware_session})
                 write_json_atomic(ledger_path, ledger)
-                remaining = 24 * 3600 - prior_elapsed - (time.monotonic() - started)
-                if remaining <= 0:
+                remaining = (args.wall_time_limit_hours * 3600 - prior_elapsed - (time.monotonic() - started)
+                             if args.wall_time_limit_hours is not None else None)
+                if remaining is not None and remaining <= 0:
                     raise ValueError('run wall-time limit reached')
                 batch_started = time.monotonic()
                 code = run_child(command_for(job, args, plan['model_key']), env=env,
@@ -585,6 +598,13 @@ def main(argv=None) -> int:
                                                                'model_calls': 0, 'sandbox_verified': False})
             return 0
         summary = summarize(samples, expected_tasks=plan['expected_tasks'], elapsed_seconds=elapsed, price=price)
+        summary['hardware_sessions'] = ledger.get('hardware_sessions', [])
+        summary['task_executions'] = ledger['attempts']
+        summary['wall_time_limit_hours'] = args.wall_time_limit_hours
+        summary['timing_interpretation'] = (
+            'Reference measurements on the recorded hardware; not a quality cutoff. '
+            'Parallel query durations are not additive wall time. '
+            'After an unclean interruption, total elapsed may include downtime.')
         summary.update({key: plan[key] for key in ('split', 'selection_sha256', 'source_fingerprint', 'backend_sha256',
                                                   'concurrency', 'token_budget', 'complete_scope', 'model_key', 'mode')})
         for tier in TIERS:
