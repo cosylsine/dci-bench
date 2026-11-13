@@ -13,6 +13,10 @@ venv/
 .env.*
 envs/
 
+# Accidentally named SSH key pair; never track these local files.
+/```
+/```.pub
+
 # Data / evaluation outputs
 data/raw/
 data/metadata/
