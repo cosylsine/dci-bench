@@ -1,0 +1,310 @@
+{
+  "schema_version": "dci-progress-browser-validation-v1",
+  "date": "2026-11-13",
+  "passed": true,
+  "checks": [
+    {
+      "name": "visual:workflow_viewbox_text_bounds",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "visual:workflow_card_text_bounds",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "visual:workflow_accessible",
+      "passed": true
+    },
+    {
+      "name": "visual:harness-rules_viewbox_text_bounds",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "visual:harness-rules_card_text_bounds",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "visual:harness-rules_accessible",
+      "passed": true
+    },
+    {
+      "name": "visual:two_inline_diagrams",
+      "passed": true
+    },
+    {
+      "name": "visual:no_svg_id_collisions",
+      "passed": true
+    },
+    {
+      "name": "visual:runtime_evidence_counts",
+      "passed": true
+    },
+    {
+      "name": "visual:desktop_runtime_navigation",
+      "passed": true
+    },
+    {
+      "name": "visual:1440_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "visual:1440_identity_table_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "visual:1440_diagram_scroll_container",
+      "passed": true
+    },
+    {
+      "name": "visual:390_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "visual:390_identity_table_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "visual:390_diagram_scroll_container",
+      "passed": true
+    },
+    {
+      "name": "visual:320_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "visual:320_identity_table_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "visual:320_diagram_scroll_container",
+      "passed": true
+    },
+    {
+      "name": "visual:inline_diagram_styles_do_not_overflow",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "visual:srcdoc_runtime_navigation",
+      "passed": true
+    },
+    {
+      "name": "visual:srcdoc_offline_inline_diagrams",
+      "passed": true
+    },
+    {
+      "name": "visual:no_javascript_errors",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "interaction:default_10_domains_20_cells",
+      "passed": true
+    },
+    {
+      "name": "interaction:prepared_and_blocked_match_audit",
+      "passed": true
+    },
+    {
+      "name": "interaction:languages_only_en_zh",
+      "passed": true
+    },
+    {
+      "name": "interaction:prepared_query_totals",
+      "passed": true
+    },
+    {
+      "name": "interaction:no_old_inventory_controls",
+      "passed": true
+    },
+    {
+      "name": "interaction:unique_ids",
+      "passed": true
+    },
+    {
+      "name": "interaction:standalone_workflow",
+      "passed": true
+    },
+    {
+      "name": "interaction:standalone_data",
+      "passed": true
+    },
+    {
+      "name": "interaction:standalone_results",
+      "passed": true
+    },
+    {
+      "name": "interaction:standalone_evidence",
+      "passed": true
+    },
+    {
+      "name": "interaction:standalone_benchmark-v2",
+      "passed": true
+    },
+    {
+      "name": "interaction:standalone_top",
+      "passed": true
+    },
+    {
+      "name": "interaction:smooth_navigation",
+      "passed": true
+    },
+    {
+      "name": "interaction:blocked_filter_keeps_coordinates",
+      "passed": true
+    },
+    {
+      "name": "interaction:blocked_filter_empty_state",
+      "passed": true
+    },
+    {
+      "name": "interaction:reset_20_tasks",
+      "passed": true
+    },
+    {
+      "name": "interaction:all_ready_filter",
+      "passed": true
+    },
+    {
+      "name": "interaction:zh_filter",
+      "passed": true
+    },
+    {
+      "name": "interaction:zh_ready_filter",
+      "passed": true
+    },
+    {
+      "name": "interaction:empty_filter",
+      "passed": true
+    },
+    {
+      "name": "interaction:chinese_domain_search",
+      "passed": true
+    },
+    {
+      "name": "interaction:ready_drilldown",
+      "passed": true
+    },
+    {
+      "name": "interaction:bcp_ready_drilldown",
+      "passed": true
+    },
+    {
+      "name": "interaction:desktop_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "interaction:keyboard_navigation",
+      "passed": true
+    },
+    {
+      "name": "interaction:budget_details",
+      "passed": true
+    },
+    {
+      "name": "interaction:mobile_workflow",
+      "passed": true
+    },
+    {
+      "name": "interaction:mobile_data",
+      "passed": true
+    },
+    {
+      "name": "interaction:mobile_results",
+      "passed": true
+    },
+    {
+      "name": "interaction:mobile_evidence",
+      "passed": true
+    },
+    {
+      "name": "interaction:mobile_benchmark-v2",
+      "passed": true
+    },
+    {
+      "name": "interaction:mobile_top",
+      "passed": true
+    },
+    {
+      "name": "interaction:mobile_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "interaction:reproduced_native_fragment_failure_with_host_base",
+      "passed": true
+    },
+    {
+      "name": "interaction:sandbox_srcdoc_host_base_workflow",
+      "passed": true
+    },
+    {
+      "name": "interaction:sandbox_srcdoc_host_base_data",
+      "passed": true
+    },
+    {
+      "name": "interaction:sandbox_srcdoc_host_base_results",
+      "passed": true
+    },
+    {
+      "name": "interaction:sandbox_srcdoc_host_base_evidence",
+      "passed": true
+    },
+    {
+      "name": "interaction:sandbox_srcdoc_host_base_benchmark-v2",
+      "passed": true
+    },
+    {
+      "name": "interaction:sandbox_srcdoc_host_base_top",
+      "passed": true
+    },
+    {
+      "name": "interaction:embedded_filters",
+      "passed": true
+    },
+    {
+      "name": "interaction:embedded_document_preserved",
+      "passed": true
+    },
+    {
+      "name": "interaction:no_script_all_tasks_readable",
+      "passed": true
+    },
+    {
+      "name": "interaction:no_script_dead_controls_hidden",
+      "passed": true
+    },
+    {
+      "name": "interaction:no_script_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "interaction:no_javascript_errors",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "browser": "130.0.6723.31",
+  "html_sha256": "f6f1da01be591343fcd1d910bfb57707e48524e71f9c5f1c6f9d025a6b609765",
+  "diagram_sha256": {
+    "workflow.svg": "82cf584115f2cdf06dfaee9bbf2dc1b91c6aef6059fcaae254ee769cd69df8bf",
+    "workflow.png": "571b1aece5753a46b0dbcd60af44bad6cf89bb3c19ea1cd47544acf1d73ee8bd",
+    "harness-rules.svg": "fd4232edc54553cf3d876bd22021a68c22fed772cba31ba8b029bf6cf91af25f",
+    "harness-rules.png": "6fe4720e6090ee51b8a3db8b5d390a3aadb0315221e2ebbc4a0df53ba4f89d9d"
+  },
+  "scope": "Standalone desktop/mobile, runtime content, diagram text bounds and PNG exports, original matrix filters, keyboard navigation, no-script fallback and simulated sandboxed srcdoc with a host base URL.",
+  "yuque_host_verified": false,
+  "evidence_directory": "results/documentation/project-progress-frozen-20261113",
+  "source_reports": [
+    "frozen-visual-validation.json",
+    "interactions/browser-validation.json"
+  ],
+  "visual_review": {
+    "standalone_diagrams": true,
+    "desktop_runtime": true,
+    "mobile_runtime": true
+  }
+}

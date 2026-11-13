@@ -97,20 +97,28 @@ def main(argv: list[str] | None = None) -> int:
         options = run_task.parse_args(runner_argv)
         if options.prepare:
             raise ValueError("pool preflight cannot prepare or rebuild source data")
-        from dci_bench.results.phase4_runner import data_audit
+        from dci_bench.results.phase4_runner import (
+            data_audit,
+            runtime_identity_payload,
+            verify_runtime_config,
+        )
         from dci_bench.tasks.mteb_llm_retrieval import _make_samples
         from dci_bench.protocol.contracts import CONTRACT_SHA256, protocol_contract
         from dci_bench.results.protocol import build_run_manifest
 
+        agent_runtime = verify_runtime_config(options.runtime_config)
+        runtime_identity = runtime_identity_payload(agent_runtime)
         identity = data_audit(args.metadata_root, args.task)
         samples = _make_samples(args.task, options.query_ids, args.metadata_root,
                                 args.workspace_root, all_queries=options.all_queries)
         # Validate the data/contract through the same publication schema used by
         # execute_phase4, before allocating a model server or making model calls.
+        code = {"agent_runtime": runtime_identity} if runtime_identity is not None else None
         build_run_manifest(
             run_id='data-preflight', model_key=options.model_key, task=args.task,
             query_ids=[sample.id for sample in samples], data=identity,
             benchmark_contract=protocol_contract(task_name=args.task, task_instruction=task.task_instruction),
+            code=code,
             max_total_model_tokens=tier['max_total_model_tokens'], max_concurrency=options.max_concurrency,
         )
         result = {"status": "data_preflight_passed", "task": args.task,

@@ -12,7 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class Benchmark20LauncherTests(unittest.TestCase):
-    def launch(self, *, mode=None, fail_stage="", memory="0.80"):
+    def launch(self, *, mode=None, fail_stage="", memory="0.80", frozen=False,
+               prepare_fail=False, ensure_fail=False, dry_run=False, warm=False, preflight_concurrency="4"):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             scripts = root / "scripts"
@@ -29,7 +30,15 @@ class Benchmark20LauncherTests(unittest.TestCase):
             launcher = scripts / "launch_benchmark20_qwen38_5090.sh"
             launcher.write_text(text)
             shutil.copyfile(ROOT / "scripts/serve_vllm_qwen38.sh", scripts / "serve_vllm_qwen38.sh")
-            (scripts / "ensure_pool_smoke_tools.sh").write_text("#!/bin/sh\nexit 0\n")
+            (scripts / "ensure_pool_smoke_tools.sh").write_text(
+                '#!/bin/sh\nexit "${TEST_DEP_FAIL:-0}"\n')
+            prepare = scripts / "prepare_frozen_runtime.sh"
+            prepare.write_text("""#!/bin/sh
+printf '{\"stage\":\"frozen_prepare\",\"config\":\"%s\",\"bundle\":\"%s\"}\\n' \\
+  \"$DCI_RUNTIME_CONFIG\" \"${DCI_RUNTIME_BUNDLE:-}\" >> \"$TEST_TRACE\"
+exit \"${TEST_PREPARE_FAIL:-0}\"
+""")
+            prepare.chmod(0o755)
             fake = bindir / "python"
             fake.write_text(f"#!{sys.executable}\n" + '''
 import json, os, pathlib, sys, time
@@ -75,11 +84,23 @@ pathlib.Path(sys.argv[sys.argv.index('-o')+1]).write_text(json.dumps({'data':[{'
 ''')
             curl.chmod(0o755)
             trace = root / "trace.jsonl"
-            env = {**os.environ, "DRY_RUN": "0", "TEST_TRACE": str(trace),
-                   "TEST_FAIL_STAGE": fail_stage, "VLLM_GPU_MEMORY_UTILIZATION": memory}
+            env = {**os.environ, "DRY_RUN": "1" if dry_run else "0", "TEST_TRACE": str(trace),
+                   "TEST_FAIL_STAGE": fail_stage, "TEST_PREPARE_FAIL": "23" if prepare_fail else "0",
+                   "TEST_DEP_FAIL": "19" if ensure_fail else "0",
+                   "VLLM_GPU_MEMORY_UTILIZATION": memory, "PREFLIGHT_CONCURRENCY": preflight_concurrency}
+            env.pop('DCI_RUNTIME_CONFIG', None)
+            env.pop('DCI_RUNTIME_BUNDLE', None)
+            if frozen:
+                config = root/'runtime.json'
+                config.write_text('{}')
+                env['DCI_RUNTIME_CONFIG'] = str(config)
+                if not warm:
+                    bundle = root/'rootfs.tar'
+                    bundle.write_bytes(b'fixture bundle')
+                    env['DCI_RUNTIME_BUNDLE'] = str(bundle)
             command = ["bash", str(launcher), *([mode] if mode else [])]
             result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=30)
-            rows = [json.loads(line) for line in trace.read_text().splitlines()]
+            rows = [json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
             return result, rows
 
     def test_complete_launch_orders_kernel_probe_profile_worker_and_evaluation(self):
@@ -97,6 +118,10 @@ pathlib.Path(sys.argv[sys.argv.index('-o')+1]).write_text(json.dumps({'data':[{'
             self.assertEqual(args[args.index(name) + 1], value)
         manifest = next(r["args"] for r in rows if r["stage"] == "manifest")
         self.assertEqual(manifest[manifest.index("--gpu-memory-utilization") + 1], "0.75")
+        warmup = next(r["args"] for r in rows if r["stage"] == "harness_pilot_warmup.py")
+        self.assertEqual(warmup[warmup.index("--backend-manifest") + 1],
+                         next(r["args"] for r in rows if r["stage"] == "manifest")[
+                             manifest.index("--output") + 1])
 
     def test_serving_diagnostic_skips_data_and_benchmark_but_requires_warmup(self):
         result, rows = self.launch(mode="--serving-smoke-only")
@@ -104,6 +129,22 @@ pathlib.Path(sys.argv[sys.argv.index('-o')+1]).write_text(json.dumps({'data':[{'
         self.assertEqual([r["stage"] for r in rows], ["harness_pilot_runtime.py", "check_gdn_kernels.py",
             "manifest", "serve", "harness_pilot_warmup.py"])
         self.assertIn("benchmark not executed", result.stdout)
+
+    def test_preflight_concurrency_is_forwarded_independently_of_model_concurrency(self):
+        for workers in ('1', '4', '8'):
+            with self.subTest(workers=workers):
+                result, rows = self.launch(mode="--preflight-only", preflight_concurrency=workers)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                args = next(row['args'] for row in rows if row['stage'] == 'data')
+                self.assertEqual(args[args.index('--preflight-concurrency') + 1], workers)
+                self.assertEqual(args[args.index('--concurrency') + 1], '4')
+                self.assertNotIn('serve', [row['stage'] for row in rows])
+
+    def test_frozen_serving_diagnostic_skips_runtime_and_data_preparation(self):
+        result, rows = self.launch(mode="--serving-smoke-only", frozen=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual([r["stage"] for r in rows], ["harness_pilot_runtime.py", "check_gdn_kernels.py",
+            "manifest", "serve", "harness_pilot_warmup.py"])
 
     def test_failed_kernel_probe_stops_before_manifest_or_model_load(self):
         result, rows = self.launch(mode="--serving-smoke-only", fail_stage="check_gdn_kernels.py")
@@ -119,6 +160,42 @@ pathlib.Path(sys.argv[sys.argv.index('-o')+1]).write_text(json.dumps({'data':[{'
         result, rows = self.launch(mode="--preflight-only")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([r["stage"] for r in rows], ["data", "check_inspect_parallel.py"])
+
+    def test_frozen_configuration_reaches_data_bridge_and_evaluation(self):
+        result, rows = self.launch(frozen=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual([r["stage"] for r in rows][:2], ["frozen_prepare", "data"])
+        prepare = rows[0]
+        self.assertTrue(prepare["config"].endswith("runtime.json"))
+        self.assertTrue(prepare["bundle"].endswith("rootfs.tar"))
+        paths = []
+        for row in rows:
+            if row['stage'] in ('data', 'check_inspect_parallel.py', 'execute'):
+                paths.append(row['args'][row['args'].index('--runtime-config') + 1])
+        self.assertEqual(len(paths), 3)
+        self.assertEqual(len(set(paths)), 1)
+
+    def test_frozen_prepare_failure_stops_before_data_or_gpu(self):
+        result, rows = self.launch(frozen=True, prepare_fail=True)
+        self.assertEqual(result.returncode, 23)
+        self.assertEqual([r["stage"] for r in rows], ["frozen_prepare"])
+
+    def test_frozen_warm_cache_reuses_without_bundle(self):
+        result, rows = self.launch(frozen=True, warm=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(rows[0]["stage"], "frozen_prepare")
+        self.assertEqual(rows[0]["bundle"], "")
+
+    def test_dependency_failure_stops_before_frozen_prepare_or_gpu(self):
+        result, rows = self.launch(frozen=True, ensure_fail=True)
+        self.assertEqual(result.returncode, 19)
+        self.assertEqual(rows, [])
+
+    def test_dry_run_does_not_prepare_frozen_runtime_or_start_gpu(self):
+        result, rows = self.launch(frozen=True, dry_run=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual([r["stage"] for r in rows], ["data"])
+        self.assertNotIn("frozen_prepare", result.stdout + result.stderr)
 
 
 if __name__ == "__main__":

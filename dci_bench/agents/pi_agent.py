@@ -10,7 +10,7 @@ import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from dci_bench.protocol.contracts import (
     BENCHMARK_CONTRACT_VERSION,
@@ -23,6 +23,9 @@ from dci_bench.protocol.contracts import (
     SAMPLE_TIMEOUT_SECONDS,
     TRAJECTORY_SCHEMA_VERSION,
 )
+
+if TYPE_CHECKING:
+    from dci_bench.runtime import VerifiedRuntime
 
 
 @dataclass(frozen=True)
@@ -71,6 +74,7 @@ def run_pi_dci(
     context_window: int = int(CONTEXT_POLICY.get("context_window", MAX_TOTAL_MODEL_TOKENS)),
     task_instruction: str = "",
     extra_env: dict[str, str] | None = None,
+    agent_runtime: VerifiedRuntime | None = None,
     _code_runtime: dict[str, Any] | None = None,
     _code_files_path: Path | None = None,
 ) -> PiRunResult:
@@ -93,6 +97,13 @@ def run_pi_dci(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if trace_path is not None:
         trace_path.parent.mkdir(parents=True, exist_ok=True)
+
+    expected_runtime_identity: dict[str, Any] | None = None
+    if agent_runtime is not None:
+        identity = agent_runtime.identity
+        runtime_payload = agent_runtime.to_payload()
+        json.dumps(runtime_payload, ensure_ascii=False, sort_keys=True)
+        expected_runtime_identity = dict(identity)
 
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".txt", delete=False) as handle:
         handle.write(query)
@@ -138,6 +149,13 @@ def run_pi_dci(
             command.extend(["--task-instruction-file", str(instruction_file)])
         if _code_files_path is not None:
             command.extend(["--code-files", str(_code_files_path)])
+        if agent_runtime is not None:
+            command.extend(
+                [
+                    "--runtime-json",
+                    json.dumps(runtime_payload, ensure_ascii=False, sort_keys=True),
+                ]
+            )
 
         env = os.environ.copy()
         env.update(
@@ -201,6 +219,17 @@ def run_pi_dci(
                 partial = json.loads(trace_file.read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 partial = {"events": [], "messages": [], "trace_unavailable": "timeout before first snapshot"}
+            if expected_runtime_identity is not None:
+                partial_runtime = partial.get("agent_runtime")
+                if partial_runtime is not None and partial_runtime != expected_runtime_identity:
+                    raise RuntimeError(
+                        "Pi timeout trace runtime identity does not match the verified parent runtime"
+                    )
+                partial["agent_runtime"] = expected_runtime_identity
+                partial.setdefault(
+                    "synthetic_failure",
+                    {"source": "pi_agent", "kind": "timeout_fallback"},
+                )
             failure = {"kind": "timeout", "message": f"sample wall deadline reached ({timeout_seconds}s)"}
             partial.update(
                 schema_version=TRAJECTORY_SCHEMA_VERSION, failure=failure, partial=True,
@@ -216,6 +245,17 @@ def run_pi_dci(
                 payload = json.loads(output_path.read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 payload = {}
+            if expected_runtime_identity is not None:
+                payload_runtime = payload.get("agent_runtime")
+                if payload_runtime is not None and payload_runtime != expected_runtime_identity:
+                    raise RuntimeError(
+                        "Pi timeout final runtime identity does not match the verified parent runtime"
+                    )
+                payload["agent_runtime"] = expected_runtime_identity
+                payload.setdefault(
+                    "synthetic_failure",
+                    {"source": "pi_agent", "kind": "timeout_fallback"},
+                )
             payload.update(
                 contract_version=expected_version,
                 protocol_profile=expected_profile,
@@ -255,6 +295,20 @@ def run_pi_dci(
                 "Pi runner returned an unsupported Pi final result version: "
                 f"expected {PI_FINAL_RESULT_VERSION!r}, got {pi_result_version!r}"
             )
+        if expected_runtime_identity is not None:
+            if payload.get("agent_runtime") != expected_runtime_identity:
+                raise RuntimeError(
+                    "Pi final runtime identity does not match the verified parent runtime"
+                )
+            trace_file = trace_path or output_path.with_suffix(".trace.json")
+            try:
+                trace_payload = json.loads(trace_file.read_text(encoding="utf-8"))
+            except (OSError, ValueError) as exc:
+                raise RuntimeError("Pi trace did not contain a runtime identity") from exc
+            if not isinstance(trace_payload, dict) or trace_payload.get("agent_runtime") != expected_runtime_identity:
+                raise RuntimeError(
+                    "Pi trace runtime identity does not match the verified parent runtime"
+                )
         inspect_sandbox = payload.get("inspect_sandbox")
         tool_sandbox = payload.get("tool_sandbox")
         if not timed_out and (inspect_sandbox != "local" or tool_sandbox != "bubblewrap"):

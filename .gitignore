@@ -26,6 +26,7 @@ logs/
 
 # Plan
 DCI-Bench_MVP_Implementation_Plan.md
+DCI-Bench_Frozen_RootFS_Runtime_Design_and_Implementation.md
 
 # sglang source
 sglang/

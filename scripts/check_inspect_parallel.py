@@ -15,11 +15,17 @@ from pathlib import Path
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 
 
 def child(args):
     sys.path.insert(0, str(args.runtime))
+    # This synthetic workspace has no pooled candidate manifest. Always use
+    # the generic document contract, even when the caller selected a v2 tier.
+    for key in ('DCI_PROTOCOL_PROFILE', 'DCI_PROTOCOL_CONTRACT_SHA256', 'DCI_CODE_RUNTIME_CONTRACT'):
+        os.environ.pop(key, None)
+    os.environ['DCI_EVALUATION_TRACK'] = 'document'
     from inspect_ai import Task, eval as evaluate
     from inspect_ai.dataset import Sample
     from inspect_ai.model import ChatCompletionChoice, ChatMessageAssistant, ModelOutput, ModelUsage, get_model
@@ -29,6 +35,10 @@ def child(args):
 
     if not Path(dci_bench.__file__).resolve().is_relative_to(args.runtime.resolve()):
         raise ValueError('Probe did not import the frozen runtime')
+    agent_runtime = None
+    if args.runtime_config is not None:
+        from dci_bench.runtime import verify_runtime
+        agent_runtime = verify_runtime(args.runtime_config)
     args.output.mkdir(parents=True, exist_ok=False)
     workspace = args.output / 'workspace'
     (workspace / 'corpus').mkdir(parents=True)
@@ -38,7 +48,14 @@ def child(args):
         count = sum(m.role == 'tool' for m in messages)
         if count == 0:
             call = ToolCall(id='isolation', function='bash', arguments={
-                'command': 'test -r /workspace/corpus/probe.md && test ! -e /mnt && test ! -e /root && test ! -e /var/tmp',
+                'command': (
+                    'test -r /workspace/corpus/probe.md && test ! -e /mnt/afs '
+                    '&& test ! -e /root/.codex && test ! -w /usr/bin '
+                    '&& test ! -w /workspace/corpus && touch /tmp/bridge-probe '
+                    '&& test -f /scratch/tmp/bridge-probe && rg -q Independent /workspace/corpus/probe.md'
+                    if agent_runtime is not None else
+                    'test -r /workspace/corpus/probe.md && test ! -e /mnt && test ! -e /root && test ! -e /var/tmp'
+                ),
                 'timeout_seconds': 10}, type='function')
         elif count == 1:
             call = ToolCall(id='receipt', function='read', arguments={'path': '/workspace/corpus/probe.md'},
@@ -56,7 +73,9 @@ def child(args):
                for i in range(args.samples)]
     pool = BridgePortPool(args.port, args.samples)
     task = Task(dataset=samples, solver=pi_dci_solver(output_dir=str(args.output / 'samples'),
-                bridge_port_pool=pool, model_context_window=65536), sandbox='local', time_limit=120)
+                bridge_port_pool=pool, model_context_window=65536,
+                **({'agent_runtime': agent_runtime} if agent_runtime is not None else {})),
+                sandbox='local', time_limit=120)
     logs = evaluate(task, model=get_model('mockllm/bridge-probe', custom_outputs=response),
                     max_samples=args.samples, max_connections=args.samples,
                     log_dir=str(args.output / 'inspect'), display='none', fail_on_error=False)
@@ -68,6 +87,8 @@ def child(args):
             raise RuntimeError(f'Inspect sample {sample.id} failed: {sample.error}')
         result = json.loads(sample.output.completion)
         trace = json.loads(Path(result['trace_path']).read_text())
+        if agent_runtime is not None and trace.get('agent_runtime') != agent_runtime.identity:
+            raise RuntimeError('Inspect bridge probe Runtime identity mismatch')
         bash = [e for e in trace['events'] if e.get('type') == 'tool_execution_end' and e.get('toolName') == 'bash']
         model_requests = sum(event.event == 'model' for event in sample.events)
         if (not result['valid_output'] or result['ranked_doc_ids'] != ['probe']
@@ -80,7 +101,10 @@ def child(args):
                             model_requests=model_requests, provider='mockllm', external_model_calls=0))
     if len(records) != args.samples:
         raise RuntimeError('Missing probe samples')
-    (args.output / 'result.json').write_text(json.dumps(dict(status='passed', samples=records), indent=2) + '\n')
+    report = dict(status='passed', samples=records)
+    if agent_runtime is not None:
+        report['agent_runtime'] = agent_runtime.identity
+    (args.output / 'result.json').write_text(json.dumps(report, indent=2) + '\n')
 
 
 def free_blocks(widths):
@@ -115,6 +139,7 @@ def free_blocks(widths):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--runtime', required=True, type=Path)
+    parser.add_argument('--runtime-config', type=Path, help='Verified Agent RootFS configuration (optional)')
     parser.add_argument('--tools-directory', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--max-concurrency', type=int, default=8, choices=range(1, 9))
@@ -122,6 +147,9 @@ def main():
     parser.add_argument('--samples', type=int, default=1)
     parser.add_argument('--port', type=int)
     args = parser.parse_args()
+    args.runtime = args.runtime.resolve()
+    args.tools_directory = args.tools_directory.resolve()
+    args.output = args.output.resolve()
     if args.child:
         child(args)
         return
@@ -137,8 +165,15 @@ def main():
                    '--runner', str(Path(__file__).resolve()), '--', '--child', '--runtime', str(args.runtime),
                    '--tools-directory', str(args.tools_directory), '--output', str(target),
                    '--samples', str(count), '--port', str(ports[index])]
-        with (args.output / f'process-{index}.log').open('x') as log:
-            result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, timeout=240, env=os.environ.copy())
+        if args.runtime_config is not None:
+            command += ['--runtime-config', str(args.runtime_config.resolve())]
+        # Inspect records Git metadata from cwd. This is a synthetic transport
+        # check, so keep it outside the repository to avoid parallel full-tree
+        # AFS status scans before sandbox startup. Source imports stay explicit.
+        with tempfile.TemporaryDirectory(prefix='dci-inspect-probe-cwd-') as cwd:
+            with (args.output / f'process-{index}.log').open('x') as log:
+                result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT,
+                                        timeout=240, env=os.environ.copy(), cwd=cwd)
         if result.returncode:
             raise RuntimeError(f'Inspect parallel probe failed; inspect {log.name}')
         return json.loads((target / 'result.json').read_text())
@@ -149,6 +184,11 @@ def main():
     record = dict(status='passed', parallel_processes=processes, batch_concurrency=args.max_concurrency,
                   samples=sum(len(r['samples']) for r in results), external_model_calls=0, gpu_started=False,
                   elapsed_seconds=time.monotonic() - start, results=results)
+    if args.runtime_config is not None:
+        identities = [r['agent_runtime'] for r in results]
+        if any(identity != identities[0] for identity in identities):
+            raise RuntimeError('Inspect probe workers used different Runtime identities')
+        record['agent_runtime'] = identities[0]
     (args.output / 'result.json').write_text(json.dumps(record, indent=2) + '\n')
     print(json.dumps({key: value for key, value in record.items() if key != 'results'}), flush=True)
 

@@ -18,7 +18,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dci_bench.data.registry import TASKS, get_task
 from dci_bench.backends.manifest import inspect_generation_kwargs
-from dci_bench.results.phase4_runner import execute_phase4
+from dci_bench.backends.adapters import inspect_model_kwargs
+from dci_bench.results.phase4_runner import (
+    execute_phase4,
+    verify_runtime_config,
+)
 from dci_bench.scoring.retrieval import DEFAULT_METRIC_KS, normalize_metric_ks
 
 try:
@@ -108,6 +112,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--workspace-root", type=Path, default=Path("data/workspaces"))
     parser.add_argument("--metadata-root", type=Path, default=Path("data/metadata"))
+    parser.add_argument(
+        "--runtime-config",
+        type=Path,
+        help="verified Frozen RootFS runtime configuration",
+    )
     parser.add_argument("--backend-manifest", type=Path)
     parser.add_argument(
         "--backend-artifact",
@@ -277,9 +286,8 @@ def _inspect_eval_kwargs(
     )
     api_key = str(_backend_value({**manifest, **backend}, "api_key", default=args.api_key))
     kwargs: dict[str, Any] = {
-        "model": f"openai-api/{service}/{served_model_name}",
-        "model_base_url": base_url,
-        "model_args": {"api_key": api_key, "responses_api": False},
+        **inspect_model_kwargs({**backend, "openai_service": service, "base_url": base_url},
+                               {"served_model_name": served_model_name}, api_key=api_key),
         "log_dir": str(log_dir),
         "display": "plain",
         # ``max_samples`` is the Inspect worker/concurrency cap used by the
@@ -321,6 +329,8 @@ def run_batch(
         _select_query_ids = select_query_ids
         mteb_llm_retrieval = batch_task
 
+    agent_runtime = verify_runtime_config(getattr(args, "runtime_config", None))
+
     if args.prepare:
         from dci_bench.data.workspace_builder import build_workspace
 
@@ -355,18 +365,23 @@ def run_batch(
     log_dir = args.log_dir or run_dir / "artifacts" / "inspect"
     log_dir.mkdir(parents=True, exist_ok=True)
 
+    task_kwargs = {
+        "task_name": args.task,
+        "query_ids": selected_ids,
+        "all_queries": False,
+        "workspace_root": str(args.workspace_root),
+        "metadata_root": str(args.metadata_root),
+        "output_dir": str(run_dir),
+        "metric_ks": metric_ks,
+        "bridge_port": args.bridge_port,
+        "max_concurrency": args.max_concurrency,
+        "model_context_window": model_context_window,
+        "task_instruction": task_spec.task_instruction,
+    }
+    if agent_runtime is not None:
+        task_kwargs["agent_runtime"] = agent_runtime
     task = mteb_llm_retrieval(
-        task_name=args.task,
-        query_ids=selected_ids,
-        all_queries=False,
-        workspace_root=str(args.workspace_root),
-        metadata_root=str(args.metadata_root),
-        output_dir=str(run_dir),
-        metric_ks=metric_ks,
-        bridge_port=args.bridge_port,
-        max_concurrency=args.max_concurrency,
-        model_context_window=model_context_window,
-        task_instruction=task_spec.task_instruction,
+        **task_kwargs,
     )
     if inspect_eval_fn is None:
         from inspect_ai import eval as inspect_eval_fn  # type: ignore[assignment]
@@ -393,6 +408,7 @@ def run_batch(
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     try:
+        agent_runtime = verify_runtime_config(args.runtime_config)
         global _select_query_ids
         if args.backend_manifest is None:
             raise ValueError("--backend-manifest is required for a Phase 4 run")
@@ -417,7 +433,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             query_ids=args.query_ids,
             all_queries=bool(args.all_queries),
         )
-        execution = execute_phase4(args, selected_query_ids=selected_ids)
+        execution_kwargs = {"selected_query_ids": selected_ids}
+        if agent_runtime is not None:
+            execution_kwargs["agent_runtime"] = agent_runtime
+        execution = execute_phase4(args, **execution_kwargs)
     except (FileNotFoundError, FileExistsError, ValueError) as exc:
         print(f"[DCI] Phase 4 configuration/integrity failure: {exc}", file=sys.stderr)
         return 2

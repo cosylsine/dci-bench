@@ -8,6 +8,49 @@ Its online entry is `scripts/run_code_task.py`, with runtime settings in
 Pi solver finishes. Code's file/span/abstention rules do not alter the document
 contract below or the existing document launchers.
 
+## Model backend compatibility
+
+Provider routing and response conversion live in the adapter layers described
+in [模型适配边界](model_adapters.md). New transports extend those layers while the
+runner retains the shared budget, tool authorization, and output checks.
+
+The document runner uses Pi's DCI HTTP client through Inspect's Chat Completions
+bridge. Adding a general Pi provider does not change this route. New backends
+must preserve the selected protocol's prompts, read/bash controls, output schema,
+context and cumulative token limits; native APIs require an equivalent transport
+adapter before they can use this runner.
+
+Generation settings come from `inspect_generation_kwargs`, shared by evaluation
+and `harness_pilot_warmup.py --backend-manifest <path>`. The manifest supplies the
+endpoint and model identity; conflicting CLI values are rejected. The warmup
+records the manifest hash and probes automatic tool choice, named read and final
+responses with tools disabled. It is a serving probe, not an end-to-end benchmark
+or proof of multi-turn tool replay. Run the Pi/Inspect wire checks and a real-model
+smoke before evaluating a new backend.
+
+Remote manifests require a `backend.thinking_policy` with model-specific
+`evidence` and either `mode: "not_supported"` for a non-reasoning model, or
+`mode: "disabled"` plus the provider's actual disable parameters in `extra_body`.
+Those parameters cannot replace generation or tool controls. For example, a
+synthetic provider may declare:
+
+```json
+{"mode":"disabled","evidence":"pinned provider/model contract","extra_body":{"thinking":{"type":"disabled"}}}
+```
+
+This is an explicit adapter declaration, not automatic verification that a
+provider honors the setting. Do not silently omit unsupported temperature/seed
+settings or enable reasoning to make a model pass. The local chat-template
+switch is not sent to remote APIs unless their declared mapping requires it.
+
+Accounting includes cached input in the token budget. Inspect's cache-exclusive
+input is normalized using `total_tokens - output_tokens`; cache read/write
+counts remain subsets used for pricing. Output already includes reasoning tokens
+when reported that way by the provider. Pi preserves the reported total instead
+of dropping cache hits. Inconsistent or missing accounting cannot produce a valid
+score, and Pi/Inspect totals must agree. Cache breakdowns that are unavailable
+use a conservative price bound on the full input rather than treating hits as free.
+
 The canonical contract is `dci_bench/protocol/contract.json` at version
 `dci-mvp-v3.3`. Python and TypeScript load that same file; prompts, tools and
 budgets must not be duplicated in either runtime.

@@ -8,7 +8,7 @@ from contextlib import AsyncExitStack, asynccontextmanager, contextmanager
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import anyio
 from inspect_ai import Task, task
@@ -31,6 +31,9 @@ from dci_bench.protocol.contracts import (
 )
 from dci_bench.results.protocol import sample_directory_name, write_json_atomic
 from dci_bench.scoring.retrieval import normalize_metric_ks, score_query, zero_metrics
+
+if TYPE_CHECKING:
+    from dci_bench.runtime import VerifiedRuntime
 
 
 RETRIEVAL_AGGREGATION_METRICS = {
@@ -394,6 +397,7 @@ def pi_dci_solver(
     task_instruction: str = "",
     candidate_pool: dict[str, Any] | None = None,
     workspace_prefetcher: WorkspacePrefetcher | None = None,
+    agent_runtime: VerifiedRuntime | None = None,
 ) -> Any:
     if protocol_contract().get("candidate_pool") and candidate_pool is None:
         raise ValueError("pooled solver requires verified candidate docid lists")
@@ -450,6 +454,7 @@ def pi_dci_solver(
                                     max_agent_steps=MAX_AGENT_STEPS,
                                     context_window=model_context_window,
                                     task_instruction=task_instruction,
+                                    agent_runtime=agent_runtime,
                                 )
 
                         result = await anyio.to_thread.run_sync(run_query)
@@ -475,6 +480,7 @@ def pi_dci_solver(
                                     max_agent_steps=MAX_AGENT_STEPS,
                                     context_window=model_context_window,
                                     task_instruction=task_instruction,
+                                    agent_runtime=agent_runtime,
                                 ),
                                 abandon_on_cancel=False,
                             )
@@ -488,31 +494,30 @@ def pi_dci_solver(
         finally:
             if timing is not None:
                 _write_runtime_timing(timing_path, timing)
-        state.output.completion = json.dumps(
-            {
-                "ranked_doc_ids": result.ranked_doc_ids,
-                "valid_output": result.valid_output,
-                "failure_reason": result.failure_reason,
-                "failure": result.failure,
-                "failure_kind": result.failure_kind,
-                "contract_version": result.contract_version,
-                "usage_summary": result.usage_summary,
-                "agent_steps": result.agent_steps,
-                "tool_calls": result.tool_calls,
-                "final_output_adapter": result.final_output_adapter,
-                "repair_attempts": result.repair_attempts,
-                "repair_reasons": result.repair_reasons,
-                "body_evidence": result.body_evidence,
-                "inspect_sandbox": result.inspect_sandbox,
-                "tool_sandbox": result.tool_sandbox,
-                "output_path": str(result.output_path),
-                "trace_path": str(result.trace_path),
-                "runtime_timing_path": str(timing_path) if timing is not None else None,
-                "host_timing": timing,
-            },
-            ensure_ascii=False,
-            sort_keys=True,
-        )
+        completion = {
+            "ranked_doc_ids": result.ranked_doc_ids,
+            "valid_output": result.valid_output,
+            "failure_reason": result.failure_reason,
+            "failure": result.failure,
+            "failure_kind": result.failure_kind,
+            "contract_version": result.contract_version,
+            "usage_summary": result.usage_summary,
+            "agent_steps": result.agent_steps,
+            "tool_calls": result.tool_calls,
+            "final_output_adapter": result.final_output_adapter,
+            "repair_attempts": result.repair_attempts,
+            "repair_reasons": result.repair_reasons,
+            "body_evidence": result.body_evidence,
+            "inspect_sandbox": result.inspect_sandbox,
+            "tool_sandbox": result.tool_sandbox,
+            "output_path": str(result.output_path),
+            "trace_path": str(result.trace_path),
+            "runtime_timing_path": str(timing_path) if timing is not None else None,
+            "host_timing": timing,
+        }
+        if agent_runtime is not None:
+            completion["agent_runtime"] = dict(agent_runtime.identity)
+        state.output.completion = json.dumps(completion, ensure_ascii=False, sort_keys=True)
         return state
 
     return solve
@@ -568,6 +573,7 @@ def mteb_llm_retrieval_single(
     output_dir: str = "results/phase3",
     metric_ks: Sequence[int] | None = None,
     task_instruction: str | None = None,
+    agent_runtime: VerifiedRuntime | None = None,
 ) -> Task:
     ks = normalize_metric_ks(metric_ks)
     if task_name not in TASKS:
@@ -593,6 +599,7 @@ def mteb_llm_retrieval_single(
             candidate_pool=candidate_pool,
             workspace_prefetcher=workspace_prefetcher,
             task_instruction=effective_task_instruction,
+            agent_runtime=agent_runtime,
         ),
         scorer=dci_retrieval_scorer(
             task_name=task_name,
@@ -625,6 +632,7 @@ def mteb_llm_retrieval(
     max_concurrency: int = 1,
     model_context_window: int = DEFAULT_MODEL_CONTEXT_WINDOW,
     task_instruction: str | None = None,
+    agent_runtime: VerifiedRuntime | None = None,
 ) -> Task:
     """Build one Inspect task containing the complete selected query batch.
 
@@ -687,6 +695,7 @@ def mteb_llm_retrieval(
             candidate_pool=candidate_pool,
             workspace_prefetcher=workspace_prefetcher,
             task_instruction=effective_task_instruction,
+            agent_runtime=agent_runtime,
         ),
         scorer=dci_retrieval_scorer(
             task_name=task_name,

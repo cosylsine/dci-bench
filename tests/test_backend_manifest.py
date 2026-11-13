@@ -6,6 +6,7 @@ from pathlib import Path
 
 from dci_bench.backends.manifest import (
     build_sglang_manifest,
+    build_api_manifest,
     build_vllm_manifest,
     inspect_generation_kwargs,
     load_backend_manifest,
@@ -16,6 +17,29 @@ from dci_bench.backends.manifest import (
 
 
 class BackendManifestTest(unittest.TestCase):
+    def test_remote_thinking_requires_explicit_mapping(self):
+        backend = {"kind": "remote_api"}
+        with self.assertRaisesRegex(ValueError, "thinking_policy"):
+            inspect_generation_kwargs(backend)
+        for policy in (
+            {"mode": "disabled", "evidence": "fixture"},
+            {"mode": "not_supported", "evidence": ""},
+            {"mode": "disabled", "evidence": "fixture", "extra_body": {"temperature": 1}},
+        ):
+            with self.subTest(policy=policy), self.assertRaises(ValueError):
+                inspect_generation_kwargs({**backend, "thinking_policy": policy})
+        policy = {"mode": "disabled", "evidence": "synthetic fixture contract",
+                  "extra_body": {"thinking": {"type": "disabled"}}}
+        manifest = build_api_manifest(model_key="fixture", served_model_name="fixture-v1",
+                                      provider="fixture", revision="v1", base_url="https://example.test/v1",
+                                      thinking_policy=policy)
+        kwargs = inspect_generation_kwargs(manifest["backend"])
+        self.assertEqual(kwargs["extra_body"], policy["extra_body"])
+        self.assertEqual(kwargs["seed"], 0)
+        self.assertEqual(kwargs["max_tokens"], 1024)
+        self.assertEqual(resolved_generation_config_record(manifest["backend"])["thinking_extra_body"],
+                         policy["extra_body"])
+
     def _model(self, root: Path) -> Path:
         model = root / "model"
         (model / ".hfd").mkdir(parents=True)

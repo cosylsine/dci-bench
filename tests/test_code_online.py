@@ -314,6 +314,15 @@ class CodeOnlineTest(unittest.TestCase):
         complete = json.loads((self.root / "run/_COMPLETE.json").read_text())
         for path, expected in complete["artifact_sha256"].items():
             self.assertEqual(hashlib.sha256((self.root / "run" / path).read_bytes()).hexdigest(), expected)
+        sources = json.loads((self.root / "run/run-manifest.json").read_text())["source_sha256"]
+        repo = Path(__file__).resolve().parents[1]
+        adapters = [repo / 'pi-dci/scripts/dci-runtime.ts',
+                    *repo.joinpath('dci_bench/backends/adapters').rglob('*.py'),
+                    *repo.joinpath('pi-dci/scripts/adapters').rglob('*.ts')]
+        for source in adapters:
+            name = source.relative_to(repo).as_posix()
+            self.assertEqual(sources[name], hashlib.sha256(source.read_bytes()).hexdigest())
+            self.assertEqual((self.root / 'run/artifacts/source' / name).read_bytes(), source.read_bytes())
         self.assertFalse((self.root / "run/task-result.json").exists())
         with self.assertRaises(FileExistsError):
             self.execute(evaluate)

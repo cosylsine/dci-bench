@@ -2,9 +2,18 @@
 # Cluster images may omit both tools. Keep package-manager libraries separate
 # from Conda; the benchmark requires trusted binaries at these exact paths.
 set -Eeuo pipefail
+if [[ "${DRY_RUN:-0}" != 0 ]]; then
+  echo '[smoke] dry run: skipped host dependency installation and namespace probe'
+  exit 0
+fi
+
+frozen=0
+[[ -n "${DCI_RUNTIME_CONFIG:-}" ]] && frozen=1
 missing=()
 [[ -x /usr/bin/bwrap ]] || missing+=(bubblewrap)
-[[ -x /usr/bin/rg ]] || missing+=(ripgrep)
+if (( ! frozen )); then
+  [[ -x /usr/bin/rg ]] || missing+=(ripgrep)
+fi
 if (( ${#missing[@]} )); then
   echo "[smoke] Installing missing system dependencies: ${missing[*]}"
   if [[ "$(id -u)" == 0 ]]; then
@@ -30,7 +39,9 @@ if (( ${#missing[@]} )); then
     exit 2
   fi
 fi
-for executable in /usr/bin/bwrap /usr/bin/rg; do
+executables=(/usr/bin/bwrap)
+(( frozen )) || executables+=(/usr/bin/rg)
+for executable in "${executables[@]}"; do
   [[ -x "$executable" ]] || { echo "[smoke] Required executable unavailable after install: $executable" >&2; exit 2; }
   env -u LD_LIBRARY_PATH -u LD_PRELOAD "$executable" --version
 done

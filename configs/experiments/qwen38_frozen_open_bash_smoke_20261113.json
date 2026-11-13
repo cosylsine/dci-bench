@@ -1,0 +1,694 @@
+{
+  "schema_version": "dci-frozen-open-bash-smoke-plan-v1",
+  "date": "2026-11-13",
+  "status": "planned-not-executed",
+  "scope": "Reviewable experiment specification; the existing launcher reads the prepared suite and runtime config, not this plan JSON. Target-node data/sandbox preflight remains required.",
+  "model": {
+    "name": "Qwen3.8-27B",
+    "path": "/mnt/afs2/202610/Qwen3.8-27B"
+  },
+  "dataset": {
+    "suite": "/mnt/afs2/202611/embedding_models/dci-bench/eval_data/benchmark_v2_20261103_v1",
+    "split": "smoke",
+    "selection_sha256": "0fbcb98b98fa73aadb81a35b59f8b17faaa1366246f9522a21835989a3c51972",
+    "manifest_overall_sha256": "f90a4f4f1eaea7cfa02a92583cff830bf724be35c16f4a23b07445be363068dd",
+    "sampling": {
+      "algorithm_version": "random-without-replacement-v1",
+      "input_digest": "be27e15dc24723aa08c5bb27b972902b815993b34a6aa1a053aea5134b48b717",
+      "seed": 42,
+      "selection_policy": "global_equivalence_group_constrained",
+      "sizes": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "strategy": "random_without_replacement"
+    },
+    "scope": {
+      "domains": [
+        "encyclopedia",
+        "general_qa",
+        "scientific",
+        "medical",
+        "finance",
+        "legal",
+        "enterprise",
+        "web",
+        "software",
+        "argumentation"
+      ],
+      "languages": [
+        "en",
+        "zh"
+      ],
+      "task_count": 20
+    },
+    "tasks": 20,
+    "unique_queries": 20,
+    "executions": 40,
+    "new_sampling": false
+  },
+  "runtime": {
+    "config": "configs/runtime/frozen-debian13.json",
+    "bundle": "results/frozen-runtime/20261111-xaDmpt/release-v2/rootfs.tar",
+    "cache_dir": "/tmp/dci-bench-runtime",
+    "agent_runtime": {
+      "filesystem_policy": "dci-bwrap-frozen-ro-v1",
+      "image_digest": "sha256:257287ccc124681dd7fad47c24685f507332592b4b94ed241f7e699853d62f58",
+      "mode": "frozen-rootfs",
+      "platform": "linux/amd64",
+      "rootfs_tree_sha256": "bd71bedc89dd3d1a8929ba6dbb053581d7de2e405e9fa14541db35ee18d64c8f",
+      "runtime_policy_sha256": "c52e706a067e5c7e2b1003535c7c0386788cabe3bf0503c5af326a8f58655109",
+      "schema_version": "dci-agent-runtime-v1",
+      "tool_policy": "open"
+    }
+  },
+  "prompt_revision": "20261113-open-bash",
+  "protocol_contract_sha256": {
+    "lite": "dc2db011110875739cb764baf10d25314b4ec7dcb90e7f07a7b6b8679e6cc1f2",
+    "full": "13ffc2ce12748d90db4e9f30534eaf5b46382649662833afd60c6eab2302b9d0"
+  },
+  "source_sha256": {
+    "dci_bench/protocol/contract.json": "bfa86bbeee65723cf7a384713be29a847a44c27750f92a58bb8a0a787658c294",
+    "dci_bench/protocol/pilot_profiles.json": "4ecb017c0f7cdd35adad1a43a980193ed656643c51820fdd042518f75381d548",
+    "dci_bench/protocol/document_pools_v2.json": "bc421b31438b8969a6e95628862c920b78bc13596b756ae32cc32ca44d9626a0",
+    "dci_bench/protocol/code_runtime.py": "52506d820ba5d3f4cee99d9a0c9e617b69156f3ae7d8576fc1a871036600bf6c",
+    "scripts/launch_benchmark20_qwen38_5090.sh": "5b30ed3659be3cfc05993b18eacc600bc81c8a0201e0531ee5b8f0337cf0b5e7",
+    "configs/runtime/frozen-debian13.json": "20c6435892e5f312434e7c9b8ac8bec766903549631e7aa0db523b85d0cd14e1"
+  },
+  "source_fingerprint": "50ecd05745cad26fcf2950614f683488e59137d39b3c72aa036db3bfe6a3f1e9",
+  "selection_evidence": {
+    "results/implementation/20261103-benchmark20-v2/prepared-manifest.json": "1c2c198c5bdf2b68af6b0149b46d379e7d9fa38ba56099f6d75e1963a8e5d29c",
+    "results/implementation/20261103-benchmark20-v2/data-preflight/launch.json": "875f9ed741e1434aa76e6bdacd3fba29cf89563953f643428a4506d1789d7e2b"
+  },
+  "serving": {
+    "gpus": 4,
+    "gpu_type": "RTX 5090",
+    "tensor_parallel_size": 4,
+    "dtype": "bfloat16",
+    "context_length": 65536,
+    "gpu_memory_utilization": 0.8,
+    "max_num_seqs": 4,
+    "max_num_batched_tokens": 2048,
+    "enforce_eager": true,
+    "worker": "dci_bench.backends.vllm_gdn_worker.GDNWarmupWorker",
+    "temperature": 0,
+    "generation_seed": 0,
+    "enable_thinking": false
+  },
+  "budget": {
+    "cumulative_input_output_tokens": 64000,
+    "max_output_tokens": 1024,
+    "tool_result_max_bytes": 8192,
+    "max_search_turns": 12,
+    "max_tool_invocations": 24,
+    "max_final_repair_turns": 1,
+    "sample_timeout_seconds": null,
+    "wall_time_limit_hours": null,
+    "bash_default_seconds": 10,
+    "bash_max_seconds": 60
+  },
+  "scheduling": {
+    "configured_concurrency": 4,
+    "dispatch": "sequential task/tier batches, one query per batch",
+    "throughput_benchmark": false
+  },
+  "acceptance": {
+    "expected_completed": 40,
+    "expected_valid": 40,
+    "equal_lite_full_query_ids": true,
+    "required_nonempty_read_receipts": 1,
+    "matching_contract_and_runtime_identity": true,
+    "retain_failures_and_traces": true,
+    "metrics": [
+      "recall_at_10",
+      "f1_at_10",
+      "ndcg_at_10"
+    ],
+    "timing_and_gpu_utilization": "descriptive_only",
+    "formal_benchmark": false,
+    "isolated_host_frozen_ablation": false
+  },
+  "jobs": [
+    {
+      "task_id": "argumentation_en",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "test-international-ghbunhf-pro02a"
+      ],
+      "groups": {
+        "test-international-ghbunhf-pro02a": "query-group-bc9aa9e5b5db30f0513f8080"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "27685c612b698cb8b2cca4a4c9273e7a77ff006960f4d8c08542804be0006d91",
+      "pool_manifest_sha256": "b3ff03790bc75c3a2a7a03a9ab933b4843523b79b5274ec97fceb1784df0342f"
+    },
+    {
+      "task_id": "argumentation_en",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "test-international-ghbunhf-pro02a"
+      ],
+      "groups": {
+        "test-international-ghbunhf-pro02a": "query-group-bc9aa9e5b5db30f0513f8080"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "27685c612b698cb8b2cca4a4c9273e7a77ff006960f4d8c08542804be0006d91",
+      "pool_manifest_sha256": "06723281ffc010740d4542f5b919ee83ba319740af94aad023561eae7e4e46de"
+    },
+    {
+      "task_id": "argumentation_zh",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "query-claim-0211-00000"
+      ],
+      "groups": {
+        "query-claim-0211-00000": "query-group-fe96912880dbbb50b84dcc5b"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "11fe89c46203b0dfbd7412113af064a47ff7c217466f031b89446c4d767ac731",
+      "pool_manifest_sha256": "c24daa7096f6a9e3a2fc38c0386c10bbb5bdd8a763a3b387dbcc8bd358e4a532"
+    },
+    {
+      "task_id": "argumentation_zh",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "query-claim-0211-00000"
+      ],
+      "groups": {
+        "query-claim-0211-00000": "query-group-fe96912880dbbb50b84dcc5b"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "11fe89c46203b0dfbd7412113af064a47ff7c217466f031b89446c4d767ac731",
+      "pool_manifest_sha256": "5b86c12d83366ed1be6b51e4a4066ac9bd93546b086d435c3a3e8ed91de1ffcc"
+    },
+    {
+      "task_id": "encyclopedia_en",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "c3549b20b2bbb3d669fe99c5b813dd3c2674fbc2"
+      ],
+      "groups": {
+        "c3549b20b2bbb3d669fe99c5b813dd3c2674fbc2": "query-group-a9677ac9aae82357626fbca8"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "9013b6e2ea86e537fb318c344a7076bcba97a985b857bfbec93dc3bf8ad681cc",
+      "pool_manifest_sha256": "b5750b54641053a3b66bcd0612f59a84bdebb31d06027a052d6e6e3d060a936d"
+    },
+    {
+      "task_id": "encyclopedia_en",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "c3549b20b2bbb3d669fe99c5b813dd3c2674fbc2"
+      ],
+      "groups": {
+        "c3549b20b2bbb3d669fe99c5b813dd3c2674fbc2": "query-group-a9677ac9aae82357626fbca8"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "9013b6e2ea86e537fb318c344a7076bcba97a985b857bfbec93dc3bf8ad681cc",
+      "pool_manifest_sha256": "6b8cac593c958d6077d82f85c823452bdcbb37826615ae21f25c5973eedc275f"
+    },
+    {
+      "task_id": "encyclopedia_zh",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "DEV_1628_QUERY_2"
+      ],
+      "groups": {
+        "DEV_1628_QUERY_2": "query-group-9a0ab0b176b81355ae94a20d"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "cb117995c9af68a4b32c0587959e1c00f468ef9187addc1bd89dc5737f9a9230",
+      "pool_manifest_sha256": "bdfe49603bd9ded97cf64200caec2025d5ce4cca52ab7d8590e0f3a5680172c7"
+    },
+    {
+      "task_id": "encyclopedia_zh",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "DEV_1628_QUERY_2"
+      ],
+      "groups": {
+        "DEV_1628_QUERY_2": "query-group-9a0ab0b176b81355ae94a20d"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "cb117995c9af68a4b32c0587959e1c00f468ef9187addc1bd89dc5737f9a9230",
+      "pool_manifest_sha256": "926824e0789a452affd583604b0e87202000cc8a58f2ba89a7a9ed79c5678a4b"
+    },
+    {
+      "task_id": "enterprise_en",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "expertwritten/110"
+      ],
+      "groups": {
+        "expertwritten/110": "query-group-0af690699f5495cda721315a"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "4f5ab405f1746604ad1340dcf8ff2736d01890bf04b0a097ed39fb3110edaf8b",
+      "pool_manifest_sha256": "8f569d45ae4f653cbd1c4fbdfbdbb7e9f34e4e9281f591ac201778faafb49a39"
+    },
+    {
+      "task_id": "enterprise_en",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "expertwritten/110"
+      ],
+      "groups": {
+        "expertwritten/110": "query-group-0af690699f5495cda721315a"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "4f5ab405f1746604ad1340dcf8ff2736d01890bf04b0a097ed39fb3110edaf8b",
+      "pool_manifest_sha256": "c44b844dd4ae5af2cf89a0889827832367887f113bb746e993b94f2614e3e892"
+    },
+    {
+      "task_id": "enterprise_zh",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "cfqa-test-2837"
+      ],
+      "groups": {
+        "cfqa-test-2837": "query-group-1f4a5a5479f822f06c488c00"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "91f1bb8b442e1d15df3481aff449c8dbe001949d5dbb699e76ec26720cd7c469",
+      "pool_manifest_sha256": "968195cc3137f19ab632af072b3ccf5f5800f81b391299983c50f43f8c51ad2f"
+    },
+    {
+      "task_id": "enterprise_zh",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "cfqa-test-2837"
+      ],
+      "groups": {
+        "cfqa-test-2837": "query-group-1f4a5a5479f822f06c488c00"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "91f1bb8b442e1d15df3481aff449c8dbe001949d5dbb699e76ec26720cd7c469",
+      "pool_manifest_sha256": "3cdda970f4ea881db076282d8ee0c328d1a771f713b0cf642ca63b0d10a01fb0"
+    },
+    {
+      "task_id": "finance_en",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "7734"
+      ],
+      "groups": {
+        "7734": "query-group-9fd1e550299d10b8d44ac646"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "1caf749639cc6c712b75e7b8a09a3461a3a86eece4d37108bb65ade8ecf4fa7f",
+      "pool_manifest_sha256": "a1542bb22b8054c64a8846687508131e6c216f3ca05c9e1ca93e38faf1a65070"
+    },
+    {
+      "task_id": "finance_en",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "7734"
+      ],
+      "groups": {
+        "7734": "query-group-9fd1e550299d10b8d44ac646"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "1caf749639cc6c712b75e7b8a09a3461a3a86eece4d37108bb65ade8ecf4fa7f",
+      "pool_manifest_sha256": "b12ae4456c06b50672e960ba6655aa1d5d605cdc834e26bb992f4bcd859ffd03"
+    },
+    {
+      "task_id": "finance_zh",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "finance.jsonl#row311"
+      ],
+      "groups": {
+        "finance.jsonl#row311": "query-group-9d46a012a650ea46ce40b577"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "80dfa76450fbb4cbd567ba7e76568fdf3f8abb2421704b90ee48cd2e04f97139",
+      "pool_manifest_sha256": "50ad98e77b63430b0c1a2e47229cb30cbccdb82725c190b89b91242873a46196"
+    },
+    {
+      "task_id": "finance_zh",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "finance.jsonl#row311"
+      ],
+      "groups": {
+        "finance.jsonl#row311": "query-group-9d46a012a650ea46ce40b577"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "80dfa76450fbb4cbd567ba7e76568fdf3f8abb2421704b90ee48cd2e04f97139",
+      "pool_manifest_sha256": "c075afb15fb393b2378c9c82f971ba90173579a78b5d6f49bdd61ba6d1dd0be6"
+    },
+    {
+      "task_id": "general_qa_en",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "457704"
+      ],
+      "groups": {
+        "457704": "query-group-200425c52cfed1e55987744d"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "b99f179ede91ca4019adc6f6e8bcc76680b39febb243ecdb560585628f7c54d3",
+      "pool_manifest_sha256": "8a28b995c43740dc97a02d042aebc623990bf5267f1dc0a9531a193f6bbde6a9"
+    },
+    {
+      "task_id": "general_qa_en",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "457704"
+      ],
+      "groups": {
+        "457704": "query-group-200425c52cfed1e55987744d"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "b99f179ede91ca4019adc6f6e8bcc76680b39febb243ecdb560585628f7c54d3",
+      "pool_manifest_sha256": "35c5e214eb0d23a7dd442636ba266baba11a1ab6998b95a859f92f197383eb96"
+    },
+    {
+      "task_id": "general_qa_zh",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "open_qa.jsonl#row2741"
+      ],
+      "groups": {
+        "open_qa.jsonl#row2741": "query-group-1d9f9a76999ed6ba777c715b"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "d816afb08a188b02751d9fe94b761d78632e52b3613b9edeb8e0847d2d5050ee",
+      "pool_manifest_sha256": "2dab5a367a1c56a9a60226cc94a6f349a79222a53f0497e94200e30803ae7af9"
+    },
+    {
+      "task_id": "general_qa_zh",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "open_qa.jsonl#row2741"
+      ],
+      "groups": {
+        "open_qa.jsonl#row2741": "query-group-1d9f9a76999ed6ba777c715b"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "d816afb08a188b02751d9fe94b761d78632e52b3613b9edeb8e0847d2d5050ee",
+      "pool_manifest_sha256": "a8f753056cf6d33443038ee5297c7c919e9a676de77ff32261c18abb79f9048c"
+    },
+    {
+      "task_id": "legal_en",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "personal or bodily injury exception to liability cap"
+      ],
+      "groups": {
+        "personal or bodily injury exception to liability cap": "query-group-84d540923310e9f2466dba4d"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "2f58da098e4e16640251467212468021d6e2347a7e2983a873f550b099c71f89",
+      "pool_manifest_sha256": "1194e04cba663d35a91a7ec40e5eb81d9447ccecc38ecb56a63ff057f5ae5099"
+    },
+    {
+      "task_id": "legal_en",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "personal or bodily injury exception to liability cap"
+      ],
+      "groups": {
+        "personal or bodily injury exception to liability cap": "query-group-84d540923310e9f2466dba4d"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "2f58da098e4e16640251467212468021d6e2347a7e2983a873f550b099c71f89",
+      "pool_manifest_sha256": "dc900d6faef4d6a3893ccda4c190422ef248f5c0da8f9372d377d865ec4d4422"
+    },
+    {
+      "task_id": "legal_zh",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "00050"
+      ],
+      "groups": {
+        "00050": "query-group-9ce88a2778da6c5018f682cb"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "092321c34b98dafcf52e2a4e42c394139589ac78332e07706412b428720f82aa",
+      "pool_manifest_sha256": "2a6aa3468ead68c568f222998ed287bf9b4a2837e6f68068eccdbe0f0ab84311"
+    },
+    {
+      "task_id": "legal_zh",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "00050"
+      ],
+      "groups": {
+        "00050": "query-group-9ce88a2778da6c5018f682cb"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "092321c34b98dafcf52e2a4e42c394139589ac78332e07706412b428720f82aa",
+      "pool_manifest_sha256": "a64c30ed4b0724d6f6f69561ce2425f8eda13b835104d1929dedafd34733339e"
+    },
+    {
+      "task_id": "medical_en",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "8_NHLBI_QA_XML/0000057.xml#0000057-3"
+      ],
+      "groups": {
+        "8_NHLBI_QA_XML/0000057.xml#0000057-3": "query-group-8b55d0a6de1e49b4c4c07096"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "c700ca8d2e4ec0243b20f190009cd57e477af31aa5fb65bf8c5c17246deb01fa",
+      "pool_manifest_sha256": "6f99d01c848d99deabe1845dff9ef370ce5c74a2633d221e7e23110708e0f60e"
+    },
+    {
+      "task_id": "medical_en",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "8_NHLBI_QA_XML/0000057.xml#0000057-3"
+      ],
+      "groups": {
+        "8_NHLBI_QA_XML/0000057.xml#0000057-3": "query-group-8b55d0a6de1e49b4c4c07096"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "c700ca8d2e4ec0243b20f190009cd57e477af31aa5fb65bf8c5c17246deb01fa",
+      "pool_manifest_sha256": "cc1bd9139f6d1f7f2767e2dd7ce1dc35c89a8f03ee251718b84a6e51510a6988"
+    },
+    {
+      "task_id": "medical_zh",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "72863768dadef62e738712d9d8c6012e"
+      ],
+      "groups": {
+        "72863768dadef62e738712d9d8c6012e": "query-group-b94a1337fb1918af31313ef3"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "f8f48c105087b52bff5fbec03f4be77f05810001b8e29cd7edc35cfdaf3c3207",
+      "pool_manifest_sha256": "d53c35cebf5556ec005d016f782c7f8ea31a5c2f4a460d8aecd7c5c1541b9a7b"
+    },
+    {
+      "task_id": "medical_zh",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "72863768dadef62e738712d9d8c6012e"
+      ],
+      "groups": {
+        "72863768dadef62e738712d9d8c6012e": "query-group-b94a1337fb1918af31313ef3"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "f8f48c105087b52bff5fbec03f4be77f05810001b8e29cd7edc35cfdaf3c3207",
+      "pool_manifest_sha256": "36ffc41c34572d78b433a098320e55d14eabb6613fb99aa31da0e1adf84a126c"
+    },
+    {
+      "task_id": "scientific_en",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "0a5ffe4697913a57fda1fd5a188cd5ed59bdc5c7"
+      ],
+      "groups": {
+        "0a5ffe4697913a57fda1fd5a188cd5ed59bdc5c7": "query-group-d33833e00062d9c429b95b26"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "5701cbe6f326c474de5055cfb7a9a8a7efc793b1123dfa9a96d64602d8cb777a",
+      "pool_manifest_sha256": "a8073ffad347b891d0570511f3bf82d394c82ac95c935cd850eded74b6979bd5"
+    },
+    {
+      "task_id": "scientific_en",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "0a5ffe4697913a57fda1fd5a188cd5ed59bdc5c7"
+      ],
+      "groups": {
+        "0a5ffe4697913a57fda1fd5a188cd5ed59bdc5c7": "query-group-d33833e00062d9c429b95b26"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "5701cbe6f326c474de5055cfb7a9a8a7efc793b1123dfa9a96d64602d8cb777a",
+      "pool_manifest_sha256": "079b3b69c39743f4e9eee3ba044cf22a32d77257e1c07420024236a37d449a28"
+    },
+    {
+      "task_id": "scientific_zh",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "benchmark/ts/test.tsv#row478"
+      ],
+      "groups": {
+        "benchmark/ts/test.tsv#row478": "query-group-f84b2fd45eb6d47b73c507c2"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "40255405a178d34f32913427b3baaf43cce68a5af1bd351f1bd95a6757b06df1",
+      "pool_manifest_sha256": "2a1d2a37ec89f163fb8c7ef3671de8c91e0f0dfb4be26bedc598bc7d4d5e1355"
+    },
+    {
+      "task_id": "scientific_zh",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "benchmark/ts/test.tsv#row478"
+      ],
+      "groups": {
+        "benchmark/ts/test.tsv#row478": "query-group-f84b2fd45eb6d47b73c507c2"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "40255405a178d34f32913427b3baaf43cce68a5af1bd351f1bd95a6757b06df1",
+      "pool_manifest_sha256": "2e3a37a673bf850347a63d2056c06bb54a9e430cee834ab03be7d505b6f59e77"
+    },
+    {
+      "task_id": "software_en",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "23404"
+      ],
+      "groups": {
+        "23404": "query-group-b8456cdbfbd745dfe580bf24"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "100bb4f132ed12d8bb3ac735b9761527a6204983ef73471e2f90b1a76846e911",
+      "pool_manifest_sha256": "73a8dfc732b6d2d748e7a906bb15a0bc644c201aa64bc4ed1dec54d3ff4a68ef"
+    },
+    {
+      "task_id": "software_en",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "23404"
+      ],
+      "groups": {
+        "23404": "query-group-b8456cdbfbd745dfe580bf24"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "100bb4f132ed12d8bb3ac735b9761527a6204983ef73471e2f90b1a76846e911",
+      "pool_manifest_sha256": "4c269c77ae6b3f6a2c687f3557d2982aff24a7f017458d6f229e4d118cfabf9e"
+    },
+    {
+      "task_id": "software_zh",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "183629"
+      ],
+      "groups": {
+        "183629": "query-group-d12be2803e90d10bed91fc26"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "fb454c79df444e1082bfd5a7d446485c7ef6473f69e91e2b2b72e1123b44fad6",
+      "pool_manifest_sha256": "63ec91da5cde10b537c69543259981c6263ab3ccbb64cc08897cfd8e68945be1"
+    },
+    {
+      "task_id": "software_zh",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "183629"
+      ],
+      "groups": {
+        "183629": "query-group-d12be2803e90d10bed91fc26"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "fb454c79df444e1082bfd5a7d446485c7ef6473f69e91e2b2b72e1123b44fad6",
+      "pool_manifest_sha256": "f5c7080e874d2e1221bf5af8a1c6159effe5329eaecf7336d8dfb02dc204bdcf"
+    },
+    {
+      "task_id": "web_en",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "1020"
+      ],
+      "groups": {
+        "1020": "query-group-3e1ae126e7729f6cd48059e3"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "7157d7ed8d0e7dccfeae1a3904831847c2b01434a44b5f3175d23ee40cfa6ec8",
+      "pool_manifest_sha256": "1b250a6521e5a25817724de1dbe450cdb83e38e48fb3e282015b49f1dc0a80cb"
+    },
+    {
+      "task_id": "web_en",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "1020"
+      ],
+      "groups": {
+        "1020": "query-group-3e1ae126e7729f6cd48059e3"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "7157d7ed8d0e7dccfeae1a3904831847c2b01434a44b5f3175d23ee40cfa6ec8",
+      "pool_manifest_sha256": "ab32c13cec6839e025af0ef485c557f989a3a24db4f960376e2ce44837c1ba3d"
+    },
+    {
+      "task_id": "web_zh",
+      "tier": "lite",
+      "capacity": 200,
+      "query_ids": [
+        "78d57ba0f520349e94fb8b40bfa03501"
+      ],
+      "groups": {
+        "78d57ba0f520349e94fb8b40bfa03501": "query-group-8cd2f784835ab1e3455f1db1"
+      },
+      "expected_profile": "document-pool-v2-lite",
+      "source_manifest_sha256": "288c5cd310ee4b469bb1464e79b5935c6d465b32578df19ca7d3887796dbb8df",
+      "pool_manifest_sha256": "11b6d8c2d70ff2c918b271f41e08607ceb9e71a7d47e471d54dc3ddececfacfe"
+    },
+    {
+      "task_id": "web_zh",
+      "tier": "full",
+      "capacity": 1000,
+      "query_ids": [
+        "78d57ba0f520349e94fb8b40bfa03501"
+      ],
+      "groups": {
+        "78d57ba0f520349e94fb8b40bfa03501": "query-group-8cd2f784835ab1e3455f1db1"
+      },
+      "expected_profile": "document-pool-v2-full",
+      "source_manifest_sha256": "288c5cd310ee4b469bb1464e79b5935c6d465b32578df19ca7d3887796dbb8df",
+      "pool_manifest_sha256": "91e2c1bca0e0e5d3d9b07960827d9904fa56b52c7e364e4177edf69f50892593"
+    }
+  ]
+}

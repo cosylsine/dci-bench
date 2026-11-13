@@ -20,17 +20,18 @@ import threading
 import time
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlsplit
-from urllib.request import ProxyHandler, Request, build_opener
+from urllib.request import ProxyHandler, build_opener
 
 
 REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
+from dci_bench.backends.manifest import inspect_generation_kwargs, load_backend_manifest
+from dci_bench.backends.adapters import BackendAdapter, get_backend_adapter
+
 SCHEMA_VERSION = "dci-harness-pilot-warmup-v2"
 DEFAULT_ROUNDS = 2
-OUTPUT_LIMIT = 1024
 RESPONSE_CAPTURE_MAX_BYTES = 16384
 SHAPES = ("auto_tool", "named_read", "tools_disabled_final")
 _HTTP_OPENER = build_opener(ProxyHandler({}))
@@ -81,20 +82,6 @@ def _default_base_url() -> str:
     )
 
 
-def _chat_url(base_url: str) -> str:
-    value = base_url.rstrip("/")
-    parsed = urlsplit(value)
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        raise ValueError("base URL must be an absolute http(s) URL")
-    if parsed.username is not None or parsed.password is not None:
-        raise ValueError("base URL must not contain credentials")
-    if parsed.query or parsed.fragment:
-        raise ValueError("base URL must not contain a query or fragment")
-    if value.endswith("/chat/completions"):
-        return value
-    return f"{value}/chat/completions"
-
-
 def _contract_tool(name: str) -> dict[str, Any]:
     """Load a current repository tool schema without duplicating protocol fields."""
 
@@ -118,13 +105,10 @@ def _contract_tool(name: str) -> dict[str, Any]:
     raise RuntimeError(f"protocol tool contract does not define {name!r}")
 
 
-def _payload(model: str, shape: str) -> dict[str, Any]:
+def _payload(model: str, shape: str, generation: dict[str, Any]) -> dict[str, Any]:
     common = {
         "model": model,
-        "temperature": 0,
-        "max_tokens": OUTPUT_LIMIT,
-        "seed": 0,
-        "chat_template_kwargs": {"enable_thinking": False},
+        **generation,
         "stream": False,
     }
     if shape == "auto_tool":
@@ -185,7 +169,8 @@ def _payload(model: str, shape: str) -> dict[str, Any]:
                     "content": "Return a short synthetic final response without calling a tool.",
                 },
             ],
-            "tool_choice": "none",
+            # Inspect omits tools and tool_choice on the backend-facing final
+            # request. Some compatible APIs reject tool_choice without tools.
         }
     raise ValueError(f"unknown warmup shape: {shape}")
 
@@ -262,11 +247,12 @@ def _validate_response(payload: Any, shape: str) -> dict[str, int]:
         if not isinstance(function, dict) or function.get("name") != expected_name:
             raise WarmupError("unexpected_tool", f"expected {expected_name} tool call")
         arguments = function.get("arguments")
-        if isinstance(arguments, str):
-            try:
-                arguments = json.loads(arguments)
-            except json.JSONDecodeError as exc:
-                raise WarmupError("response_structure", "tool arguments are not JSON") from exc
+        if not isinstance(arguments, str):
+            raise WarmupError("response_structure", "Chat Completions tool arguments must be a JSON string")
+        try:
+            arguments = json.loads(arguments)
+        except json.JSONDecodeError as exc:
+            raise WarmupError("response_structure", "tool arguments are not JSON") from exc
         arguments = _validate_tool_arguments(arguments, expected_name)
         expected_arguments = (
             {"command": "printf warmup"}
@@ -316,16 +302,9 @@ def _response_details(raw: bytes, *, http_status: int) -> dict[str, Any]:
     return details
 
 
-def _post(url: str, body: dict[str, Any], timeout: float, api_key: str | None) -> tuple[Any, bytes]:
-    request = Request(
-        url,
-        data=json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            **({"Authorization": f"Bearer {api_key}"} if api_key else {}),
-        },
-        method="POST",
-    )
+def _post(url: str, body: dict[str, Any], timeout: float, api_key: str | None,
+          adapter: BackendAdapter) -> tuple[Any, bytes]:
+    request = adapter.warmup_request(url, body, api_key)
     try:
         with _HTTP_OPENER.open(request, timeout=timeout) as response:
             if response.status != 200:
@@ -361,14 +340,15 @@ def _request_one(
     deadline: float,
     http_timeout: float,
     api_key: str | None,
+    adapter: BackendAdapter,
 ) -> tuple[dict[str, int], float]:
     started = time.monotonic()
     remaining = deadline - started
     if remaining <= 0:
         raise WarmupError("deadline", "warmup deadline expired before request")
-    response, raw = _post(url, body, min(http_timeout, remaining), api_key)
+    response, raw = _post(url, body, min(http_timeout, remaining), api_key, adapter)
     try:
-        usage = _validate_response(response, shape)
+        usage = _validate_response(adapter.normalize_warmup_response(response), shape)
     except WarmupError as exc:
         exc.details.update(_response_details(raw, http_status=200))
         raise
@@ -385,9 +365,11 @@ def _run_batch(
     deadline: float,
     http_timeout: float,
     api_key: str | None,
+    generation: dict[str, Any],
+    adapter: BackendAdapter,
 ) -> dict[str, Any]:
     started = time.monotonic()
-    bodies = [_payload(model, shape) for _ in range(concurrency)]
+    bodies = [_payload(model, shape, generation) for _ in range(concurrency)]
     results: list[tuple[dict[str, int], float] | None] = [None] * concurrency
     errors: list[WarmupError] = []
     stop = threading.Event()
@@ -397,7 +379,7 @@ def _run_batch(
             return
         try:
             results[index] = _request_one(
-                url, bodies[index], shape, deadline, http_timeout, api_key
+                url, bodies[index], shape, deadline, http_timeout, api_key, adapter
             )
         except WarmupError as exc:
             exc.details.update({"round": round_number, "shape": shape, "request_index": index})
@@ -455,6 +437,7 @@ def run_warmup(
     http_timeout_seconds: float,
     api_key: str | None = None,
     rounds: int = DEFAULT_ROUNDS,
+    backend: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if concurrency < 1 or rounds < 1:
         raise ValueError("concurrency and rounds must be positive")
@@ -465,7 +448,10 @@ def run_warmup(
         or http_timeout_seconds <= 0
     ):
         raise ValueError("deadline and HTTP timeout must be positive")
-    url = _chat_url(base_url)
+    adapter = get_backend_adapter(backend)
+    generation = inspect_generation_kwargs(backend)
+    generation.update(generation.pop("extra_body", {}))
+    generation.pop("parallel_tool_calls", None)
     started_wall = datetime.now(timezone.utc)
     started = time.monotonic()
     deadline = started + deadline_seconds
@@ -476,7 +462,7 @@ def run_warmup(
         for shape in SHAPES:
             try:
                 batch = _run_batch(
-                    url=url,
+                    url=base_url,
                     model=model,
                     shape=shape,
                     round_number=round_number,
@@ -484,6 +470,8 @@ def run_warmup(
                     deadline=deadline,
                     http_timeout=http_timeout_seconds,
                     api_key=api_key,
+                    generation=generation,
+                    adapter=adapter,
                 )
             except WarmupError as exc:
                 exc.batches = list(batches)
@@ -520,8 +508,9 @@ def run_warmup(
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-url", default=_default_base_url())
-    parser.add_argument("--model", default=_default_model())
+    parser.add_argument("--base-url")
+    parser.add_argument("--model")
+    parser.add_argument("--backend-manifest", type=Path, help="use the same backend identity and generation mapping as evaluation")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(
         "--concurrency",
@@ -538,7 +527,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=_positive_float,
         default=_positive_float(os.environ.get("WARMUP_HTTP_TIMEOUT_SECONDS", "600")),
     )
-    parser.add_argument("--api-key", default=os.environ.get("OPENAI_API_KEY"))
+    parser.add_argument("--api-key", default=os.environ.get("DCI_API_KEY") or os.environ.get("OPENAI_API_KEY"))
     parser.add_argument("--rounds", type=_positive_int, default=DEFAULT_ROUNDS)
     parser.add_argument("--dry-run", action="store_true", help="validate configuration without HTTP requests")
     return parser.parse_args(argv)
@@ -546,6 +535,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    manifest = load_backend_manifest(args.backend_manifest) if args.backend_manifest else None
+    if manifest:
+        backend = manifest["backend"]
+        model = manifest["model"]["served_model_name"]
+        if args.base_url is not None and args.base_url.rstrip("/") != backend["base_url"]:
+            raise ValueError("warmup base URL differs from backend manifest")
+        if args.model is not None and args.model != model:
+            raise ValueError("warmup model differs from backend manifest")
+        args.base_url, args.model = backend["base_url"], model
+    else:
+        backend = None
+        args.base_url = args.base_url or _default_base_url()
+        args.model = args.model or _default_model()
     if args.dry_run:
         print(
             json.dumps(
@@ -576,7 +578,10 @@ def main(argv: list[str] | None = None) -> int:
             http_timeout_seconds=args.http_timeout_seconds,
             api_key=args.api_key,
             rounds=args.rounds,
+            backend=backend,
         )
+        if manifest:
+            result["backend_manifest_sha256"] = manifest["manifest_sha256"]
     except Exception as exc:
         kind = exc.kind if isinstance(exc, WarmupError) else "configuration_or_request"
         result = {

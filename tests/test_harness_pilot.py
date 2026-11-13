@@ -208,7 +208,9 @@ class PilotContractTest(unittest.TestCase):
             payload = json.loads(output)
             snapshots[profile] = payload["contract"]
             if profile in plan["profiles"]:
-                self.assertEqual(payload["sha256"], plan["profiles"][profile]["base_contract_sha256"])
+                # Preserve the historical pilot plan: it used the old rg-first
+                # prompt and cannot claim the identity of the open-Bash revision.
+                self.assertNotEqual(payload["sha256"], plan["profiles"][profile]["base_contract_sha256"])
         baseline, stable, selective = (snapshots[name] for name in snapshots)
         self.assertEqual(stable["benchmark_contract_version"], "dci-mvp-v3.4-pilot")
         self.assertEqual(stable["budget_control"], baseline["budget_control"])
@@ -238,7 +240,7 @@ class PilotContractTest(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("stable-rg.conf does not match", result.stderr)
 
-    def test_calibration_changes_only_forecast_parameters_and_preserves_baseline_hash(self):
+    def test_calibration_changes_only_forecast_parameters_with_new_prompt_identity(self):
         repo = Path(__file__).resolve().parents[1]
         snapshots = {}
         for profile in ("budgeted", "budgeted-calibrated"):
@@ -249,7 +251,7 @@ class PilotContractTest(unittest.TestCase):
                 "print(json.dumps({'sha256': CONTRACT_SHA256, 'contract': protocol_contract()}))",
             ], cwd=repo, env=env, text=True)
             snapshots[profile] = json.loads(output)
-        self.assertEqual(snapshots["budgeted"]["sha256"],
+        self.assertNotEqual(snapshots["budgeted"]["sha256"],
                          "e3cbd15c8014c3cd66b350237a6e9c1cdae369c5e1b6d78cf5a022d1b1a8a22d")
         baseline = snapshots["budgeted"]["contract"]
         candidate = snapshots["budgeted-calibrated"]["contract"]

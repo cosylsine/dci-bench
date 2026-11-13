@@ -5,6 +5,7 @@ This module has no model/backend imports. Missing usage is never free usage.
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass
 import hashlib
 import json
@@ -21,6 +22,60 @@ METRICS = ('recall_at_10', 'ndcg_at_10')
 def fingerprint(value: object) -> str:
     return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
                                     separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+
+
+def _runtime_record(value: Mapping | None) -> dict | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise ValueError('agent_runtime must be an object')
+    return dict(value)
+
+
+def _expected_report_runtime(reports: Mapping[int, dict], expected: Mapping | None) -> dict | None:
+    normalized = _runtime_record(expected)
+    if normalized is not None:
+        return normalized
+    records = [report.get('agent_runtime') for report in reports.values()]
+    if not any(record is not None for record in records):
+        return None
+    if any(not isinstance(record, Mapping) for record in records):
+        raise ValueError('calibration reports have inconsistent agent_runtime identities')
+    baseline = dict(records[0])
+    if any(dict(record) != baseline for record in records[1:]):
+        raise ValueError('calibration reports have inconsistent agent_runtime identities')
+    return baseline
+
+
+def _validate_report_runtime(
+    report: Mapping,
+    expected: Mapping | None,
+    *,
+    label: str,
+) -> dict | None:
+    """Validate the report identity and every normalized sample identity."""
+
+    report_runtime = report.get('agent_runtime')
+    if report_runtime is not None and not isinstance(report_runtime, Mapping):
+        raise ValueError(f'{label} agent_runtime must be an object')
+    report_runtime = _runtime_record(report_runtime)
+    if expected is not None:
+        if report_runtime != dict(expected):
+            raise ValueError(f'{label} agent_runtime mismatch')
+        expected_runtime = dict(expected)
+    else:
+        expected_runtime = report_runtime
+    for sample in report.get('samples', []):
+        sample_runtime = sample.get('agent_runtime')
+        if sample_runtime is not None and not isinstance(sample_runtime, Mapping):
+            raise ValueError(f'{label} sample agent_runtime must be an object')
+        sample_runtime = _runtime_record(sample_runtime)
+        if expected_runtime is None:
+            if sample_runtime is not None:
+                raise ValueError(f'{label} sample agent_runtime has no report identity')
+        elif sample_runtime != expected_runtime:
+            raise ValueError(f'{label} sample agent_runtime mismatch')
+    return expected_runtime
 
 
 @dataclass(frozen=True)
@@ -154,7 +209,8 @@ def paired_interval(left: list[dict], right: list[dict] | None, *, metric: str,
 
 
 def summarize(samples: list[dict], *, expected_tasks: list[str], elapsed_seconds: float,
-              price: PriceQuote | None = None) -> dict:
+              price: PriceQuote | None = None,
+              agent_runtime: Mapping | None = None) -> dict:
     identities = [(row['task_id'], row['tier'], row['query_id']) for row in samples]
     if len(set(identities)) != len(identities):
         raise ValueError('duplicate executed sample')
@@ -201,7 +257,7 @@ def summarize(samples: list[dict], *, expected_tasks: list[str], elapsed_seconds
         for name, value in row.get('stage_timing', {}).items():
             if name.endswith('_seconds') and type(value) in (int, float):
                 stages[name].append(value)
-    return {'schema_version': 'dci-benchmark-v2-summary', 'samples': samples, 'tiers': tiers,
+    summary = {'schema_version': 'dci-benchmark-v2-summary', 'samples': samples, 'tiers': tiers,
             'completed': len(samples), 'valid': sum(row['valid'] for row in samples),
             'failure_rate': mean(not row['valid'] for row in samples) if samples else None,
             'measured': bool(samples) and elapsed_seconds > 0,
@@ -215,10 +271,22 @@ def summarize(samples: list[dict], *, expected_tasks: list[str], elapsed_seconds
             'stage_seconds': {name: {'mean': mean(values), 'total': sum(values), 'samples': len(values)}
                               for name, values in sorted(stages.items())},
             'gpu_utilization': None}
+    runtime_record = _runtime_record(agent_runtime)
+    if runtime_record is not None:
+        if any(row.get('agent_runtime') != runtime_record for row in samples):
+            raise ValueError('summary samples have inconsistent agent_runtime identities')
+        summary['agent_runtime'] = runtime_record
+    return summary
 
 
-def validate_complete_report(report: dict, *, split: str) -> None:
+def validate_complete_report(
+    report: dict,
+    *,
+    split: str,
+    expected_agent_runtime: Mapping | None = None,
+) -> None:
     """Validate the query matrix at the report ingestion boundary."""
+    _validate_report_runtime(report, expected_agent_runtime, label=f'{split} report')
     size = {'dev': 10, 'test': 50}[split]
     samples = report['samples']
     cells = defaultdict(set)
@@ -235,17 +303,18 @@ def validate_complete_report(report: dict, *, split: str) -> None:
         raise ValueError(f'{split} report must cover 20 tasks x 2 tiers x {size} paired queries')
 
 
-def select_budget(reports: dict[int, dict]) -> dict:
+def select_budget(reports: dict[int, dict], *, agent_runtime: Mapping | None = None) -> dict:
     if set(reports) != {32000, 64000, 96000}:
         raise ValueError('calibration requires 32k, 64k and 96k reports')
     baseline = reports[96000]
     if any(report['completed'] != 400 or report.get('split') != 'dev'
            or report.get('measured') is not True for report in reports.values()):
         raise ValueError('each calibration arm requires the complete measured 400-execution dev set')
+    expected_runtime = _expected_report_runtime(reports, agent_runtime)
     for budget, report in reports.items():
         if report.get('token_budget') != budget or report.get('complete_scope') is not True:
             raise ValueError('calibration budget/scope mismatch')
-        validate_complete_report(report, split='dev')
+        validate_complete_report(report, split='dev', expected_agent_runtime=expected_runtime)
     for field in ('selection_sha256', 'backend_sha256', 'source_fingerprint', 'concurrency'):
         if not baseline.get(field) or any(report.get(field) != baseline[field] for report in reports.values()):
             raise ValueError(f'calibration {field} mismatch')
@@ -261,18 +330,26 @@ def select_budget(reports: dict[int, dict]) -> dict:
                   and all(d['estimate'] >= -.02 for d in deltas.values()))
         candidates.append({'budget': budget, 'passed': passed, 'recall_deltas': deltas})
     chosen = next((row['budget'] for row in candidates if row['passed']), None)
-    return {'selected_budget': chosen, 'candidates': candidates,
-            'interpretation': 'Development selection only; intervals do not establish equivalence.'}
+    result = {
+        'selected_budget': chosen,
+        'candidates': candidates,
+        'interpretation': 'Development selection only; intervals do not establish equivalence.',
+    }
+    if expected_runtime is not None:
+        result['agent_runtime'] = expected_runtime
+    return result
 
 
-def compare_concurrency(reports: dict[int, dict]) -> dict:
+def compare_concurrency(reports: dict[int, dict], *, agent_runtime: Mapping | None = None) -> dict:
     """Rank measured 4/8/16 trials; expose utilization instead of inventing a target."""
     if set(reports) != {4, 8, 16}:
         raise ValueError('concurrency comparison requires 4, 8 and 16 reports')
     baseline = reports[4]
+    expected_runtime = _expected_report_runtime(reports, agent_runtime)
     identities = {(s['task_id'], s['tier'], s['query_id']) for s in baseline['samples']}
     candidates = []
     for concurrency, report in sorted(reports.items()):
+        _validate_report_runtime(report, expected_runtime, label='concurrency report')
         for field in ('selection_sha256', 'backend_sha256', 'source_fingerprint', 'token_budget', 'split'):
             if not baseline.get(field) or report.get(field) != baseline[field]:
                 raise ValueError('concurrency trials differ in ' + field)
@@ -287,7 +364,13 @@ def compare_concurrency(reports: dict[int, dict]) -> dict:
                            'failure_rate': report['failure_rate'], 'gpu_utilization': report['gpu_utilization']})
     eligible = [row for row in candidates if row['eligible']]
     chosen = max(eligible, key=lambda row: (row['queries_per_hour'], -row['concurrency'])) if eligible else None
-    return {'selected_concurrency': chosen['concurrency'] if chosen else None, 'candidates': candidates,
-            'complete_scope': all(report.get('complete_scope') is True for report in reports.values()),
-            'interpretation': 'Highest observed completion throughput among trials with <=1% failures. P95 is descriptive only. '
-                              'GPU values describe the driver metric; inspect sharing/MIG before interpreting them.'}
+    result = {
+        'selected_concurrency': chosen['concurrency'] if chosen else None,
+        'candidates': candidates,
+        'complete_scope': all(report.get('complete_scope') is True for report in reports.values()),
+        'interpretation': 'Highest observed completion throughput among trials with <=1% failures. P95 is descriptive only. '
+                          'GPU values describe the driver metric; inspect sharing/MIG before interpreting them.',
+    }
+    if expected_runtime is not None:
+        result['agent_runtime'] = expected_runtime
+    return result

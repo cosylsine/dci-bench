@@ -1,6 +1,7 @@
 import argparse
 import importlib.util
 import json
+import os
 from pathlib import Path
 import tempfile
 import time
@@ -14,6 +15,110 @@ spec.loader.exec_module(runner)
 
 
 class BenchmarkV2RunnerTest(unittest.TestCase):
+    def test_preflight_runs_all_40_jobs_with_bounded_overlap_and_isolated_profiles(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'logs').mkdir()
+            args = argparse.Namespace(output=root, preflight_concurrency=4)
+            jobs = [{'task_id': f'task{i}', 'tier': tier}
+                    for i in range(20) for tier in ('lite', 'full')]
+            script = '''
+import json, os, pathlib, sys, time
+root = pathlib.Path(sys.argv[1])
+name = sys.argv[2]
+started = time.monotonic()
+(root / (name + '.ready')).touch()
+deadline = started + 5
+while len(list(root.glob('*.ready'))) < 4:
+    assert time.monotonic() < deadline, 'first four jobs must overlap'
+    time.sleep(.01)
+time.sleep(.03)
+print(json.dumps({'start': started, 'end': time.monotonic(),
+                  'profile': os.environ['DCI_PROTOCOL_PROFILE'],
+                  'budget': os.environ['DCI_DOCUMENT_TOKEN_BUDGET']}))
+'''
+            env = dict(os.environ, DCI_DOCUMENT_TOKEN_BUDGET='64000')
+            with patch.object(runner, 'command_for', side_effect=lambda job, *_args, **_kw: [
+                    runner.sys.executable, '-c', script, tmp, job['task_id'] + '-' + job['tier']]):
+                runner.run_data_preflight(jobs, args, env=env)
+            self.assertNotIn('DCI_PROTOCOL_PROFILE', env)
+            events = []
+            for job in jobs:
+                row = json.loads((root / 'logs' / (job['task_id'] + '-' + job['tier'] + '.log')).read_text())
+                self.assertEqual(row['profile'], 'document-pool-v2-' + job['tier'])
+                self.assertEqual(row['budget'], '64000')
+                events.extend([(row['start'], 1), (row['end'], -1)])
+            active = peak = 0
+            for _, change in sorted(events):
+                active += change
+                peak = max(peak, active)
+            self.assertEqual(peak, 4)
+            self.assertEqual(active, 0)
+
+    def test_preflight_failure_timeout_and_interrupt_reap_inflight_children(self):
+        for failure in ('exit', 'timeout', 'interrupt', 'spawn'):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                (root / 'logs').mkdir()
+                args = argparse.Namespace(output=root, preflight_concurrency=2)
+                jobs = [{'task_id': str(i), 'tier': 'lite'} for i in range(5)]
+                children = []
+                popen = runner.subprocess.Popen
+
+                def spawn(*a, **kw):
+                    if failure == 'spawn' and children:
+                        raise OSError('spawn fixture failed')
+                    child = popen(*a, **kw)
+                    children.append(child)
+                    return child
+
+                def command(job, *_args, **_kw):
+                    code = "import time; time.sleep(60)"
+                    if failure == 'exit' and job['task_id'] == '0':
+                        code = "import sys; print('bad data', flush=True); sys.exit(7)"
+                    return [runner.sys.executable, '-c', code]
+
+                with patch.object(runner, 'command_for', side_effect=command), \
+                        patch.object(runner.subprocess, 'Popen', side_effect=spawn):
+                    if failure == 'interrupt':
+                        with patch.object(runner, 'time', wraps=time) as clock, \
+                                self.assertRaises(KeyboardInterrupt):
+                            clock.sleep.side_effect = KeyboardInterrupt
+                            runner.run_data_preflight(jobs, args, env=dict(os.environ))
+                    else:
+                        error = OSError if failure == 'spawn' else RuntimeError
+                        pattern = {'exit': r'0-lite \(exit 7\).*log:',
+                                   'timeout': 'timed out.*log:', 'spawn': 'spawn fixture failed'}[failure]
+                        with self.assertRaisesRegex(error, pattern):
+                            runner.run_data_preflight(jobs, args, env=dict(os.environ),
+                                                      timeout=.15 if failure == 'timeout' else 10)
+                self.assertEqual(len(children), 1 if failure == 'spawn' else 2)
+                self.assertTrue(all(child.poll() is not None for child in children))
+                if failure == 'exit':
+                    self.assertIn('bad data', (root / 'logs/0-lite.log').read_text())
+
+    def test_preflight_publishes_success_only_after_all_checks_and_records_concurrency(self):
+        for fail in (False, True):
+            with self.subTest(fail=fail), tempfile.TemporaryDirectory() as tmp:
+                output = Path(tmp) / 'run'
+                with patch.object(runner, 'build_plan', return_value={'mode': 'local', 'jobs': []}), \
+                        patch.object(runner, 'run_data_preflight',
+                                     side_effect=RuntimeError('bad data') if fail else None):
+                    argv = ['--suite', tmp, '--preflight-only', '--preflight-concurrency', '2',
+                            '--output', str(output)]
+                    if fail:
+                        with self.assertRaisesRegex(RuntimeError, 'bad data'):
+                            runner.main(argv)
+                        self.assertFalse((output / 'preflight.json').exists())
+                    else:
+                        self.assertEqual(runner.main(argv), 0)
+                        report = json.loads((output / 'preflight.json').read_text())
+                        self.assertEqual(report['preflight_concurrency'], 2)
+                        self.assertEqual(report['model_calls'], 0)
+                        self.assertGreaterEqual(report['elapsed_seconds'], 0)
+                    self.assertEqual(json.loads((output / 'launch.json').read_text())['preflight_concurrency'], 2)
+                    self.assertNotIn('active_session_started_at', json.loads((output / 'ledger.json').read_text()))
+
     def test_one_batch_contains_all_selected_ids(self):
         with tempfile.TemporaryDirectory() as tmp:
             args = argparse.Namespace(concurrency=8, split='test', output=Path(tmp),
@@ -27,6 +132,18 @@ class BenchmarkV2RunnerTest(unittest.TestCase):
             self.assertIn('--run-id', command)
             (Path(tmp) / 'evaluation/fixture/medical_en/runs/test-lite').mkdir(parents=True)
             self.assertIn('--resume-run', runner.command_for(job, args, 'fixture'))
+
+    def test_command_for_passes_runtime_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args = argparse.Namespace(
+                concurrency=8, split='test', output=Path(tmp),
+                backend_manifest=Path(tmp) / 'backend.json', bridge_port=28100,
+                runtime_config=Path(tmp) / 'runtime.json',
+            )
+            job = {'task_id': 'medical_en', 'tier': 'lite', 'suite': tmp,
+                   'query_ids': ['q1']}
+            command = runner.command_for(job, args, 'fixture')
+            self.assertEqual(command[command.index('--runtime-config') + 1], str(args.runtime_config))
 
     def test_plan_does_not_spawn_or_require_endpoint(self):
         with patch.object(runner, 'build_plan', return_value={'mode': 'local', 'execution_count': 2000}), \
@@ -304,6 +421,121 @@ class BenchmarkV2RunnerTest(unittest.TestCase):
             self.assertEqual(len(samples), 1)
             self.assertTrue(samples[0]['valid'])
             self.assertEqual(samples[0]['usage']['total_tokens'], 15)
+            with self.assertRaisesRegex(ValueError, 'agent_runtime'):
+                runner.completed_samples(execution.run_dir, {
+                    'query_ids': ['Q1'], 'task_id': args.task, 'tier': 'lite', 'groups': {'Q1': 'g1'},
+                    'expected_agent_runtime': {
+                        'schema_version': 'dci-agent-runtime-v1',
+                        'mode': 'frozen-rootfs',
+                        'rootfs_tree_sha256': 'a' * 64,
+                    },
+                })
+
+    def test_host_reader_rejects_frozen_manifest_and_result(self):
+        from test_phase4_runner import Phase4RunnerTest
+        from dci_bench.results.phase4_runner import execute_phase4
+        from dci_bench.results.protocol import compute_run_fingerprint, sha256_json
+
+        fixture = Phase4RunnerTest()
+        runtime = {
+            'schema_version': 'dci-agent-runtime-v1',
+            'mode': 'frozen-rootfs',
+            'rootfs_tree_sha256': 'a' * 64,
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            args = fixture._fixture(Path(tmp))
+            execution = execute_phase4(
+                args,
+                selected_query_ids=['Q1'],
+                inspect_eval_fn=fixture._fake_eval(),
+                task_factory=fixture._task_factory,
+            )
+            manifest_path = execution.run_dir / 'run-manifest.json'
+            manifest = json.loads(manifest_path.read_text())
+            manifest.setdefault('code', {})['agent_runtime'] = runtime
+            manifest['run_fingerprint'] = compute_run_fingerprint(
+                model=manifest['model'],
+                backend=manifest['backend'],
+                data=manifest['data'],
+                benchmark_contract=manifest['benchmark_contract'],
+                metric_ks=manifest['metric_ks'],
+                query_ids=manifest['query_ids'],
+                code=manifest['code'],
+            )
+            manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+            result_path = execution.run_dir / 'task-result.json'
+            result = json.loads(result_path.read_text())
+            result.setdefault('code', {})['agent_runtime'] = runtime
+            result_path.write_text(json.dumps(result), encoding='utf-8')
+            marker_path = execution.run_dir / '_COMPLETE'
+            marker = json.loads(marker_path.read_text())
+            marker['task_result_sha256'] = sha256_json(result)
+            marker['run_fingerprint'] = manifest['run_fingerprint']
+            marker_path.write_text(json.dumps(marker), encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'host completed batch'):
+                runner.completed_samples(
+                    execution.run_dir,
+                    {'query_ids': ['Q1'], 'task_id': args.task, 'tier': 'lite', 'groups': {'Q1': 'g1'}},
+                )
+
+    def test_frozen_reader_requires_final_and_trace_artifacts(self):
+        from test_phase4_runner import Phase4RunnerTest
+        from dci_bench.results.phase4_runner import execute_phase4
+        from dci_bench.results.protocol import compute_run_fingerprint, sha256_json
+
+        fixture = Phase4RunnerTest()
+        runtime = {
+            'schema_version': 'dci-agent-runtime-v1',
+            'mode': 'frozen-rootfs',
+            'rootfs_tree_sha256': 'a' * 64,
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            args = fixture._fixture(Path(tmp))
+            execution = execute_phase4(
+                args,
+                selected_query_ids=['Q1'],
+                inspect_eval_fn=fixture._fake_eval(),
+                task_factory=fixture._task_factory,
+            )
+            manifest_path = execution.run_dir / 'run-manifest.json'
+            manifest = json.loads(manifest_path.read_text())
+            manifest.setdefault('code', {})['agent_runtime'] = runtime
+            manifest['run_fingerprint'] = compute_run_fingerprint(
+                model=manifest['model'],
+                backend=manifest['backend'],
+                data=manifest['data'],
+                benchmark_contract=manifest['benchmark_contract'],
+                metric_ks=manifest['metric_ks'],
+                query_ids=manifest['query_ids'],
+                code=manifest['code'],
+            )
+            manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+            sample_path = execution.run_dir / 'Q1' / 'result.json'
+            sample = json.loads(sample_path.read_text())
+            sample.setdefault('provenance', {})['agent_runtime'] = runtime
+            sample['artifacts'].pop('trace')
+            sample_path.write_text(json.dumps(sample), encoding='utf-8')
+            result_path = execution.run_dir / 'task-result.json'
+            result = json.loads(result_path.read_text())
+            result.setdefault('code', {})['agent_runtime'] = runtime
+            result['samples'][0]['result']['sha256'] = sha256_json(sample)
+            result_path.write_text(json.dumps(result), encoding='utf-8')
+            marker_path = execution.run_dir / '_COMPLETE'
+            marker = json.loads(marker_path.read_text())
+            marker['task_result_sha256'] = sha256_json(result)
+            marker['run_fingerprint'] = manifest['run_fingerprint']
+            marker_path.write_text(json.dumps(marker), encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'final/trace artifact'):
+                runner.completed_samples(
+                    execution.run_dir,
+                    {
+                        'query_ids': ['Q1'],
+                        'task_id': args.task,
+                        'tier': 'lite',
+                        'groups': {'Q1': 'g1'},
+                        'expected_agent_runtime': runtime,
+                    },
+                )
 
 
 if __name__ == '__main__':

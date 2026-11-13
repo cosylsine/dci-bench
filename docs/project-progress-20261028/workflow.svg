@@ -1,91 +1,125 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1120" viewBox="0 0 1680 1120" role="img" aria-labelledby="title desc">
-  <title id="title">DCI-Bench 当前文档评测框架与 harness 工作流程</title>
-  <desc id="desc">三类数据输入统一为 corpus、queries、qrels，经 KaLM 排名、正例补回和三档候选池构造，冻结与预检后由 Inspect 编排，HTTP bridge 连接 Pi，使用 read 与 Bubblewrap bash 工具检索候选正文，预算控制后提交 ranked_doc_ids，宿主侧验收、评分并保存可追溯结果。qrels 不进入 agent 工作区。</desc>
+<svg class="workflow-svg" xmlns="http://www.w3.org/2000/svg" width="1600" height="1140" viewBox="0 0 1600 1140" role="img" aria-labelledby="frozen-workflow-title frozen-workflow-desc">
+  <title id="frozen-workflow-title">DCI-Bench Document Pool v2 与 Frozen RootFS 工作流程</title>
+  <desc id="frozen-workflow-desc">从可信构建和 AFS 离线 Bundle 开始，每个节点在评测前 prepare 和 verify 到本地 /tmp/dci-bench-runtime，再由多个 Query 共享只读 Frozen RootFS。Inspect、Pi、HTTP 模型桥、custom read 和 qrels 评分留在 Host；只有 Bash 经 Bubblewrap 进入隔离环境。结果、trace 和 manifest 必须携带一致的 Runtime Identity，跨 Runtime 的恢复和 calibration 会被拒绝。图中同步于 2026-11-13，实施证据来自 2026-11-11。</desc>
   <defs>
-    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L8 4.5 L0 9" fill="none" stroke="#688277" stroke-width="1.6"/></marker>
+    <marker id="frozen-workflow-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L9 5 L0 10" fill="none" stroke="#688277" stroke-width="1.8"/>
+    </marker>
+    <marker id="frozen-workflow-arrow-dark" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L9 5 L0 10" fill="none" stroke="#176b56" stroke-width="1.8"/>
+    </marker>
     <style>
-      text{font-family:'Noto Sans CJK SC','WenQuanYi Zen Hei','Microsoft YaHei',sans-serif;fill:#193b36}
-      .eyebrow{font-size:17px;letter-spacing:2px;fill:#58786e}.title{font-size:38px;font-weight:700}.sub{font-size:20px;fill:#526c65}
-      .label{font-size:23px;font-weight:700}.body{font-size:19px;fill:#46635b}.small{font-size:17px;fill:#526c65}.mono{font-family:monospace;font-size:19px}
-      .card{fill:#fff;stroke:#cddad1;stroke-width:1.5}.edge{fill:none;stroke:#688277;stroke-width:2;marker-end:url(#arrow)}
-      .accent{fill:#176b56}.white{fill:#fff}.section{font-size:20px;font-weight:700;fill:#176b56}
+      .workflow-svg text{font-family:'Noto Sans CJK SC','WenQuanYi Zen Hei','Microsoft YaHei',sans-serif;fill:#193b36}
+      .workflow-svg .eyebrow{font-size:16px;letter-spacing:2px;fill:#58786e}.workflow-svg .title{font-size:36px;font-weight:700}.workflow-svg .sub{font-size:19px;fill:#526c65}
+      .workflow-svg .section{font-size:19px;font-weight:700;fill:#176b56}.workflow-svg .label{font-size:22px;font-weight:700}.workflow-svg .body{font-size:18px;fill:#46635b}.workflow-svg .small{font-size:16px;fill:#526c65}.workflow-svg .mono{font-family:monospace;font-size:17px;fill:#193b36}
+      .workflow-svg .card{fill:#fff;stroke:#cddad1;stroke-width:1.5}.workflow-svg .soft{fill:#eaf3ed;stroke:#c5d9cc;stroke-width:1.5}.workflow-svg .dark{fill:#176b56;stroke:#176b56;stroke-width:1.5}.workflow-svg .darktext{fill:#fff}.workflow-svg .edge{fill:none;stroke:#688277;stroke-width:2;marker-end:url(#frozen-workflow-arrow)}.workflow-svg .edge-dark{fill:none;stroke:#176b56;stroke-width:2;marker-end:url(#frozen-workflow-arrow-dark)}
+      .workflow-svg .chip{fill:#f0f5ed;stroke:#cddad1;stroke-width:1.2}.workflow-svg .warn{fill:#fbf3e4;stroke:#e5d5b9;stroke-width:1.3}.workflow-svg .identity{fill:#edf2e9;stroke:#cddad1;stroke-width:1.5}
     </style>
   </defs>
-  <rect width="1680" height="1120" rx="24" fill="#f7f8f2"/>
-  <text x="48" y="49" class="eyebrow">DCI-BENCH / DOCUMENT TRACK / 2026-10-28</text>
-  <text x="48" y="104" class="title">DCI-Bench 评测框架与 Harness</text>
-  <text x="48" y="143" class="sub">document-pool-v1 · dci-mvp-v3.4-pilot · 冻结包 20261026-pool-smoke-v4 · Qwen3.8-27B</text>
 
-  <text x="48" y="197" class="section">01  数据准备与实验冻结 · 宿主侧</text>
-  <rect x="48" y="219" width="350" height="160" rx="14" class="card"/>
-  <text x="70" y="256" class="label">三类数据输入</text>
-  <text x="70" y="291" class="body">已有检索集 · 带证据 QA · 原始语料</text>
-  <text x="70" y="323" class="body">清洗、适配、标签审计与发布</text>
-  <text x="70" y="355" class="small">raw_data 原样保留，派生数据独立存放</text>
-  <path d="M402 299 H438" class="edge"/>
-  <rect x="446" y="219" width="350" height="160" rx="14" class="card"/>
-  <text x="468" y="256" class="label">统一检索契约</text>
-  <text x="468" y="291" class="mono">corpus + queries + qrels</text>
-  <text x="468" y="323" class="body">短 doc_id 与原始 ID 可逆映射</text>
-  <text x="468" y="355" class="small">数据集 evidence 可选；qrels 仅宿主持有</text>
-  <path d="M800 299 H836" class="edge"/>
-  <rect x="844" y="219" width="370" height="160" rx="14" class="card"/>
-  <text x="866" y="256" class="label">KaLM 排名 → 候选池</text>
-  <text x="866" y="291" class="body">200 / 500 / 1000 独立构造</text>
-  <text x="866" y="323" class="body">补回遗漏正例，等量移除非正例</text>
-  <text x="866" y="355" class="small">共享正文 + 每题 ID 索引 + 排名压缩归档</text>
-  <path d="M1218 299 H1254" class="edge"/>
-  <rect x="1262" y="219" width="370" height="160" rx="14" class="card"/>
-  <text x="1284" y="256" class="label">冻结计划 → 运行前检查</text>
-  <text x="1284" y="291" class="body">固定同题三档，封存源码与配置</text>
-  <text x="1284" y="323" class="body">数据、模型身份、依赖与真实工具链</text>
-  <text x="1284" y="355" class="small">预检通过后加载 vLLM，开始模型执行</text>
-  <path d="M1446 381 V410 H216 V459" class="edge"/>
+  <rect width="1600" height="1140" rx="24" fill="#f7f8f2"/>
+  <text x="56" y="42" class="eyebrow">DCI-BENCH / DOCUMENT TRACK / FROZEN RUNTIME</text>
+  <text x="56" y="84" class="title">Document Pool v2 与 Frozen RootFS 工作流程</text>
+  <text x="56" y="112" class="sub">准备一次、节点校验、Query 隔离执行；Host 侧编排与评分保持可审计</text>
 
-  <rect x="48" y="467" width="1584" height="371" rx="18" fill="#eaf3ed" stroke="#c5d9cc"/>
-  <text x="72" y="503" class="section">02  单题 harness · Inspect 编排 → HTTP bridge → Pi 控制器</text>
-  <rect x="72" y="528" width="310" height="182" rx="12" class="card"/>
-  <text x="92" y="563" class="label">当前 query 工作区</text>
-  <text x="92" y="599" class="body">从共享语料按候选 ID 取正文</text>
-  <text x="92" y="631" class="body">仅本题 200 / 500 / 1000 篇</text>
-  <text x="92" y="663" class="body">按需物化，退出后释放</text>
-  <text x="92" y="692" class="small">无 qrels、正例标记或原始 ID 映射</text>
-  <path d="M386 618 H426" class="edge"/>
-  <rect x="434" y="528" width="306" height="182" rx="12" fill="#176b56"/>
-  <text x="457" y="563" class="label white">Pi：搜索 ↔ 阅读 ↔ 判断</text>
-  <text x="457" y="599" class="body white">通过 vLLM 调用 Qwen3.8-27B</text>
-  <text x="457" y="631" class="body white">累计每次输入和输出的用量</text>
-  <text x="457" y="663" class="body white">余额低时 → 收尾 / 补读</text>
-  <text x="457" y="692" class="small white">模型服务由宿主连接；bash 无网络</text>
-  <path d="M744 574 H784" class="edge"/>
-  <path d="M786 674 H748" class="edge"/>
-  <rect x="794" y="528" width="372" height="84" rx="12" class="card"/>
-  <text x="814" y="560" class="label">read · Pi Node 受控读取</text>
-  <text x="814" y="590" class="small">仅 corpus 内路径；非空正文生成读取凭据</text>
-  <rect x="794" y="626" width="372" height="84" rx="12" class="card" stroke-dasharray="5 4"/>
-  <text x="814" y="658" class="label">bash · Bubblewrap 沙箱</text>
-  <text x="814" y="688" class="small">只读候选语料，无网络；支持 rg 等检索</text>
-  <path d="M1170 618 H1210" class="edge"/>
-  <rect x="1218" y="528" width="390" height="182" rx="12" class="card"/>
-  <text x="1240" y="563" class="label">停止搜索并提交结果</text>
-  <text x="1240" y="599" class="body">收尾时关闭工具；无效输出最多修复 3 次</text>
-  <text x="1240" y="631" class="mono">{"ranked_doc_ids": [...]}</text>
-  <text x="1240" y="663" class="body">1–10 个唯一、语料内有效的短 ID</text>
-  <text x="1240" y="692" class="small">终稿至少需一条非空 read 凭据</text>
-  <rect x="72" y="735" width="1536" height="77" rx="12" fill="#fff" fill-opacity=".7"/>
-  <text x="92" y="767" class="body">三档累计输入＋输出预算：96k / 128k / 192k token（重复传入上下文也计入预算）</text>
-  <text x="92" y="796" class="small">单次上下文 65,536 · 输出上限 1,024 · 每题 600 秒 · 预留在总预算内；公式、补读与修复分支见 Harness 规则图</text>
-  <path d="M1414 839 V866 H720 V907" class="edge"/>
+  <g data-box="56 132 1488 58">
+    <rect x="56" y="132" width="1488" height="58" rx="12" class="soft"/>
+    <text x="78" y="157" class="label" fill="#176b56">Document Pool v2</text>
+    <text x="320" y="157" class="body">Lite 200  ⊂  Full 1,000　·　同一 query / Prompt / 累计预算 64,000 token　·　sample timeout = null</text>
+    <text x="78" y="179" class="small">单次 context ≤ 65,536　·　输出 ≤ 1,024　·　工具返回 ≤ 8 KiB　·　每题预算与候选层级一起冻结</text>
+  </g>
 
-  <text x="48" y="891" class="section">03  宿主验收、评分与结果封存</text>
-  <rect x="48" y="915" width="756" height="129" rx="14" class="card"/>
-  <text x="72" y="950" class="label">验收与评分</text>
-  <text x="72" y="985" class="body">JSON / ID / read 凭据验收 → 对照 host-only qrels 评分</text>
-  <text x="72" y="1017" class="body">Recall / F1 / nDCG @ 1, 3, 5, 10, 20 · token 与耗时</text>
-  <path d="M805 980 H825" class="edge"/>
-  <rect x="828" y="915" width="804" height="129" rx="14" class="card"/>
-  <text x="852" y="950" class="label">结果与审计记录</text>
-  <text x="852" y="985" class="body">final.json · result.json · trace.json · manifest · _COMPLETE</text>
-  <text x="852" y="1017" class="body">当前：53 条配对 query × 3 档，159 / 159 smoke 通过</text>
-  <text x="48" y="1084" class="small">解释边界：三档非嵌套且预算不同；池内 DCI 与补正例前 KaLM 分开评价。159 次 smoke 属运行诊断，全量 benchmark 尚未完成。</text>
+  <text x="56" y="220" class="section">01  可信构建 → 离线分发 → 节点本地准备</text>
+  <g data-box="56 238 312 148">
+    <rect x="56" y="238" width="312" height="148" rx="14" class="card"/>
+    <text x="78" y="274" class="label">可信构建端</text>
+    <text x="78" y="305" class="body">固定镜像摘要与工具清单</text>
+    <text x="78" y="334" class="body">生成 Debian Frozen RootFS</text>
+    <text x="78" y="363" class="small">仅准备 / 发版阶段联网</text>
+  </g>
+  <path d="M374 312 H394" class="edge"/>
+  <g data-box="406 238 312 148">
+    <rect x="406" y="238" width="312" height="148" rx="14" class="card"/>
+    <text x="428" y="274" class="label">AFS 离线 Bundle</text>
+    <text x="428" y="305" class="body">持久保存已校验 rootfs.tar</text>
+    <text x="428" y="334" class="body">节点按显式路径导入</text>
+    <text x="428" y="363" class="small">评测期间不下载、不安装</text>
+  </g>
+  <path d="M724 312 H744" class="edge"/>
+  <g data-box="756 238 340 148">
+    <rect x="756" y="238" width="340" height="148" rx="14" class="card"/>
+    <text x="778" y="274" class="label">每节点 prepare / verify</text>
+    <text x="778" y="305" class="body">校验 Bundle、文件树与 READY</text>
+    <text x="778" y="334" class="body">失败即 fail closed</text>
+    <text x="778" y="363" class="small">启动模型与 Query 之前完成</text>
+  </g>
+  <path d="M1102 312 H1122" class="edge"/>
+  <g data-box="1134 238 410 148">
+    <rect x="1134" y="238" width="410" height="148" rx="14" class="card"/>
+    <text x="1156" y="274" class="label">节点本地可执行缓存</text>
+    <text x="1156" y="308" class="mono">/tmp/dci-bench-runtime</text>
+    <text x="1156" y="337" class="body">同一份 RootFS 供多 Query 复用</text>
+    <text x="1156" y="366" class="small">AFS 保留 Bundle；缓存路径不改身份</text>
+  </g>
+
+  <path d="M1339 386 V414 H1280 V432" class="edge-dark"/>
+  <g data-box="56 432 1488 144">
+    <rect x="56" y="432" width="1488" height="144" rx="16" class="soft"/>
+    <text x="80" y="467" class="label">共享只读 Frozen Debian RootFS</text>
+    <text x="80" y="496" class="small">Runtime 身份记录内容（镜像、平台、RootFS tree）与执行策略；每个 Query 只拥有自己的 corpus 和 scratch</text>
+    <g data-box="80 516 420 42">
+      <rect x="80" y="516" width="420" height="42" rx="9" class="chip"/>
+      <text x="100" y="543" class="body">Query A · bwrap · RootFS [RO]</text>
+    </g>
+    <g data-box="590 516 420 42">
+      <rect x="590" y="516" width="420" height="42" rx="9" class="chip"/>
+      <text x="610" y="543" class="body">Query B · bwrap · RootFS [RO]</text>
+    </g>
+    <g data-box="1100 516 420 42">
+      <rect x="1100" y="516" width="420" height="42" rx="9" class="chip"/>
+      <text x="1120" y="543" class="body">Query C · bwrap · RootFS [RO]</text>
+    </g>
+  </g>
+
+  <text x="56" y="618" class="section">02  Host 责任边界 ↔ 每次 Bash 的 Frozen 隔离</text>
+  <g data-box="56 638 660 232">
+    <rect x="56" y="638" width="660" height="232" rx="14" class="card"/>
+    <text x="80" y="674" class="label">Host / Inspect / Pi 控制面</text>
+    <text x="80" y="706" class="body">Inspect 编排　·　Pi agent loop　·　HTTP 模型 bridge</text>
+    <text x="80" y="737" class="body">custom read：路径校验、正文证据与 read receipt</text>
+    <text x="80" y="768" class="body">qrels scoring：隐藏标签只在 Host 侧使用</text>
+    <text x="80" y="799" class="small">模型调用、候选池、评分、结果归档均留在 Host</text>
+    <rect x="80" y="821" width="610" height="30" rx="7" fill="#f0f5ed"/>
+    <text x="96" y="842" class="small">工具协议 → Bash 调用送入 Bubblewrap</text>
+  </g>
+  <path d="M718 754 H752" class="edge-dark"/>
+  <g data-box="772 638 772 232">
+    <rect x="772" y="638" width="772" height="232" rx="14" class="dark"/>
+    <text x="798" y="674" class="label darktext">Bubblewrap：只有 Bash 进入的执行边界</text>
+    <text x="798" y="706" class="body darktext">/workspace/corpus：当前 Query 选中文件，RO</text>
+    <text x="798" y="736" class="body darktext">/scratch：本题独立 RW　·　/tmp → scratch/tmp，同一计费空间</text>
+    <text x="798" y="766" class="body darktext">network disabled　·　无 Host /usr、qrels、映射、凭据</text>
+    <text x="798" y="796" class="body darktext">无 host /proc 与 GPU 设备　·　工具来自 Frozen RootFS</text>
+    <text x="798" y="836" class="small darktext">自由 Bash 仍受既有每次 Bash 资源限制；read 仍由 Host 执行</text>
+  </g>
+  <path d="M1280 576 V620" class="edge-dark"/>
+
+  <text x="56" y="912" class="section">03  结果身份与恢复边界</text>
+  <g data-box="56 930 714 126">
+    <rect x="56" y="930" width="714" height="126" rx="14" class="identity"/>
+    <text x="80" y="965" class="label">统一审计链</text>
+    <text x="80" y="998" class="body">result / trace / manifest / agent_runtime</text>
+    <text x="80" y="1028" class="small">运行身份贯穿父子进程、批次与 summary；旧结果不补写</text>
+  </g>
+  <path d="M386 870 V918" class="edge"/>
+  <g data-box="794 930 750 126">
+    <rect x="794" y="930" width="750" height="126" rx="14" class="warn"/>
+    <text x="818" y="965" class="label">身份一致才可继续</text>
+    <text x="818" y="998" class="body">一致 → resume / completed reuse / calibration 可比较</text>
+    <text x="818" y="1028" class="body">跨 Runtime 或不匹配 → 拒绝恢复、复用与 calibration</text>
+  </g>
+  <path d="M1158 870 V918" class="edge"/>
+
+  <text x="56" y="1090" class="small">同步 2026-11-13 · 实施证据 2026-11-11 · 105 Python / 31 Pi / 15 synthetic bridge 是开发验收，不是正式模型成绩</text>
+  <text x="56" y="1118" class="small">Frozen 显式启用；Host Tools 默认保留，Code Track 不切换。P6、真实模型 smoke、等预算 Host↔Frozen 消融与官方默认切换待验收。</text>
 </svg>

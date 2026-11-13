@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from dci_bench.agents.pi_agent import run_pi_dci
@@ -66,3 +67,32 @@ class PiTimeoutFallbackTest(unittest.TestCase):
             self.assertEqual(saved["schema_version"], TRAJECTORY_SCHEMA_VERSION)
             self.assertTrue(saved["partial"])
             self.assertEqual(saved["events"], [])
+
+    def test_frozen_timeout_fallback_preserves_runtime_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime = {
+                "schema_version": "dci-agent-runtime-v1",
+                "mode": "frozen-rootfs",
+                "rootfs_tree_sha256": "a" * 64,
+            }
+            verified = SimpleNamespace(
+                identity=runtime,
+                to_payload=lambda: {"identity": runtime, "rootfs_path": "/tmp/rootfs"},
+            )
+            process = Mock(pid=12345, returncode=-15)
+            process.communicate.side_effect = [subprocess.TimeoutExpired("node", 1), ("", "")]
+            with patch("dci_bench.agents.pi_agent.subprocess.Popen", return_value=process), \
+                 patch("dci_bench.agents.pi_agent.os.killpg"):
+                result = run_pi_dci(
+                    query="q",
+                    workspace=root,
+                    output_path=root / "final.json",
+                    timeout_seconds=1,
+                    agent_runtime=verified,
+                )
+            trace = json.loads(result.trace_path.read_text())
+            final = json.loads(result.output_path.read_text())
+            self.assertEqual(trace["agent_runtime"], runtime)
+            self.assertEqual(final["agent_runtime"], runtime)
+            self.assertEqual(trace["synthetic_failure"]["kind"], "timeout_fallback")

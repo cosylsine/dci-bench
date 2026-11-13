@@ -102,7 +102,8 @@ def main(argv=None):
     thread.start()
     try:
         backend = build_api_manifest(model_key=model, served_model_name=model, provider='synthetic',
-            revision='cpu-fixture-v1', base_url=f'http://127.0.0.1:{server.server_port}/v1')
+            revision='cpu-fixture-v1', base_url=f'http://127.0.0.1:{server.server_port}/v1',
+            thinking_policy={'mode': 'not_supported', 'evidence': 'synthetic non-reasoning fixture'})
         write_json_atomic(args.backend_manifest, backend)
         samples = []
         for job in jobs:

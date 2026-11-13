@@ -27,6 +27,8 @@ $PY scripts/run_benchmark_v2.py --suite "$SUITE" --split smoke --allow-partial \
 
 默认命令仅输出计划。`--preflight-only`检查数据与运行清单，不调用模型，也不代表完成沙箱验收。实际沙箱CPU验收可用`check_benchmark_v2.py --suite "$SUITE" --task finance_en --output <新目录>`；它使用本机脚本化HTTP provider，执行开发集两档、真实Bubblewrap和结果发布，并检查恢复不重复请求。沙箱依赖先运行`bash scripts/ensure_pool_smoke_tools.sh`检查并补齐。
 
+数据预检默认同时运行 4 个独立 task/tier 子进程，可用 `--preflight-concurrency 1|2|4|8|16` 调整；它与模型评测的 `--concurrency` 独立。各任务保留 `logs/<task>-<tier>.log`，控制台逐项报告完成进度，全部通过后才写入 `preflight.json`（含并发数和本次耗时）。单项启动后最多 600 秒；失败、超时或中断会停止派发并清理在途进程。数据、协议和 Frozen runtime 校验仍逐项执行，runtime 缓存锁及共享磁盘可能限制加速比例。
+
 ## 协议与运行
 
 两个profile为`document-pool-v2-lite`、`document-pool-v2-full`。默认64,000累计输入＋输出token，缓存输入同样计入协议；上下文65,536、单次输出1,024、工具输出8KiB、默认无单题时间上限；耗时仅作参考。最多12轮搜索／读取、24次工具执行，另留提交和一次修复；提交与修复均消耗累计预算。32k／64k／96k通过`--token-budget`选择并纳入运行指纹。

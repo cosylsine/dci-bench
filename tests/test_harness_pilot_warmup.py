@@ -79,7 +79,7 @@ class WarmupServer:
                         payload = {"choices": [{"message": {"role": "assistant", "content": "bad"},
                                                  "finish_reason": "stop"}]}
                     else:
-                        if body.get("tool_choice") == "none":
+                        if not body.get("tools"):
                             message = {"role": "assistant", "content": "synthetic final"}
                             finish_reason = "stop"
                         else:
@@ -93,6 +93,8 @@ class WarmupServer:
                                 arguments = json.dumps({"path": "/workspace/corpus/__warmup__.md"})
                             else:
                                 arguments = json.dumps({"command": "printf warmup"})
+                            if owner.mode == "object_args":
+                                arguments = json.loads(arguments)
                             message = {
                                 "role": "assistant",
                                 "content": None,
@@ -163,6 +165,35 @@ class HarnessPilotWarmupTest(unittest.TestCase):
             *extra,
         ])
 
+    def test_remote_warmup_uses_evaluation_generation_mapping(self):
+        from dci_bench.backends.manifest import build_api_manifest
+
+        with tempfile.TemporaryDirectory() as temporary, WarmupServer() as server:
+            root = Path(temporary)
+            manifest = build_api_manifest(
+                model_key="synthetic-model", served_model_name="synthetic-model", provider="fixture",
+                revision="v1", base_url=server.base_url,
+                thinking_policy={"mode": "disabled", "evidence": "synthetic provider contract",
+                                 "extra_body": {"thinking": {"type": "disabled"}}},
+            )
+            path = root / "backend.json"
+            path.write_text(json.dumps(manifest))
+            self.assertEqual(self.run_main(server, root / "warmup.json", "--backend-manifest", str(path)), 0)
+            for request in server.requests:
+                self.assertNotIn("chat_template_kwargs", request)
+                self.assertEqual(request["thinking"], {"type": "disabled"})
+                self.assertEqual(request["max_tokens"], 1024)
+            artifact = json.loads((root / "warmup.json").read_text())
+            self.assertEqual(artifact["backend_manifest_sha256"], manifest["manifest_sha256"])
+
+    def test_nonstandard_tool_arguments_fail_before_evaluation(self):
+        with tempfile.TemporaryDirectory() as temporary, WarmupServer(mode="object_args") as server:
+            output = Path(temporary) / "warmup.json"
+            self.assertEqual(self.run_main(server, output), 2)
+            artifact = json.loads(output.read_text())
+            self.assertEqual(artifact["error"]["kind"], "response_structure")
+            self.assertIn("JSON string", artifact["error"]["message"])
+
     def test_success_runs_two_rounds_and_reaches_configured_batch_concurrency(self):
         with tempfile.TemporaryDirectory() as temporary, WarmupServer(delay=0.04) as server:
             output = Path(temporary) / "warmup.json"
@@ -204,7 +235,8 @@ class HarnessPilotWarmupTest(unittest.TestCase):
         )
         disabled = server.requests[4:6] + server.requests[10:12]
         self.assertTrue(all("tools" not in request for request in disabled))
-        self.assertTrue(all(request["tool_choice"] == "none" for request in disabled))
+        self.assertTrue(all("tool_choice" not in request and "parallel_tool_calls" not in request
+                            for request in disabled))
 
     def test_http_failure_writes_false_artifact_and_aborts(self):
         with tempfile.TemporaryDirectory() as temporary, WarmupServer(mode="http_error") as server:
@@ -541,7 +573,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(404)
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-        if body.get("tool_choice") == "none":
+        if not body.get("tools"):
             message = {"role": "assistant", "content": "synthetic final"}
             finish = "stop"
         else:

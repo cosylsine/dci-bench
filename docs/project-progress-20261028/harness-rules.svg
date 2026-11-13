@@ -1,144 +1,105 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="2608" viewBox="0 0 1680 2608" role="img" aria-labelledby="rules-title rules-desc">
-<title id="rules-title">一题从检索到评分：Harness 的五步控制流程与设计原因</title>
-<desc id="rules-desc">从上到下阅读五步：指定范围检索、累计记账、动态预留、停止搜索、验收与修复。每步右侧说明设计原因。贯穿示例使用中档128000总预算，两次调用累计22000，余额106000；下一输入估14000时预留100432。底部提供预算公式和当前参数供查阅。</desc>
-<defs><marker id="rules-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L7 4 L0 8" fill="none" stroke="#89a594" stroke-width="1.6"/></marker><style>
-text{font-family:'Noto Sans CJK SC','WenQuanYi Zen Hei','Microsoft YaHei',sans-serif;fill:#193b36}.title{font-size:40px;font-weight:700}.head{font-size:29px;font-weight:700}.body{font-size:24px}.small{font-size:21px;fill:#526c65}.reason{font-size:23px;fill:#526c65}.why{font-size:24px;font-weight:700;fill:#176b56}.strong{font-weight:700}.num{font-size:28px;font-weight:700;fill:white}.formula{font-family:monospace;font-size:24px}.label{font-size:19px;fill:#526c65}
-</style></defs><rect width="1680" height="2608" rx="24" fill="#f7f8f2"/>
-<text x="48" y="76" class="title">一题从检索到评分：Harness 如何控制过程</text>
-<text x="48" y="122" class="body">模型负责找相关文档；Harness 是运行控制程序，负责工具、用量、停止时机和提交检查。</text>
-<text x="48" y="160" class="small">当前文档检索版本 · 20261026-pool-smoke-v4 · dci-mvp-v3.4-pilot</text>
-<path d="M64 270 V470" stroke="#bfd1c6" stroke-width="2" marker-end="url(#rules-arrow)"/>
-<path d="M64 530 V868" stroke="#bfd1c6" stroke-width="2" marker-end="url(#rules-arrow)"/>
-<path d="M64 928 V1358" stroke="#bfd1c6" stroke-width="2" marker-end="url(#rules-arrow)"/>
-<path d="M64 1418 V1794" stroke="#bfd1c6" stroke-width="2" marker-end="url(#rules-arrow)"/>
-<rect x="120" y="196" width="1512" height="226" rx="14" fill="#fff" stroke="#d3dfd4"/>
-<path d="M1248 222 V396" stroke="#d3dfd4"/>
-<circle cx="64" cy="239" r="25" fill="#176b56"/>
-<text x="56" y="249" class="num">1</text>
-<g data-box="1264 216 350 186">
-<text x="1280" y="247" class="why">为什么限定范围</text>
-<text x="1280" y="294" class="reason">每题有明确的候选集合，</text>
-<text x="1280" y="330" class="reason">并避免模型读到</text>
-<text x="1280" y="366" class="reason">评分所用的答案标签。</text>
-</g>
-<g data-box="144 216 1088 186">
-<text x="152" y="244" class="head">开始：在指定文档中检索</text>
-<text x="152" y="292" class="body">每题提供一个问题和 200 / 500 / 1000 篇候选文档。</text>
-<text x="152" y="328" class="body">模型用搜索工具定位，用 read 打开正文；最后提交按相关性排序的 1–10 个文档 ID。</text>
-<text x="152" y="364" class="body">标准相关性标签只在评分端保存，模型看不到。</text>
-</g>
-<rect x="120" y="456" width="1512" height="364" rx="14" fill="#fff" stroke="#d3dfd4"/>
-<path d="M1248 482 V794" stroke="#d3dfd4"/>
-<circle cx="64" cy="499" r="25" fill="#176b56"/>
-<text x="56" y="509" class="num">2</text>
-<g data-box="1264 476 350 324">
-<text x="1280" y="507" class="why">为什么按调用累加</text>
-<text x="1280" y="554" class="reason">长对话反复传入模型</text>
-<text x="1280" y="590" class="reason">也有成本。只看最终</text>
-<text x="1280" y="626" class="reason">输出长度，会漏掉</text>
-<text x="1280" y="662" class="reason">搜索中的输入开销。</text>
-</g>
-<g data-box="144 476 1088 324">
-<text x="152" y="504" class="head">每次调用都记账，一题共用一份预算</text>
-<text x="152" y="550" class="body">总预算是整题累计用量的上限。每次实际输入和输出都加入账单；</text>
-<text x="152" y="586" class="body">历史对话再次发送，也会再次计入。</text>
-<text x="152" y="622" class="label">整题可以累计花多少</text>
-<text x="152" y="658" class="body strong">96,000 / 128,000 / 192,000 token</text>
-<text x="750" y="622" class="label">单次请求可以装多少</text>
-<text x="750" y="658" class="body strong">65,536 token；输出 ≤ 1,024</text>
-<rect x="152" y="684" width="1068" height="112" rx="8" fill="#f0f5ed" stroke="#d3dfd4"/>
-<text x="172" y="716" class="small strong">贯穿示例 · 中档 500 篇候选文档，总预算 128,000</text>
-<text x="172" y="752" class="small">第 1 次 8,000 输入 + 1,000 输出；第 2 次 12,000 输入 + 1,000 输出。</text>
-<text x="172" y="784" class="small strong">累计用了 22,000；剩余 128,000 − 22,000 = 106,000 token。</text>
-</g>
-<rect x="120" y="854" width="1512" height="456" rx="14" fill="#fff" stroke="#d3dfd4"/>
-<path d="M1248 880 V1284" stroke="#d3dfd4"/>
-<circle cx="64" cy="897" r="25" fill="#176b56"/>
-<text x="56" y="907" class="num">3</text>
-<g data-box="1264 874 350 416">
-<text x="1280" y="905" class="why">为什么提前预留</text>
-<text x="1280" y="952" class="reason">搜索若花光额度，</text>
-<text x="1280" y="988" class="reason">就没机会整理并提交。</text>
-<text x="1280" y="1024" class="reason">历史越长，提交时</text>
-<text x="1280" y="1060" class="reason">重传上下文也越贵，</text>
-<text x="1280" y="1096" class="reason">因此不能只留固定值。</text>
-</g>
-<g data-box="144 874 1088 416">
-<text x="152" y="902" class="head">提前给提交结果和修正输出留出额度</text>
-<text x="152" y="948" class="body">用最近一次实际输入、输出，加上新增消息，先估计下一次输入。</text>
-<text x="152" y="984" class="body">再估算以下三次调用的总开销，与固定预留下限取较大值：</text>
-<rect x="152" y="1004" width="1068" height="62" rx="8" fill="#e8f1e9" stroke="#d3dfd4"/>
-<text x="176" y="1044" class="body strong">再检索一轮   →   提交一次结果   →   修正一次输出</text>
-<text x="152" y="1110" class="body">接上例：12,000 输入 + 1,000 输出 + 新增消息估计 1,000</text>
-<text x="152" y="1146" class="body strong">→ 下一次输入估计为 14,000 token；当前公式算出预留 100,432。</text>
-<text x="152" y="1192" class="body">余额 106,000 高于预留 100,432，预算条件仍允许继续搜索。</text>
-<text x="152" y="1248" class="small strong">预留包含在原总预算内，提交和修复继续扣同一份余额。</text>
-<text x="152" y="1282" class="small">只估算一次修复，不保证后面允许的三次修复都有额度。</text>
-</g>
-<rect x="120" y="1344" width="1512" height="402" rx="14" fill="#fff" stroke="#d3dfd4"/>
-<path d="M1248 1370 V1720" stroke="#d3dfd4"/>
-<circle cx="64" cy="1387" r="25" fill="#176b56"/>
-<text x="56" y="1397" class="num">4</text>
-<g data-box="1264 1364 350 362">
-<text x="1280" y="1395" class="why">为什么先看是否读过</text>
-<text x="1280" y="1442" class="reason">避免反复搜索却不看</text>
-<text x="1280" y="1478" class="reason">内容，也避免只凭</text>
-<text x="1280" y="1514" class="reason">文件名提交。</text>
-<text x="1280" y="1550" class="reason">整题至少读过一段</text>
-<text x="1280" y="1586" class="reason">非空正文即可；并非</text>
-<text x="1280" y="1622" class="reason">每个返回 ID 都要读过。</text>
-</g>
-<g data-box="144 1364 1088 362">
-<text x="152" y="1392" class="head">余额接近预留时，停止自由搜索</text>
-<text x="152" y="1438" class="body strong">剩余额度 ≤ 预留，或同参数工具调用连续 3 次，就触发干预。</text>
-<text x="152" y="1474" class="body">下一步取决于模型是否真正打开过正文：</text>
-<rect x="152" y="1496" width="514" height="148" rx="8" fill="#f0f5ed" stroke="#d3dfd4"/>
-<text x="172" y="1532" class="why">已经读过正文</text>
-<text x="172" y="1572" class="small">关闭搜索和读取工具；用已有内容</text>
-<text x="172" y="1606" class="small">整理并提交 ID。这一步称为“收尾”。</text>
-<rect x="688" y="1496" width="532" height="148" rx="8" fill="#fbf3e4" stroke="#d3dfd4"/>
-<text x="708" y="1532" class="why">还没有读过正文</text>
-<text x="708" y="1572" class="small">最多 2 轮，只允许 read 补读。</text>
-<text x="708" y="1606" class="small">读到后按余额决定继续搜索或收尾。</text>
-<text x="152" y="1686" class="small">补读后余额高于预留才恢复搜索；仍未读到则失败。6 轮未读正文也触发补读。</text>
-<text x="152" y="1720" class="small">接上例：已读正文 → 余额降至预留内 → 收尾；此后 ID 写错也只能用已有内容修正。</text>
-</g>
-<rect x="120" y="1780" width="1512" height="438" rx="14" fill="#fff" stroke="#d3dfd4"/>
-<path d="M1248 1806 V2192" stroke="#d3dfd4"/>
-<circle cx="64" cy="1823" r="25" fill="#176b56"/>
-<text x="56" y="1833" class="num">5</text>
-<g data-box="1264 1800 350 398">
-<text x="1280" y="1831" class="why">为什么区分两种修复</text>
-<text x="1280" y="1878" class="reason">让可纠正的输出错误</text>
-<text x="1280" y="1914" class="reason">有重试机会，同时</text>
-<text x="1280" y="1950" class="reason">防止模型在停止搜索</text>
-<text x="1280" y="1986" class="reason">后借修复重新检索。</text>
-</g>
-<g data-box="144 1800 1088 398">
-<text x="152" y="1828" class="head">检查提交；可修复的错误再给机会</text>
-<text x="152" y="1874" class="body">检查 JSON、1–10 个非空且不重复的语料内 ID，以及整题是否读过非空正文。</text>
-<text x="152" y="1910" class="body">验收失败就反馈具体错误，例如格式错误、ID 不存在或未读正文。</text>
-<rect x="152" y="1930" width="514" height="118" rx="8" fill="#f0f5ed" stroke="#d3dfd4"/>
-<text x="172" y="1966" class="why">还没进入收尾</text>
-<text x="172" y="2002" class="small">早期提交格式有误时，可继续搜索</text>
-<text x="172" y="2034" class="small">或读正文；补读时仍只允许 read。</text>
-<rect x="688" y="1930" width="532" height="118" rx="8" fill="#fbf3e4" stroke="#d3dfd4"/>
-<text x="708" y="1966" class="why">已经进入收尾</text>
-<text x="708" y="2002" class="small">工具保持关闭，只用已有内容修正</text>
-<text x="708" y="2034" class="small">格式或文档 ID，不能重新搜索。</text>
-<text x="152" y="2092" class="small strong">两种修复合计最多 3 次，仍扣同一预算；预算耗尽、超时等运行失败直接终止。</text>
-<text x="152" y="2144" class="body">验收通过 → 用隐藏的相关性标签评分 → 保存排名、轨迹和成本。</text>
-<text x="152" y="2184" class="body strong">格式合格不等于检索正确。</text>
-</g>
-<rect x="120" y="2252" width="1512" height="300" rx="14" fill="#edf2e9" stroke="#d3dfd4"/>
-<g data-box="144 2268 1464 270">
-<text x="152" y="2298" class="head">预算计算与运行边界 · 查阅</text>
-<text x="152" y="2340" class="small">N = 下一次输入估计；新增消息按 1 byte ≈ 1 token 估算。三档固定预留下限为 24,000 / 32,000 / 48,000。</text>
-<text x="152" y="2382" class="body strong">预留 = max(固定下限, 3 × N + 58,432)</text>
-<text x="152" y="2420" class="small">三次调用估计分别为 N + 5,120、N + 26,144、N + 27,168；含输出、工具返回增长及每次 4,096 安全余量。</text>
-<text x="152" y="2458" class="small">上例 N = 14,000：19,120 + 40,144 + 41,168 = 100,432。当前参数下动态估计高于三档固定下限。</text>
-<text x="152" y="2496" class="small">每题最多 600 秒、1,200 次模型响应；实际用量和发送前检查始终有效，动态估计不保证后续请求一定有额度。</text>
-<text x="152" y="2530" class="label">图中数值例子用于演算。完整公式、验收细节和异常分支可在 HTML 的对应步骤中展开。</text>
-</g>
-<text x="120" y="2586" class="label">实现依据：20261026-pool-smoke-v4 冻结包中的 contracts.json 与 dci-run.ts。</text>
+<svg class="harness-rules-svg" xmlns="http://www.w3.org/2000/svg" width="1600" height="1600" viewBox="0 0 1600 1600" role="img" aria-labelledby="frozen-rules-title frozen-rules-desc">
+  <title id="frozen-rules-title">Document Pool v2 一题 Harness 执行与 Frozen 隔离规则</title>
+  <desc id="frozen-rules-desc">一题从固定候选池开始，使用相同 query、Prompt 和累计预算。每次输入、输出和工具返回都受限并记账；搜索和显式 read 产生正文证据。Bash 经过 Bubblewrap 访问当前 Query 的只读 corpus 和独立 scratch。收尾后只提交一次，最多修复一次，最后由 Host 校验、评分并检查 Runtime Identity。图中同步于 2026-11-13，实施证据来自 2026-11-11。</desc>
+  <defs>
+    <marker id="frozen-rules-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L9 5 L0 10" fill="none" stroke="#688277" stroke-width="1.8"/>
+    </marker>
+    <style>
+      .harness-rules-svg text{font-family:'Noto Sans CJK SC','WenQuanYi Zen Hei','Microsoft YaHei',sans-serif;fill:#193b36}
+      .harness-rules-svg .eyebrow{font-size:16px;letter-spacing:2px;fill:#58786e}.harness-rules-svg .title{font-size:36px;font-weight:700}.harness-rules-svg .sub{font-size:19px;fill:#526c65}
+      .harness-rules-svg .section{font-size:19px;font-weight:700;fill:#176b56}.harness-rules-svg .head{font-size:25px;font-weight:700}.harness-rules-svg .label{font-size:20px;font-weight:700}.harness-rules-svg .body{font-size:18px;fill:#46635b}.harness-rules-svg .small{font-size:16px;fill:#526c65}.harness-rules-svg .mono{font-family:monospace;font-size:17px;fill:#193b36}.harness-rules-svg .strong{font-weight:700}
+      .harness-rules-svg .card{fill:#fff;stroke:#cddad1;stroke-width:1.5}.harness-rules-svg .soft{fill:#eaf3ed;stroke:#c5d9cc;stroke-width:1.5}.harness-rules-svg .chip{fill:#f0f5ed;stroke:#cddad1;stroke-width:1.2}.harness-rules-svg .dark{fill:#176b56;stroke:#176b56;stroke-width:1.5}.harness-rules-svg .darktext{fill:#fff}.harness-rules-svg .warn{fill:#fbf3e4;stroke:#e5d5b9;stroke-width:1.3}.harness-rules-svg .identity{fill:#edf2e9;stroke:#cddad1;stroke-width:1.5}.harness-rules-svg .edge{fill:none;stroke:#688277;stroke-width:2;marker-end:url(#frozen-rules-arrow)}
+    </style>
+  </defs>
+
+  <rect width="1600" height="1600" rx="24" fill="#f7f8f2"/>
+  <text x="56" y="42" class="eyebrow">DCI-BENCH / DOCUMENT TRACK / ONE-QUESTION HARNESS</text>
+  <text x="56" y="84" class="title">一题执行：Document Pool v2 Harness 规则</text>
+  <text x="56" y="112" class="sub">固定范围、共享预算、可信 read 证据、Frozen Bash 隔离、Host 侧验收</text>
+
+  <g data-box="56 132 1488 82">
+    <rect x="56" y="132" width="1488" height="82" rx="12" class="soft"/>
+    <text x="80" y="160" class="label" fill="#176b56">v2 一题合同</text>
+    <text x="250" y="160" class="body">Lite 200  ⊂  Full 1,000　·　同一 query / Prompt / 累计预算 64,000 token　·　sample timeout = null</text>
+    <text x="80" y="190" class="small">context ≤ 65,536　·　输出 ≤ 1,024　·　工具返回 ≤ 8 KiB　·　每次 Bash 默认 10 秒 / 上限 60 秒；其余资源限制继续生效</text>
+  </g>
+
+  <path d="M84 250 V268" class="edge"/>
+  <path d="M84 448 V466" class="edge"/>
+  <path d="M84 688 V706" class="edge"/>
+  <path d="M84 972 V990" class="edge"/>
+  <path d="M84 1240 V1258" class="edge"/>
+
+  <circle cx="84" cy="300" r="25" fill="#176b56"/><text x="76" y="310" class="head darktext">1</text>
+  <g data-box="120 268 1424 180">
+    <rect x="120" y="268" width="1424" height="180" rx="14" class="card"/>
+    <text x="152" y="307" class="head">进入一题：先固定候选范围</text>
+    <text x="152" y="345" class="body">Lite 提供 200 篇，Full 提供 1,000 篇；Lite 200  ⊂  Full 1,000。</text>
+    <text x="152" y="378" class="body">两个层级使用同一 query、同一 Prompt、同一累计预算，只改变候选集合。</text>
+    <rect x="152" y="397" width="1330" height="30" rx="7" class="chip"/>
+    <text x="170" y="418" class="small">Host 按候选 ID 物化本题 corpus；qrels、正例标签、历史映射和评分结果留在 Host。</text>
+  </g>
+
+  <circle cx="84" cy="498" r="25" fill="#176b56"/><text x="76" y="508" class="head darktext">2</text>
+  <g data-box="120 466 1424 222">
+    <rect x="120" y="466" width="1424" height="222" rx="14" class="card"/>
+    <text x="152" y="505" class="head">一题一份总账：每轮实际用量都记入</text>
+    <text x="152" y="541" class="body">每次实际模型输入与输出累加；工具返回在后续作为输入发送时计费。</text>
+    <text x="152" y="566" class="small">历史消息再次发送，也再次计入同一题预算。</text>
+    <g data-box="152 582 300 72"><rect x="152" y="582" width="300" height="72" rx="10" class="soft"/><text x="172" y="611" class="label">累计上限</text><text x="172" y="638" class="body strong">64,000 token</text></g>
+    <g data-box="476 582 300 72"><rect x="476" y="582" width="300" height="72" rx="10" class="chip"/><text x="496" y="611" class="label">单次 context</text><text x="496" y="638" class="body strong">≤ 65,536</text></g>
+    <g data-box="800 582 300 72"><rect x="800" y="582" width="300" height="72" rx="10" class="chip"/><text x="820" y="611" class="label">模型输出</text><text x="820" y="638" class="body strong">≤ 1,024</text></g>
+    <g data-box="1124 582 358 72"><rect x="1124" y="582" width="358" height="72" rx="10" class="chip"/><text x="1144" y="611" class="label">工具返回</text><text x="1144" y="638" class="body strong">≤ 8 KiB</text></g>
+    <text x="152" y="680" class="small">最多 12 个 search round、24 次 tool call；达到预算或边界后进入收尾。sample 没有协议级时间上限。</text>
+  </g>
+
+  <circle cx="84" cy="736" r="25" fill="#176b56"/><text x="76" y="746" class="head darktext">3</text>
+  <g data-box="120 706 1424 266">
+    <rect x="120" y="706" width="1424" height="266" rx="14" class="soft"/>
+    <text x="152" y="745" class="head">搜索 ↔ read：正文证据与 Frozen Bash 同时受控</text>
+    <g data-box="152 770 652 174">
+      <rect x="152" y="770" width="652" height="174" rx="11" class="card"/>
+      <text x="176" y="804" class="label">模型工具循环</text>
+      <text x="176" y="836" class="body">自主选择 Bash / read，无固定检索顺序</text>
+      <text x="176" y="868" class="body">显式 read 返回非空正文，才产生 read receipt</text>
+      <text x="176" y="900" class="small">Bash 直接 cat / rg 仍不计为 read receipt；不要求每个 ID 都被 read</text>
+      <text x="176" y="928" class="small">工具协议、read 校验和 receipt 由 Host / Pi 管理</text>
+    </g>
+    <g data-box="836 770 646 174">
+      <rect x="836" y="770" width="646" height="174" rx="11" class="dark"/>
+      <text x="860" y="804" class="label darktext">每次 Bash → Bubblewrap</text>
+      <text x="860" y="836" class="body darktext">当前 Query corpus [RO]　·　独立 scratch [RW]</text>
+      <text x="860" y="868" class="body darktext">/tmp → scratch/tmp，同一计费空间</text>
+      <text x="860" y="900" class="body darktext">无网络、Host /usr、qrels、/proc、GPU、凭据</text>
+      <text x="860" y="928" class="small darktext">Bash 工具来自共享只读 Frozen RootFS；Query 间不共享 scratch</text>
+    </g>
+  </g>
+
+  <circle cx="84" cy="1020" r="25" fill="#176b56"/><text x="76" y="1030" class="head darktext">4</text>
+  <g data-box="120 990 1424 250">
+    <rect x="120" y="990" width="1424" height="250" rx="14" class="card"/>
+    <text x="152" y="1029" class="head">收尾、提交与一次修复机会</text>
+    <text x="152" y="1064" class="body">完成判断，或达到预算 / search round / tool call 边界后，关闭搜索与读取工具并整理已有内容。</text>
+    <g data-box="152 1090 390 112"><rect x="152" y="1090" width="390" height="112" rx="10" class="chip"/><text x="176" y="1124" class="label">1 次提交</text><text x="176" y="1156" class="body">唯一、非空、语料内的</text><text x="176" y="1184" class="body">ranked_doc_ids</text></g>
+    <g data-box="574 1090 390 112"><rect x="574" y="1090" width="390" height="112" rx="10" class="soft"/><text x="598" y="1124" class="label">最多 1 次修复</text><text x="598" y="1156" class="body">只修格式或 ID</text><text x="598" y="1184" class="body">继续扣同一预算</text></g>
+    <g data-box="996 1090 486 112"><rect x="996" y="1090" width="486" height="112" rx="10" class="warn"/><text x="1020" y="1124" class="label">无非空 read receipt → 失败</text><text x="1020" y="1156" class="body">final 修复不能补读或重开工具</text><text x="1020" y="1184" class="small">修复只处理格式 / ID；失败即终止</text></g>
+  </g>
+
+  <circle cx="84" cy="1288" r="25" fill="#176b56"/><text x="76" y="1298" class="head darktext">5</text>
+  <g data-box="120 1258 1424 222">
+    <rect x="120" y="1258" width="1424" height="222" rx="14" class="identity"/>
+    <text x="152" y="1297" class="head">Host 验收、评分与身份封存</text>
+    <text x="152" y="1334" class="body">Host 检查 JSON、ID、非空 read receipt，再用隐藏 qrels 评分；结果保存排名、轨迹和成本。</text>
+    <text x="152" y="1368" class="body">result / trace / manifest 必须携带同一 agent_runtime；父子进程、批次和 summary 逐层核对。</text>
+    <rect x="152" y="1392" width="1330" height="58" rx="9" class="warn"/>
+    <text x="176" y="1418" class="label">跨 Runtime 或身份不匹配 → 拒绝 resume、completed reuse、calibration；旧记录不补写。</text>
+    <text x="176" y="1441" class="small">格式通过不等于检索正确；模型质量与正式排名仍需真实候选数据和真实模型阶段另行验收。</text>
+  </g>
+
+  <g data-box="56 1510 1488 64">
+    <rect x="56" y="1510" width="1488" height="64" rx="11" fill="#fff" stroke="#cddad1"/>
+    <text x="78" y="1536" class="small">同步 2026-11-13 · 实施证据 2026-11-11 · 105 Python / 31 Pi / 15 synthetic bridge 仅是开发验收，不是正式模型成绩</text>
+    <text x="78" y="1560" class="small">Frozen 需显式启用；Host Tools 默认保留，Code Track 不切换。P6、真实模型 smoke、等预算 Host↔Frozen 消融待验收。</text>
+  </g>
 </svg>

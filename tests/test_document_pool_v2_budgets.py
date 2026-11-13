@@ -39,6 +39,35 @@ def python_contract(profile: str, token_budget: str | None = None) -> dict:
 
 
 class DocumentPoolV2BudgetTests(unittest.TestCase):
+    def test_lite_full_share_open_bash_prompts_and_preserve_evidence_boundaries(self):
+        contracts = [python_contract(profile)["contract"] for profile in V2_PROFILES]
+        for field in ("system_prompt", "query_prompt_template", "repair_prompt_template", "tool_definitions"):
+            self.assertEqual(contracts[0][field], contracts[1][field])
+        for contract in contracts:
+            prompts = "\n".join(contract[field] for field in (
+                "system_prompt", "query_prompt_template", "repair_prompt_template"))
+            for stale in ("First use rg", "Start with rg", "use rg -l -i", "then bounded rg"):
+                self.assertNotIn(stale, prompts)
+            self.assertIn("no command-name allowlist", contract["system_prompt"])
+            self.assertIn("pipelines, loops, and scripts", contract["system_prompt"])
+            self.assertIn("read-only", contract["system_prompt"])
+            bash = next(tool for tool in contract["tool_definitions"] if tool["name"] == "bash")
+            self.assertIn("8192 UTF-8 bytes", bash["description"])
+            self.assertIn("no command-name allowlist", bash["description"])
+            self.assertEqual(bash["input_schema"]["properties"]["timeout_seconds"]["maximum"], 60)
+            self.assertEqual(contract["evidence_policy"]["minimum_nonempty_reads"], 1)
+            self.assertFalse(contract["evidence_policy"]["bash_counts_as_evidence"])
+            self.assertEqual(contract["tool_allowlist"], ["read", "bash"])
+            self.assertIn("If you choose rg", contract["search_policy"]["prompt"])
+            self.assertEqual(contract["search_policy"]["ripgrep_config"], "--sort=path\n")
+            policy = contract["budget_control"]
+            self.assertIn("Both read and bash are available again", policy["resume_prompt"])
+            self.assertIn("only if", policy["read_prompt"])
+            self.assertIn("Tools are disabled", policy["final_prompt"])
+            self.assertIn("Tools remain disabled", policy["final_repair_prompt"])
+            for field in ("final_prompt", "final_repair_prompt"):
+                self.assertIn("not a separate receipt for every submitted ID", policy[field])
+
     def test_lite_and_full_have_identical_controls_and_aliases(self):
         lite = get_tier("lite")
         full = get_tier("full")

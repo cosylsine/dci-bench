@@ -50,6 +50,8 @@ class HarnessPilotLauncherTest(unittest.TestCase):
                      "commit", "--quiet", "--no-gpg-sign", "-m", "fixture")
         (self.root / "README.md").write_text("Local source change.\n")
         (pi / "scripts/dci-run.ts").write_text("export const fixture = 2;\n")
+        (pi / "scripts/adapters").mkdir()
+        (pi / "scripts/adapters/fixture.ts").write_text("export const adapter = 1;\n")
         (self.root / "scripts/untracked.json").write_text('{"new_source": true}\n')
         (self.root / "dci_bench/protocol").mkdir(parents=True)
         (self.root / "dci_bench/protocol/stable-rg.conf").write_text("--sort=path\n")
@@ -78,6 +80,7 @@ class HarnessPilotLauncherTest(unittest.TestCase):
             hashes = self.pilot.snapshot_sources(output)
         self.assertIn("scripts/untracked.json", hashes)
         self.assertIn("dci_bench/protocol/stable-rg.conf", hashes)
+        self.assertIn("pi-dci/scripts/adapters/fixture.ts", hashes)
         self.assertEqual(json.loads((output / "source-hashes.json").read_text()), hashes)
         with tarfile.open(output / "sources.tar.gz") as archive:
             self.assertEqual(set(archive.getnames()), set(hashes))

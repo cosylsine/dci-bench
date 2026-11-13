@@ -1,0 +1,60 @@
+{
+  "schema_version": "dci-progress-frozen-runtime-v1",
+  "synced_on": "2026-11-13",
+  "implementation_evidence_date": "2026-11-11",
+  "status": "development-runtime-validated-opt-in",
+  "agent_runtime": {
+    "filesystem_policy": "dci-bwrap-frozen-ro-v1",
+    "image_digest": "sha256:257287ccc124681dd7fad47c24685f507332592b4b94ed241f7e699853d62f58",
+    "mode": "frozen-rootfs",
+    "platform": "linux/amd64",
+    "rootfs_tree_sha256": "bd71bedc89dd3d1a8929ba6dbb053581d7de2e405e9fa14541db35ee18d64c8f",
+    "runtime_policy_sha256": "c52e706a067e5c7e2b1003535c7c0386788cabe3bf0503c5af326a8f58655109",
+    "schema_version": "dci-agent-runtime-v1",
+    "tool_policy": "open"
+  },
+  "bundle_sha256": "7f64f486bdc74f344a6f6cb313a51932aadac8d9a073367b66d679fbfcf7fb4d",
+  "cache_dir": "/tmp/dci-bench-runtime",
+  "validation": {
+    "python_targeted_distinct_tests": 105,
+    "pi_tests": {
+      "passed": 31,
+      "failed": 0,
+      "skipped": 0,
+      "log": "pi-tests-all-final.log"
+    },
+    "inspect_bridge": {
+      "passed_samples": 15,
+      "parallel_processes": 7,
+      "batch_concurrency": 8,
+      "profile": "v3",
+      "model_provider": "mockllm",
+      "report": "inspect-final/result.json"
+    },
+    "pi_static_check": {
+      "command": "npm run check",
+      "exit_code": 0,
+      "includes_new_sandbox_test": true
+    },
+    "real_pi_preflight_profiles": [
+      "document-pool-v1-small",
+      "document-pool-v2-lite"
+    ]
+  },
+  "default_promoted": false,
+  "external_model_calls": 0,
+  "gpu_started": false,
+  "pending": [
+    "outer-container restart acceptance",
+    "default network builder and optional Docker build end-to-end acceptance",
+    "remaining interruption/disk-full fault injections",
+    "target-node and formal candidate-data preflight",
+    "real-model smoke",
+    "equal-budget host/frozen ablation and official runtime promotion"
+  ],
+  "source_acceptance": {
+    "path": "results/frozen-runtime/20261111-xaDmpt/acceptance.json",
+    "sha256": "b058e3cd2be0283b438fd53e297d4d3c77b3d3166c1011920f39e9ef1e26ac33"
+  },
+  "scope": "Documentation synchronization only; 2026-11-11 acceptance records reused, no runtime tests or model evaluation rerun on 2026-11-13."
+}

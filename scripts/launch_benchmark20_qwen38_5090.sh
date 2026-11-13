@@ -8,7 +8,7 @@ BENCH_ENV=/mnt/afs/250010100/miniconda/envs/dci-bench
 SERVING_ENV=/mnt/afs/250010100/miniconda/envs/dci-vllm-qwen38
 BENCH_PY="$BENCH_ENV/bin/python"
 SERVING_PY="$SERVING_ENV/bin/python"
-SUITE=/mnt/afs2/202609/embedding_models/dci-bench/eval_data/benchmark_v2_20261103_v1
+SUITE=/mnt/afs2/202611/embedding_models/dci-bench/eval_data/benchmark_v2_20261103_v1
 
 export PATH="$BENCH_ENV/bin:$PATH"
 export LD_LIBRARY_PATH="$BENCH_ENV/lib"
@@ -36,6 +36,13 @@ BRIDGE_PORT="${BRIDGE_PORT:-29131}"
 [[ -x "$BENCH_PY" && -x "$SERVING_PY" && -f "$MODEL_PATH/config.json" ]]
 runner=("$BENCH_PY" scripts/run_benchmark_v2.py --suite "$SUITE" --split smoke
         --concurrency 4 --token-budget 64000 --bridge-port "$BRIDGE_PORT")
+runtime_args=()
+if [[ -n "${DCI_RUNTIME_CONFIG:-}" ]]; then
+  DCI_RUNTIME_CONFIG="$(realpath -e -- "$DCI_RUNTIME_CONFIG")"
+  export DCI_RUNTIME_CONFIG DCI_BENCH_PYTHON="$BENCH_PY"
+  runtime_args=(--runtime-config "$DCI_RUNTIME_CONFIG")
+  runner+=("${runtime_args[@]}")
+fi
 printf '[benchmark20] 20 tasks x Lite/Full = 40 executions; TP=4 BF16; context=65536; budget=64000\n'
 if [[ "${DRY_RUN:-1}" != 0 && "${1:-}" != --preflight-only ]]; then
   "${runner[@]}"
@@ -51,10 +58,18 @@ printf '[benchmark20] output=%s\n' "$RUN_DIR"
 printf '[benchmark20] worker=%s; gpu_memory_utilization=%s; max_num_batched_tokens=%s\n' \
   "$VLLM_WORKER_CLS" "$VLLM_GPU_MEMORY_UTILIZATION" "$VLLM_MAX_NUM_BATCHED_TOKENS"
 
-# Check data and the actual node sandbox before loading any model weights.
+# Host dependencies, Frozen preparation, and data/bridge checks are one
+# agent-preparation block. Serving-only retains its pure service-diagnostic
+# semantics and skips the entire block.
 if [[ "${1:-}" != --serving-smoke-only ]]; then
-  "${runner[@]}" --preflight-only --output "$RUN_DIR/data-preflight"
-  bash scripts/ensure_pool_smoke_tools.sh
+  DRY_RUN=0 bash scripts/ensure_pool_smoke_tools.sh
+  if [[ -n "${DCI_RUNTIME_CONFIG:-}" ]]; then
+    export DCI_FROZEN_RUNTIME_PROBE_OUTPUT="$RUN_DIR/frozen-runtime-preflight.json"
+    DRY_RUN=0 bash scripts/prepare_frozen_runtime.sh
+  fi
+  # Check data and the actual node sandbox before loading any model weights.
+  "${runner[@]}" --preflight-only --preflight-concurrency "${PREFLIGHT_CONCURRENCY:-4}" \
+    --output "$RUN_DIR/data-preflight"
   "$BENCH_PY" - "$RUN_DIR" <<'PY'
 from pathlib import Path
 import sys
@@ -65,7 +80,7 @@ PY
   # run_benchmark_v2 selects Lite/Full with verified candidate IDs for real tasks.
   "$BENCH_PY" scripts/check_inspect_parallel.py \
     --runtime "$REPO_DIR" --tools-directory "$RUN_DIR/sandbox-tools" \
-    --output "$RUN_DIR/sandbox-preflight" --max-concurrency 4
+    --output "$RUN_DIR/sandbox-preflight" --max-concurrency 4 "${runtime_args[@]}"
   if [[ "${1:-}" == --preflight-only ]]; then
     echo '[benchmark20] CPU data and sandbox preflight passed; no GPU/model calls.'
     exit 0
@@ -133,7 +148,8 @@ assert 'Qwen3.8-27B' in [row['id'] for row in json.load(open(sys.argv[1]))['data
 PY
 DCI_PROTOCOL_PROFILE=document-pool-v2-lite "$BENCH_PY" scripts/harness_pilot_warmup.py \
   --base-url "http://127.0.0.1:$VLLM_PORT/v1" --model "$SERVED_MODEL_NAME" \
-  --output "$RUN_DIR/warmup.json" --concurrency 4 --deadline-seconds 600 --http-timeout-seconds 600
+  --output "$RUN_DIR/warmup.json" --concurrency 4 --deadline-seconds 600 --http-timeout-seconds 600 \
+  --backend-manifest "$RUN_DIR/backend.json"
 if [[ "${1:-}" == --serving-smoke-only ]]; then
   echo '[benchmark20] Serving smoke passed: model loaded and synthetic protocol requests passed; benchmark not executed.'
   exit 0

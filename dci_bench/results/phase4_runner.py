@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote, urlparse
 
 from dci_bench.backends.manifest import (
@@ -25,6 +25,7 @@ from dci_bench.backends.manifest import (
     load_backend_manifest,
     resolved_generation_config_record,
 )
+from dci_bench.backends.adapters import inspect_model_kwargs
 from dci_bench.data.registry import get_task, validate_task_manifest
 from dci_bench.data.document_runtime import audit_document_ids
 from dci_bench.protocol.contracts import (
@@ -58,6 +59,9 @@ from dci_bench.results.protocol import (
     write_task_result,
 )
 from dci_bench.scoring.retrieval import normalize_metric_ks
+
+if TYPE_CHECKING:
+    from dci_bench.runtime import VerifiedRuntime
 
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -109,6 +113,26 @@ class Phase4Execution:
     valid_samples: int
     invalid_samples: int
     exit_code: int
+
+
+def runtime_identity_payload(
+    agent_runtime: VerifiedRuntime | None,
+) -> dict[str, Any] | None:
+    """Return the host-free identity record for a verified agent runtime."""
+
+    if agent_runtime is None:
+        return None
+    return dict(agent_runtime.identity)
+
+
+def verify_runtime_config(config_path: Path | None) -> VerifiedRuntime | None:
+    """Verify runtime bytes and execute its tools through host bwrap before evaluation."""
+
+    if config_path is None:
+        return None
+    from dci_bench.runtime import verify_runtime
+
+    return verify_runtime(config_path, full=True, preflight=True)
 
 
 def _utc_now() -> str:
@@ -279,6 +303,8 @@ def code_audit(repo_root: Path) -> dict[str, Any]:
         repo_root / "scripts" / "serve_sglang_minicpm5.sh",
         repo_root / "scripts" / "serve_vllm_qwen38.sh",
         repo_root / "pi-dci" / "scripts" / "dci-run.ts",
+        repo_root / "pi-dci" / "scripts" / "dci-runtime.ts",
+        *sorted((repo_root / "pi-dci" / "scripts" / "adapters").rglob("*.ts")),
     ]
     source_hashes = [
         {
@@ -465,6 +491,13 @@ def inspect_usage(sample: Any) -> dict[str, Any]:
         cache_read = _usage_value(raw, "input_tokens_cache_read")
         cache_write = _usage_value(raw, "input_tokens_cache_write")
         available = input_tokens is not None and output_tokens is not None and total_tokens is not None
+        if available:
+            # Inspect excludes cache hits from input_tokens for some providers.
+            # Our result contract includes all input; cache fields are subsets
+            # used only for pricing. Reasoning is already included in output.
+            available = total_tokens >= input_tokens + output_tokens
+            input_tokens = total_tokens - output_tokens if available else None
+            available = available and (cache_read or 0) + (cache_write or 0) <= input_tokens
         by_model[str(model_name)] = {
             "available": available,
             "input_tokens": input_tokens,
@@ -640,8 +673,10 @@ def _normalize_trajectory(
     query_id: str,
     sample: Any | None,
     failure: Mapping[str, str] | None,
+    agent_runtime: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload, read_error = _load_object(path)
+    synthetic_failure = payload is None
     if payload is None:
         # A cancelled Pi subprocess can leave a truncated JSON trace.  Keep
         # the bytes in the normalized envelope instead of replacing useful
@@ -679,6 +714,13 @@ def _normalize_trajectory(
     payload.setdefault("events", [])
     payload.setdefault("messages", [])
     payload["failure"] = dict(failure) if failure is not None else None
+    if agent_runtime is not None and synthetic_failure:
+        payload["agent_runtime"] = dict(agent_runtime)
+        payload["synthetic_failure"] = {
+            "source": "phase4_runner",
+            "kind": "trajectory_artifact_fallback",
+            "failure": dict(failure) if failure is not None else None,
+        }
     write_json_atomic(path, payload)
     validate_trajectory(payload)
     return payload
@@ -733,7 +775,12 @@ def _failure_for(
     return None
 
 
-def _placeholder_final(path: Path, failure: Mapping[str, str]) -> dict[str, Any]:
+def _placeholder_final(
+    path: Path,
+    failure: Mapping[str, str],
+    *,
+    agent_runtime: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     payload = {
         "contract_version": BENCHMARK_CONTRACT_VERSION,
         "valid_output": False,
@@ -744,6 +791,13 @@ def _placeholder_final(path: Path, failure: Mapping[str, str]) -> dict[str, Any]
         "tool_sandbox": "bubblewrap",
         "artifact_unavailable": True,
     }
+    if agent_runtime is not None:
+        payload["agent_runtime"] = dict(agent_runtime)
+        payload["synthetic_failure"] = {
+            "source": "phase4_runner",
+            "kind": "final_artifact_fallback",
+            "failure": dict(failure),
+        }
     write_json_atomic(path, payload)
     return payload
 
@@ -759,6 +813,7 @@ def build_and_publish_sample(
     metric_ks: Sequence[int],
     inspect_sample: Any | None,
     inspect_artifact: Mapping[str, Any] | None,
+    agent_runtime: VerifiedRuntime | None = None,
     secrets_to_remove: Sequence[str] = (),
     seal: bool = False,
 ) -> dict[str, Any]:
@@ -766,6 +821,7 @@ def build_and_publish_sample(
     staged.mkdir(parents=True, exist_ok=True)
     final_path = staged / "final.json"
     trace_path = staged / "trace.json"
+    expected_runtime = runtime_identity_payload(agent_runtime)
     final, final_error = _load_object(final_path)
     if final is not None:
         # Normalize adapter-produced JSON as part of the staging transaction.
@@ -781,9 +837,20 @@ def build_and_publish_sample(
         secrets_to_remove=secrets_to_remove,
     )
     if final is None:
+        placeholder_failure = failure or {
+            "kind": "infrastructure_error",
+            "message": "final.json unavailable",
+        }
         final = _placeholder_final(
             final_path,
-            failure or {"kind": "infrastructure_error", "message": "final.json unavailable"},
+            placeholder_failure,
+            agent_runtime=expected_runtime,
+        )
+        if failure is None:
+            failure = placeholder_failure
+    if expected_runtime is not None and final.get("agent_runtime") != expected_runtime:
+        raise ResultIntegrityError(
+            "Pi final runtime identity does not match the verified parent runtime"
         )
     raw_valid = bool(final.get("valid_output", False))
     sandbox_valid = (
@@ -821,9 +888,22 @@ def build_and_publish_sample(
         query_id=query_id,
         sample=inspect_sample,
         failure=failure,
+        agent_runtime=expected_runtime,
     )
+    if expected_runtime is not None and trajectory.get("agent_runtime") != expected_runtime:
+        raise ResultIntegrityError(
+            "Pi trace runtime identity does not match the verified parent runtime"
+        )
     trace_total = _trace_total(trajectory)
     inspect_total = usage.get("total_tokens")
+    if valid and (trace_total is None or trace_total != inspect_total):
+        valid = False
+        failure = {
+            "kind": "usage_unavailable",
+            "message": f"Pi and Inspect token totals disagree: Pi={trace_total}, Inspect={inspect_total}",
+        }
+        trajectory["failure"] = failure
+        write_json_atomic(trace_path, trajectory)
     metrics = _score_metrics(inspect_sample) if inspect_sample is not None else {}
     turns = final.get("usage_summary", {}).get("turns") if isinstance(final.get("usage_summary"), Mapping) else None
     model_calls = turns if isinstance(turns, int) and turns >= 0 else len(trajectory.get("usage_by_turn", []))
@@ -836,6 +916,26 @@ def build_and_publish_sample(
     runtime_timing = staged / "runtime-timing.json"
     if runtime_timing.is_file():
         artifacts["runtime_timing"] = artifact_record(runtime_timing, root=staging_root)
+    provenance = {
+        "metrics": "inspect.sample.scores",
+        "usage": "inspect.sample.model_usage",
+        "timing": "inspect.sample.total_time/working_time",
+        "execution": "pi.final/trace",
+        "trace": "pi.trace",
+        "trace_total_tokens": trace_total,
+        "usage_cross_check": (
+            None if trace_total is None or inspect_total is None else trace_total == inspect_total
+        ),
+    }
+    if expected_runtime is not None:
+        provenance["agent_runtime"] = expected_runtime
+        synthetic_failures = {
+            name: payload["synthetic_failure"]
+            for name, payload in (("final", final), ("trace", trajectory))
+            if isinstance(payload.get("synthetic_failure"), Mapping)
+        }
+        if synthetic_failures:
+            provenance["synthetic_failure"] = synthetic_failures
     sample_result = build_sample_result(
         run_id=run_id,
         task=task,
@@ -858,17 +958,7 @@ def build_and_publish_sample(
         },
         security={"inspect_sandbox": "local", "tool_sandbox": "bubblewrap"},
         artifacts=artifacts,
-        provenance={
-            "metrics": "inspect.sample.scores",
-            "usage": "inspect.sample.model_usage",
-            "timing": "inspect.sample.total_time/working_time",
-            "execution": "pi.final/trace",
-            "trace": "pi.trace",
-            "trace_total_tokens": trace_total,
-            "usage_cross_check": (
-                None if trace_total is None or inspect_total is None else trace_total == inspect_total
-            ),
-        },
+        provenance=provenance,
     )
     write_json_atomic(staged / "result.json", sample_result)
     validate_sample_result(read_json(staged / "result.json"))
@@ -931,6 +1021,23 @@ def load_completed_sample(
     return payload
 
 
+def _validate_sample_runtime_identity(
+    sample: Mapping[str, Any],
+    *,
+    run_dir: Path,
+    expected_runtime: Mapping[str, Any],
+) -> None:
+    if sample.get("provenance", {}).get("agent_runtime") != dict(expected_runtime):
+        raise ResultIntegrityError("existing sample agent_runtime provenance mismatch")
+    for name in ("final", "trace"):
+        artifact = sample.get("artifacts", {}).get(name)
+        if not isinstance(artifact, Mapping):
+            raise ResultIntegrityError(f"existing sample {name} artifact is missing")
+        payload = read_json(run_dir / str(artifact["path"]))
+        if not isinstance(payload, Mapping) or payload.get("agent_runtime") != dict(expected_runtime):
+            raise ResultIntegrityError(f"existing sample {name} agent_runtime mismatch")
+
+
 def _inspect_sample_map(logs: Sequence[Any]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for log in logs:
@@ -967,12 +1074,18 @@ def execute_phase4(
     args: Any,
     *,
     selected_query_ids: Sequence[str],
+    agent_runtime: VerifiedRuntime | None = None,
     inspect_eval_fn: Callable[..., Any] | None = None,
     task_factory: Callable[..., Any] | None = None,
 ) -> Phase4Execution:
     """Execute or resume one immutable Phase 4 task run."""
 
     repo_root = Path(__file__).resolve().parents[2]
+    if agent_runtime is None:
+        runtime_config = getattr(args, "runtime_config", None)
+        if runtime_config is not None:
+            agent_runtime = verify_runtime_config(Path(runtime_config))
+    runtime_identity = runtime_identity_payload(agent_runtime)
     metric_ks = normalize_metric_ks(args.metric_ks)
     preflight_bridge_ports(args.bridge_port, args.max_concurrency)
     backend_source = Path(args.backend_manifest)
@@ -982,6 +1095,9 @@ def execute_phase4(
     model_info, backend_info = _backend_audit(backend_manifest)
     data_info = data_audit(Path(args.metadata_root), args.task)
     code_info = code_audit(repo_root)
+    if runtime_identity is not None:
+        code_info["agent_runtime"] = runtime_identity
+        code_info.setdefault("environment", {})["frozen_bwrap"] = _binary_identity("/usr/bin/bwrap")
     # Concurrency changes scheduling and bridge-port allocation, so it is a
     # first-class reproducibility input alongside code and environment.
     code_info["max_concurrency"] = args.max_concurrency
@@ -1086,6 +1202,12 @@ def execute_phase4(
         else:
             if sample.get("run_id") != run_id or sample.get("task") != args.task:
                 raise ResultIntegrityError(f"sample identity mismatch for {query_id}")
+            if runtime_identity is not None:
+                _validate_sample_runtime_identity(
+                    sample,
+                    run_dir=run_dir,
+                    expected_runtime=runtime_identity,
+                )
             existing[query_id] = sample
     if (run_dir / "task-result.json").exists() and pending:
         raise ResultIntegrityError("task-result.json exists while planned samples are incomplete")
@@ -1113,29 +1235,32 @@ def execute_phase4(
         staging_root.mkdir(parents=True)
         if task_factory is None:
             from dci_bench.tasks.mteb_llm_retrieval import mteb_llm_retrieval as task_factory
-        task = task_factory(
-            task_name=args.task,
-            query_ids=pending,
-            all_queries=False,
-            workspace_root=str(args.workspace_root),
-            metadata_root=str(args.metadata_root),
-            output_dir=str(staging_root),
-            metric_ks=metric_ks,
-            bridge_port=args.bridge_port,
-            max_concurrency=args.max_concurrency,
-            model_context_window=int(backend_info["context_length"]),
-            task_instruction=task_spec.task_instruction,
-        )
+        task_kwargs = {
+            "task_name": args.task,
+            "query_ids": pending,
+            "all_queries": False,
+            "workspace_root": str(args.workspace_root),
+            "metadata_root": str(args.metadata_root),
+            "output_dir": str(staging_root),
+            "metric_ks": metric_ks,
+            "bridge_port": args.bridge_port,
+            "max_concurrency": args.max_concurrency,
+            "model_context_window": int(backend_info["context_length"]),
+            "task_instruction": task_spec.task_instruction,
+        }
+        if agent_runtime is not None:
+            task_kwargs["agent_runtime"] = agent_runtime
+        task = task_factory(**task_kwargs)
         if inspect_eval_fn is None:
             from inspect_ai import eval as inspect_eval_fn
         backend = backend_manifest["backend"]
         model = backend_manifest["model"]
         log_dir = run_dir / "artifacts" / "inspect"
         log_dir.mkdir(parents=True, exist_ok=True)
+        disable_retries = str(contract.get("protocol_profile", "")).startswith("document-pool-v2-")
         kwargs: dict[str, Any] = {
-            "model": f"openai-api/{backend['openai_service']}/{model['served_model_name']}",
-            "model_base_url": backend["base_url"],
-            "model_args": {"api_key": args.api_key, "responses_api": False},
+            **inspect_model_kwargs(backend, model, api_key=args.api_key,
+                                   disable_retries=disable_retries),
             "log_dir": str(log_dir),
             "display": "plain",
             "max_samples": args.max_concurrency,
@@ -1146,10 +1271,9 @@ def execute_phase4(
         # deliberately keeps forward_generation_config=False, so these values
         # are the single authority for backend-facing requests.
         kwargs.update(inspect_generation_kwargs(backend))
-        if str(contract.get("protocol_profile", "")).startswith("document-pool-v2-"):
+        if disable_retries:
             # An unrecorded provider retry spends money/tokens outside the trace.
             kwargs.update(max_retries=0, retry_on_error=0)
-            kwargs["model_args"]["max_retries"] = 0
         from dci_bench.tasks.mteb_llm_retrieval import workspace_prefetch_lifecycle
 
         def publish_incremental(query_id: str, inspect_sample: Any) -> dict[str, Any]:
@@ -1166,6 +1290,7 @@ def execute_phase4(
                 metric_ks=metric_ks,
                 inspect_sample=inspect_sample,
                 inspect_artifact=None,
+                agent_runtime=agent_runtime,
                 secrets_to_remove=[args.api_key],
                 seal=True,
             )
@@ -1214,7 +1339,11 @@ def execute_phase4(
             }
             sample_stage = staging_root / sample_directory_name(query_id)
             sample_stage.mkdir(parents=True, exist_ok=True)
-            _placeholder_final(sample_stage / "final.json", failure)
+            _placeholder_final(
+                sample_stage / "final.json",
+                failure,
+                agent_runtime=runtime_identity,
+            )
         produced[query_id] = build_and_publish_sample(
             run_dir=run_dir,
             staging_root=staging_root,
@@ -1225,6 +1354,7 @@ def execute_phase4(
             metric_ks=metric_ks,
             inspect_sample=inspect_sample,
             inspect_artifact=shared_inspect,
+            agent_runtime=agent_runtime,
             secrets_to_remove=[args.api_key],
             seal=incremental_v2,
         )
@@ -1297,4 +1427,6 @@ __all__ = [
     "load_completed_sample",
     "load_query_texts",
     "preflight_bridge_ports",
+    "runtime_identity_payload",
+    "verify_runtime_config",
 ]

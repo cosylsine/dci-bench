@@ -69,7 +69,8 @@ class BenchmarkV2ResultsTest(unittest.TestCase):
 
     def test_remote_identity_does_not_invent_weights(self):
         manifest = build_api_manifest(model_key='fixture', served_model_name='fixture-2026',
-                                      provider='example', revision='2026-01-01', base_url='https://example.com/v1')
+                                      provider='example', revision='2026-01-01', base_url='https://example.com/v1',
+                                      thinking_policy={'mode': 'not_supported', 'evidence': 'synthetic non-reasoning fixture'})
         validate_backend_manifest(manifest)
         self.assertNotIn('weights', manifest['model'])
         self.assertNotIn('extra_body', inspect_generation_kwargs(manifest['backend']))
@@ -105,6 +106,28 @@ class BenchmarkV2ResultsTest(unittest.TestCase):
         reports[32000]['measured'] = False
         with self.assertRaisesRegex(ValueError, 'measured'):
             select_budget(reports)
+
+    def test_budget_selection_rejects_cross_runtime_reports(self):
+        reports = {}
+        runtime = {'schema_version': 'dci-agent-runtime-v1', 'mode': 'frozen-rootfs',
+                   'rootfs_tree_sha256': 'a' * 64}
+        for budget in (32000, 64000, 96000):
+            samples = [row(task=task, q=str(q), tier=tier)
+                       for task in TASK_IDS for tier in ('lite', 'full') for q in range(10)]
+            for sample in samples:
+                sample['agent_runtime'] = dict(runtime)
+            reports[budget] = {
+                'samples': samples, 'completed': 400, 'valid': 400, 'split': 'dev',
+                'token_budget': budget, 'complete_scope': True, 'measured': True,
+                'concurrency': 8, 'selection_sha256': 'same', 'backend_sha256': 'same',
+                'source_fingerprint': 'same', 'agent_runtime': dict(runtime),
+            }
+        selected = select_budget(reports, agent_runtime=runtime)
+        self.assertEqual(selected['selected_budget'], 32000)
+        self.assertEqual(selected['agent_runtime'], runtime)
+        reports[64000]['agent_runtime']['rootfs_tree_sha256'] = 'b' * 64
+        with self.assertRaisesRegex(ValueError, 'agent_runtime'):
+            select_budget(reports, agent_runtime=runtime)
 
     def test_budget_selection_rejects_cross_tier_recall_cancellation(self):
         reports = {}
@@ -142,6 +165,34 @@ class BenchmarkV2ResultsTest(unittest.TestCase):
         reports[16]['token_budget'] = 32000
         with self.assertRaisesRegex(ValueError, 'token_budget'):
             compare_concurrency(reports)
+
+    def test_concurrency_selection_rejects_cross_runtime_reports(self):
+        runtime = {'schema_version': 'dci-agent-runtime-v1', 'mode': 'frozen-rootfs',
+                   'rootfs_tree_sha256': 'a' * 64}
+        base = {'samples': [row()], 'completed': 1, 'split': 'dev', 'measured': True,
+                'token_budget': 64000, 'selection_sha256': 'same', 'backend_sha256': 'same',
+                'source_fingerprint': 'same', 'p95_seconds': 1200, 'gpu_utilization': None,
+                'complete_scope': False, 'failure_rate': 0, 'agent_runtime': dict(runtime)}
+        base['samples'][0]['agent_runtime'] = dict(runtime)
+        reports = {c: {**copy.deepcopy(base), 'concurrency': c, 'queries_per_hour': c * 10}
+                   for c in (4, 8, 16)}
+        self.assertEqual(compare_concurrency(reports, agent_runtime=runtime)['agent_runtime'], runtime)
+        reports[16]['agent_runtime']['rootfs_tree_sha256'] = 'b' * 64
+        with self.assertRaisesRegex(ValueError, 'agent_runtime'):
+            compare_concurrency(reports, agent_runtime=runtime)
+
+    def test_complete_report_rejects_sample_runtime_mismatch(self):
+        runtime = {'schema_version': 'dci-agent-runtime-v1', 'mode': 'frozen-rootfs',
+                   'rootfs_tree_sha256': 'a' * 64}
+        samples = [row(task=task, q=str(q), tier=tier)
+                   for task in TASK_IDS for tier in ('lite', 'full') for q in range(50)]
+        for sample in samples:
+            sample['agent_runtime'] = dict(runtime)
+        samples[-1]['agent_runtime']['rootfs_tree_sha256'] = 'b' * 64
+        report = {'samples': samples, 'completed': 1000, 'valid': 1000,
+                  'split': 'test', 'complete_scope': True, 'agent_runtime': dict(runtime)}
+        with self.assertRaisesRegex(ValueError, 'agent_runtime'):
+            validate_complete_report(report, split='test', expected_agent_runtime=runtime)
 
     def test_formal_coverage_cannot_be_claimed_with_one_cell(self):
         report = {'samples': [row(), row(tier='full')], 'completed': 2, 'valid': 2,

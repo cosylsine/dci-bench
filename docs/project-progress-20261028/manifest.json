@@ -1,41 +1,55 @@
 {
   "schema_version": "dci-project-progress-manifest-v2",
-  "as_of": "2026-11-03T21:17:33+08:00",
+  "as_of": "2026-11-13",
   "historical_manifest": "history/20261028/manifest.json",
   "outputs": {
     "benchmark-v2-coverage.csv": "18c70cbf990ff61037fbfdc5ae13535021c513671f516f009b3f5b828d55d8c7",
     "benchmark-v2-coverage.json": "4468ac6c6e17cc0e60a91167a7ef570ad89082801f4b9667671a1ff78ed7c1fd",
     "benchmark-v2-status.json": "1d2a691ed2efd9630539852e1b612ed558429b6c54fa53a3b2603d9ebc70be69",
+    "browser-validation-frozen.json": "c83f6b3d1d520dc3f90d4e98739462dcbefd1630ce13552c4edbd8d2a6f8b631",
     "browser-validation-v2.json": "d0b6fffb7b7503d8aee9a32551c69b99884df128accb00bdef02347eba5c7a62",
     "browser-validation.json": "0380373d9b2042d5acf8c3991750d5f065dcd28f8f1af81c0b6ff0271ba71c4c",
     "data_matrix.json": "f7729ad0f705b8edcab859c65ed76461886899ae14e96bfe258688b7f4640aaf",
-    "harness-rules.png": "95e242c86ea3eef7b2fdf409064d387f0e385cfb375244af51385e74536a4065",
-    "harness-rules.svg": "b19f14453f8077889dc91ae44f4a9904a59002dc555e29571e25c7de42bf68fc",
-    "index.html": "b6a0348d869f2c1cc304bbb4f5ce87a087206c5791eda419fb43b9f7f4b0f2b7",
+    "frozen-runtime-status.json": "8dc26a331d52e32f64825ed053ab95c295f3e7e6abc7787024a8061b1ef78a25",
+    "harness-rules.png": "16d4f3a0c37facb856b342f1334ea864118b8ebb797320868353713d62587a59",
+    "harness-rules.svg": "fee28171882a0e050006a04fe9f8ed8c332bfdfe90246a733294fcf9f4fe1a23",
+    "index.html": "5632544453cefd19c79f8a4c43b73209833f3dc470c6cd975d1a5e21d91e19d7",
     "kalm-pre-injection-recall.csv": "a6d8a46fb199aa322feeb8185b50d5c88e7c84d5f264bbfd380cdc4c392f8b97",
     "kalm-pre-injection-recall.json": "c7af12802a2885c812712bce052f2c6cee9c81f7fee9ae5526f5b3b5a75c0e61",
-    "progress.md": "4c11130cdc328d3eb137fe815cf1a0c0bf705ea0af92548482e294e46f25925f",
+    "progress.md": "91c6a62753cf41bc208c06ddb7396fbf199096f089ee8b6b6f50d69ee33aac2d",
     "source_matrix.csv": "06fd462f02625afda0bd9f9b70fb3492608878e25e9f4458e40451fa10aff306",
-    "workflow.png": "fae5f026813156dd597d10f589a5244ea869f159f1a057c1b80c9a78e7ff527b",
-    "workflow.svg": "a8f8b06129a2e014844bed620582323f131a8f7cdca5f4544c2b485128712a2e"
+    "workflow.png": "571b1aece5753a46b0dbcd60af44bad6cf89bb3c19ea1cd47544acf1d73ee8bd",
+    "workflow.svg": "82cf584115f2cdf06dfaee9bbf2dc1b91c6aef6059fcaae254ee769cd69df8bf",
+    "browser-validation-open-bash.json": "63e40b31f3a5324962f2e5d74d403c16d964dbdf0cea84c22f36310995ba12fb"
   },
   "inputs": {
     "results/implementation/20261103-benchmark20-v2/config.json": "26c5f306b0311ad2eb47c3b6ab6a979ccdbf9e73a267854ce0a379ff2e20dcf8",
     "results/implementation/20261103-benchmark20-v2/prepared-manifest.json": "1c2c198c5bdf2b68af6b0149b46d379e7d9fa38ba56099f6d75e1963a8e5d29c",
     "results/implementation/20261103-benchmark20-v2/data-audit.json": "55a200ad818b775e45b1f886462b7d7595dba84d12081721c86523e95e042c1a",
     "docs/templates/benchmark_progress.html": "06a1dde9f946012c853574784e8463919ace5afb8f09c75a57d5e227e42803b6",
-    "docs/project-progress-20261028/kalm-pre-injection-recall.json": "c7af12802a2885c812712bce052f2c6cee9c81f7fee9ae5526f5b3b5a75c0e61"
+    "docs/project-progress-20261028/kalm-pre-injection-recall.json": "c7af12802a2885c812712bce052f2c6cee9c81f7fee9ae5526f5b3b5a75c0e61",
+    "DCI-Bench_Frozen_RootFS_Runtime_Design_and_Implementation.md": "8e46cfe9c797cfa873d008acb347f24508c940ebb29ddac8e4dc8d9c39c951e1",
+    "docs/frozen_runtime.md": "ea05649daa5e644d2b3f525b3cd7c166d883793fd71e8a7124eac33fc2baa8aa",
+    "configs/runtime/frozen-debian13.json": "20c6435892e5f312434e7c9b8ac8bec766903549631e7aa0db523b85d0cd14e1",
+    "results/frozen-runtime/20261111-xaDmpt/acceptance.json": "b058e3cd2be0283b438fd53e297d4d3c77b3d3166c1011920f39e9ef1e26ac33",
+    "docs/frozen_qwen38_smoke_20261113.md": "80db4016ec249f4382ee2beaba7c3578c64ea30434275b78aea756e1ccd6797f",
+    "configs/experiments/qwen38_frozen_open_bash_smoke_20261113.json": "c109d3f3122c9d4bf2386ce43284a19f131e0e98bf723aae173fd48d4cf65022"
   },
   "checks": {
-    "markdown_lines": 44,
+    "markdown_lines": 53,
     "historical_matrix_preserved": true,
     "coverage_task_count": 20,
     "coverage_ready_tasks": 20,
     "new_gpu_inference_completed": false,
     "benchmark_model_inference_completed": false,
     "data_embedding_gpu_inference_completed": true,
-    "browser_validation_current": false,
-    "yuque_host_verified": false
+    "browser_validation_current": true,
+    "yuque_host_verified": false,
+    "data_artifacts_byte_preserved": true,
+    "pre_sync_snapshot_byte_preserved": true,
+    "browser_validation_checks_passed": 23,
+    "runtime_tests_rerun_in_this_sync": true,
+    "frozen_default_promoted": false
   },
   "time_policy_update": {
     "date": "2026-11-10",
@@ -43,5 +57,38 @@
     "hardware_and_duration": "reference_only",
     "historical_report": "history/before-time-policy-20261110/",
     "browser_validation": "prior validation retained; text update not browser-retested"
+  },
+  "data_snapshot_as_of": "2026-11-03",
+  "runtime_evidence_as_of": "2026-11-11",
+  "frozen_runtime_update": {
+    "date": "2026-11-13",
+    "method": "Editorial synchronization of the existing report and two native SVG diagrams; PNGs exported with Chromium. Historical dataset generator and data preparation were not rerun.",
+    "historical_report": "history/before-frozen-rootfs-20261113/",
+    "validation": "browser-validation-frozen.json",
+    "runtime_status": "frozen-runtime-status.json",
+    "scope": "Documentation only; implementation acceptance reused from 2026-11-11; no runtime tests or model evaluation rerun.",
+    "historical_inputs": "Existing data and template input hashes retain their original snapshot lineage; the template was not used to regenerate this editorial update.",
+    "preserved_data_files": [
+      "benchmark-v2-coverage.csv",
+      "benchmark-v2-coverage.json",
+      "benchmark-v2-status.json",
+      "data_matrix.json",
+      "source_matrix.csv",
+      "kalm-pre-injection-recall.csv",
+      "kalm-pre-injection-recall.json"
+    ]
+  },
+  "open_bash_prompt_update": {
+    "date": "2026-11-13",
+    "validation": "browser-validation-open-bash.json",
+    "scope": "Neutral command selection, read/resume/final-repair consistency; current synthetic sandbox tests passed; real-model smoke is planned, not executed.",
+    "experiment": "../frozen_qwen38_smoke_20261113.md",
+    "historical_validation": "browser-validation-frozen.json",
+    "validation_counts": {
+      "python_targeted_tests": 72,
+      "pi_npm_check_passed": true,
+      "browser_checks": 23,
+      "real_model_calls": 0
+    }
   }
 }

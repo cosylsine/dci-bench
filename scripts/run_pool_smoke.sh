@@ -5,9 +5,18 @@ python=/mnt/afs/250010100/miniconda/envs/dci-bench/bin/python
 unset LD_LIBRARY_PATH LD_PRELOAD
 export PYTHONDONTWRITEBYTECODE=1
 export PATH="$(dirname "$python"):$PATH"
+# This launcher re-executes an immutable, previously sealed source bundle.
+# Frozen RootFS evaluations use the current v2/task entrypoints instead.
+if [[ -n "${DCI_RUNTIME_CONFIG:-}" ]]; then
+  echo '[smoke] This legacy sealed-bundle launcher is host-tools only. Use run_benchmark_v2.py or run_document_pool.py --runtime-config with a new output directory.' >&2
+  exit 2
+fi
 cpu_data_only=false
 for arg in "$@"; do
   case "$arg" in
+    --runtime-config|--runtime-config=*)
+      echo '[smoke] Frozen RootFS is not supported by this legacy sealed-bundle launcher; use the current v2/task entrypoint.' >&2
+      exit 2 ;;
     --seal|--dry-run|--data-preflight-only) cpu_data_only=true ;;
   esac
 done

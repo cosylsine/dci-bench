@@ -108,9 +108,14 @@ class DocumentPoolBudgetTest(unittest.TestCase):
             ))
             self.assertEqual(pi, py)
 
-    def test_old_profile_hashes_are_unchanged(self):
+    def test_open_bash_prompts_have_new_identity_without_relabeling_old_profiles(self):
+        # The 2026-11-13 prompt revision intentionally changes the live contract.
+        # Historical hashes/results stay frozen and must not be reused as this arm.
         for profile, expected in OLD_PROFILE_HASHES.items():
-            self.assertEqual(_python_contract(profile)["sha"], expected)
+            resolved = _python_contract(profile)
+            self.assertNotEqual(resolved["sha"], expected)
+            self.assertEqual(resolved["sha"], contract_hash(resolved["contract"]))
+            self.assertIn("no command-name allowlist", resolved["contract"]["system_prompt"])
 
 
 def contract_hash(contract: dict) -> str:

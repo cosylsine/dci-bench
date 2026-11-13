@@ -1,0 +1,14 @@
+{
+  "allow_download_during_eval": false,
+  "bundle_sha256": "7f64f486bdc74f344a6f6cb313a51932aadac8d9a073367b66d679fbfcf7fb4d",
+  "cache_dir": "/tmp/dci-bench-runtime",
+  "filesystem_policy": "dci-bwrap-frozen-ro-v1",
+  "image": "localhost/dci-runtime@sha256:257287ccc124681dd7fad47c24685f507332592b4b94ed241f7e699853d62f58",
+  "mode": "frozen-rootfs",
+  "network_during_eval": "disabled",
+  "platform": "linux/amd64",
+  "provisioning": "prepare-before-eval",
+  "rootfs_tree_sha256": "bd71bedc89dd3d1a8929ba6dbb053581d7de2e405e9fa14541db35ee18d64c8f",
+  "schema_version": "dci-runtime-v1",
+  "tool_policy": "open"
+}

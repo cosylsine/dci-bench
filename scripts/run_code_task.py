@@ -14,6 +14,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dci_bench.data.code_online import load_code_samples
+from dci_bench.backends.adapters import inspect_model_kwargs
 from dci_bench.protocol.code_runtime import code_runtime_contract
 from dci_bench.scoring.code import load_json
 
@@ -55,7 +56,7 @@ def main(argv=None) -> int:
             backend_manifest = load_json(args.backend_manifest.read_text(encoding="utf-8"))
             validate_backend_manifest(backend_manifest, generation_contract=code_runtime_contract(args.max_files))
             backend, model = backend_manifest["backend"], backend_manifest["model"]
-            expected_model = f"openai-api/{backend['openai_service']}/{model['served_model_name']}"
+            expected_model = inspect_model_kwargs(backend, model, api_key=args.api_key)["model"]
             expected_context = int(backend["context_length"])
             if ((args.model is not None and args.model != expected_model)
                     or (args.base_url is not None and args.base_url != backend["base_url"])

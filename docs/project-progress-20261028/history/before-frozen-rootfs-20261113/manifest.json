@@ -1,0 +1,47 @@
+{
+  "schema_version": "dci-project-progress-manifest-v2",
+  "as_of": "2026-11-03T21:17:33+08:00",
+  "historical_manifest": "history/20261028/manifest.json",
+  "outputs": {
+    "benchmark-v2-coverage.csv": "18c70cbf990ff61037fbfdc5ae13535021c513671f516f009b3f5b828d55d8c7",
+    "benchmark-v2-coverage.json": "4468ac6c6e17cc0e60a91167a7ef570ad89082801f4b9667671a1ff78ed7c1fd",
+    "benchmark-v2-status.json": "1d2a691ed2efd9630539852e1b612ed558429b6c54fa53a3b2603d9ebc70be69",
+    "browser-validation-v2.json": "d0b6fffb7b7503d8aee9a32551c69b99884df128accb00bdef02347eba5c7a62",
+    "browser-validation.json": "0380373d9b2042d5acf8c3991750d5f065dcd28f8f1af81c0b6ff0271ba71c4c",
+    "data_matrix.json": "f7729ad0f705b8edcab859c65ed76461886899ae14e96bfe258688b7f4640aaf",
+    "harness-rules.png": "95e242c86ea3eef7b2fdf409064d387f0e385cfb375244af51385e74536a4065",
+    "harness-rules.svg": "b19f14453f8077889dc91ae44f4a9904a59002dc555e29571e25c7de42bf68fc",
+    "index.html": "b6a0348d869f2c1cc304bbb4f5ce87a087206c5791eda419fb43b9f7f4b0f2b7",
+    "kalm-pre-injection-recall.csv": "a6d8a46fb199aa322feeb8185b50d5c88e7c84d5f264bbfd380cdc4c392f8b97",
+    "kalm-pre-injection-recall.json": "c7af12802a2885c812712bce052f2c6cee9c81f7fee9ae5526f5b3b5a75c0e61",
+    "progress.md": "4c11130cdc328d3eb137fe815cf1a0c0bf705ea0af92548482e294e46f25925f",
+    "source_matrix.csv": "06fd462f02625afda0bd9f9b70fb3492608878e25e9f4458e40451fa10aff306",
+    "workflow.png": "fae5f026813156dd597d10f589a5244ea869f159f1a057c1b80c9a78e7ff527b",
+    "workflow.svg": "a8f8b06129a2e014844bed620582323f131a8f7cdca5f4544c2b485128712a2e"
+  },
+  "inputs": {
+    "results/implementation/20261103-benchmark20-v2/config.json": "26c5f306b0311ad2eb47c3b6ab6a979ccdbf9e73a267854ce0a379ff2e20dcf8",
+    "results/implementation/20261103-benchmark20-v2/prepared-manifest.json": "1c2c198c5bdf2b68af6b0149b46d379e7d9fa38ba56099f6d75e1963a8e5d29c",
+    "results/implementation/20261103-benchmark20-v2/data-audit.json": "55a200ad818b775e45b1f886462b7d7595dba84d12081721c86523e95e042c1a",
+    "docs/templates/benchmark_progress.html": "06a1dde9f946012c853574784e8463919ace5afb8f09c75a57d5e227e42803b6",
+    "docs/project-progress-20261028/kalm-pre-injection-recall.json": "c7af12802a2885c812712bce052f2c6cee9c81f7fee9ae5526f5b3b5a75c0e61"
+  },
+  "checks": {
+    "markdown_lines": 44,
+    "historical_matrix_preserved": true,
+    "coverage_task_count": 20,
+    "coverage_ready_tasks": 20,
+    "new_gpu_inference_completed": false,
+    "benchmark_model_inference_completed": false,
+    "data_embedding_gpu_inference_completed": true,
+    "browser_validation_current": false,
+    "yuque_host_verified": false
+  },
+  "time_policy_update": {
+    "date": "2026-11-10",
+    "default_wall_time_limit": null,
+    "hardware_and_duration": "reference_only",
+    "historical_report": "history/before-time-policy-20261110/",
+    "browser_validation": "prior validation retained; text update not browser-retested"
+  }
+}

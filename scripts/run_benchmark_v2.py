@@ -7,6 +7,7 @@ a complete suite, a measured development report, and a matching cost gate.
 from __future__ import annotations
 
 import argparse
+from collections.abc import Mapping
 import json
 import math
 import os
@@ -15,6 +16,7 @@ import signal
 import subprocess
 import sys
 import time
+from typing import TYPE_CHECKING
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -38,17 +40,33 @@ from dci_bench.results.protocol import (
     write_json_atomic,
 )
 from dci_bench.results.hardware import execution_hardware
+from dci_bench.results.phase4_runner import runtime_identity_payload, verify_runtime_config
+
+if TYPE_CHECKING:
+    from dci_bench.runtime import VerifiedRuntime
 
 
 def source_fingerprint() -> str:
     paths = [*ROOT.joinpath('dci_bench').rglob('*.py'), *ROOT.joinpath('dci_bench/protocol').glob('*.json'),
              ROOT / 'pi-dci/scripts/dci-run.ts', ROOT / 'scripts/run_document_pool.py',
-             ROOT / 'scripts/run_task.py', ROOT / 'scripts/inspect_local_runtime.py', Path(__file__).resolve()]
-    return fingerprint({str(path.relative_to(ROOT)): sha256_file(path) for path in sorted(paths)})
+             ROOT / 'scripts/run_task.py', ROOT / 'scripts/inspect_local_runtime.py',
+             ROOT / 'pi-dci/scripts/dci-runtime.ts',
+             *ROOT.joinpath('pi-dci/scripts/adapters').rglob('*.ts'), Path(__file__).resolve()]
+    return fingerprint({str(path.relative_to(ROOT)): sha256_file(path)
+                        for path in sorted(paths) if path.is_file()})
+
+
+def _runtime_record(agent_runtime: VerifiedRuntime | Mapping | None) -> dict | None:
+    if agent_runtime is None:
+        return None
+    if isinstance(agent_runtime, Mapping):
+        return dict(agent_runtime)
+    return runtime_identity_payload(agent_runtime)
 
 
 def build_plan(suite: Path, *, split: str, concurrency: int, token_budget: int,
-               backend_path: Path | None, allow_partial: bool = False) -> dict:
+               backend_path: Path | None, allow_partial: bool = False,
+               agent_runtime: VerifiedRuntime | Mapping | None = None) -> dict:
     from dci_bench.data.benchmark_v2 import audit_benchmark_v2
     audit_benchmark_v2(suite)
     selection = json.loads((suite / 'benchmark-manifest.json').read_text())
@@ -61,6 +79,7 @@ def build_plan(suite: Path, *, split: str, concurrency: int, token_budget: int,
     blocked = [task for task, row in selection['tasks'].items() if row['status'] != 'ready']
     if blocked and not allow_partial:
         raise ValueError('incomplete suite; only smoke/dev can use --allow-partial: ' + ', '.join(blocked))
+    runtime_record = _runtime_record(agent_runtime)
     jobs = []
     backend = json.loads(backend_path.read_text()) if backend_path else None
     expected_model_key = backend['model']['model_key'] if backend else None
@@ -87,7 +106,7 @@ def build_plan(suite: Path, *, split: str, concurrency: int, token_budget: int,
                 raise ValueError(f'{task_id}/{tier}: task and pool source manifests differ')
             pool_manifest_sha256 = sha256_file(pool_manifest_path)
             expected_profile = row['pools'][tier].get('profile', f'document-pool-v2-{tier}')
-            jobs.append({'task_id': task_id, 'tier': tier, 'capacity': capacity,
+            job = {'task_id': task_id, 'tier': tier, 'capacity': capacity,
                          'suite': str(pool), 'query_ids': ids,
                          'groups': {qid: row['query_groups'][qid] for qid in ids},
                          'expected_profile': expected_profile,
@@ -95,10 +114,13 @@ def build_plan(suite: Path, *, split: str, concurrency: int, token_budget: int,
                          'expected_model_key': expected_model_key,
                          'expected_backend_sha256': expected_backend_sha256,
                          'source_manifest_sha256': source_manifest_sha256,
-                         'pool_manifest_sha256': pool_manifest_sha256})
+                         'pool_manifest_sha256': pool_manifest_sha256}
+            if runtime_record is not None:
+                job['expected_agent_runtime'] = runtime_record
+            jobs.append(job)
     if not jobs:
         raise ValueError('no runnable tasks')
-    return {'schema_version': 'dci-benchmark-v2-launch', 'split': split, 'concurrency': concurrency,
+    plan = {'schema_version': 'dci-benchmark-v2-launch', 'split': split, 'concurrency': concurrency,
             'token_budget': token_budget, 'selection_sha256': sha256_file(suite / 'benchmark-manifest.json'),
             'source_fingerprint': source_fingerprint(), 'backend_sha256': expected_backend_sha256,
             'model_key': expected_model_key,
@@ -106,6 +128,9 @@ def build_plan(suite: Path, *, split: str, concurrency: int, token_budget: int,
             'jobs': jobs, 'blocked_tasks': blocked, 'complete_scope': not blocked,
             'execution_count': sum(len(job['query_ids']) for job in jobs),
             'expected_tasks': sorted(selection['tasks'])}
+    if runtime_record is not None:
+        plan['agent_runtime'] = runtime_record
+    return plan
 
 
 def command_for(job: dict, args: argparse.Namespace, model_key: str | None, *, preflight: bool = False) -> list[str]:
@@ -118,6 +143,9 @@ def command_for(job: dict, args: argparse.Namespace, model_key: str | None, *, p
                '--metadata-root', str(Path(job['suite']) / 'metadata'),
                '--workspace-root', str(Path(job['suite']) / 'workspaces'),
                '--query-ids', *job['query_ids'], '--max-concurrency', str(args.concurrency)]
+    runtime_config = getattr(args, 'runtime_config', None)
+    if runtime_config is not None:
+        command.extend(['--runtime-config', str(runtime_config)])
     if preflight:
         return [*command, '--preflight-only']
     run_id = args.split + '-' + job['tier']
@@ -127,7 +155,15 @@ def command_for(job: dict, args: argparse.Namespace, model_key: str | None, *, p
             '--resume-run' if task_run.exists() else '--run-id', run_id]
 
 
-def completed_samples(run: Path, job: dict) -> list[dict]:
+def completed_samples(
+    run: Path,
+    job: dict,
+    *,
+    expected_agent_runtime: Mapping | None = None,
+) -> list[dict]:
+    expected_runtime = _runtime_record(
+        job.get('expected_agent_runtime') if expected_agent_runtime is None else expected_agent_runtime
+    )
     marker = json.loads((run / '_COMPLETE').read_text())
     result = json.loads((run / 'task-result.json').read_text())
     if marker.get('task_result_sha256') != sha256_json(result):
@@ -142,6 +178,13 @@ def completed_samples(run: Path, job: dict) -> list[dict]:
     manifest = json.loads(manifest_path.read_text())
     validate_run_manifest(manifest)
     validate_task_result(result)
+    manifest_runtime = manifest.get('code', {}).get('agent_runtime')
+    result_runtime = result.get('code', {}).get('agent_runtime')
+    if expected_runtime is None:
+        if manifest_runtime is not None or result_runtime is not None:
+            raise ValueError('host completed batch cannot consume Frozen runtime results')
+    elif manifest_runtime != expected_runtime or result_runtime != expected_runtime:
+        raise ValueError('completed batch agent_runtime mismatch')
     if marker.get('schema_version') != 'dci-run-complete-v1':
         raise ValueError('completed batch marker schema mismatch')
     if marker.get('run_id') != manifest.get('run_id'):
@@ -228,6 +271,12 @@ def completed_samples(run: Path, job: dict) -> list[dict]:
         if entry['result']['sha256'] != sha256_json(sample):
             raise ValueError('completed sample result hash mismatch')
         validate_sample_result(sample)
+        sample_runtime = sample.get('provenance', {}).get('agent_runtime')
+        if expected_runtime is None:
+            if sample_runtime is not None:
+                raise ValueError('host completed sample cannot consume Frozen runtime results')
+        elif sample_runtime != expected_runtime:
+            raise ValueError('completed sample agent_runtime provenance mismatch')
         if sample.get('run_id') != manifest.get('run_id') or sample.get('task') != manifest.get('task'):
             raise ValueError('completed sample run/task identity mismatch')
         if sample.get('query_id') != query_id:
@@ -256,19 +305,51 @@ def completed_samples(run: Path, job: dict) -> list[dict]:
         timing_artifact = sample['artifacts'].get('runtime_timing')
         stage_timing = json.loads((run / timing_artifact['path']).read_text()) if timing_artifact else {}
         final_artifact = sample['artifacts'].get('final')
+        trace_artifact = sample['artifacts'].get('trace')
+        if expected_runtime is not None and (final_artifact is None or trace_artifact is None):
+            raise ValueError('Frozen completed sample final/trace artifact is missing')
         if final_artifact:
             final = json.loads((run / final_artifact['path']).read_text())
+            final_runtime = final.get('agent_runtime')
+            if expected_runtime is None:
+                if final_runtime is not None:
+                    raise ValueError('host completed sample cannot consume Frozen final artifact')
+            elif final_runtime != expected_runtime:
+                raise ValueError('completed sample final agent_runtime mismatch')
             stage_timing.update(final.get('stage_timing', {}))
-        samples.append({'task_id': job['task_id'], 'query_id': sample['query_id'], 'tier': job['tier'],
-                        'group_id': groups.get(sample['query_id'], sample['query_id']), 'valid': sample['valid_output'],
-                        'metrics': sample['metrics'], 'usage': sample['usage'],
-                        'wall_seconds': sample['timing']['wall_time_seconds'], 'failure': sample['failure'],
-                        'stage_timing': stage_timing,
-                        'result_path': str(run / entry['result']['path'])})
+        if trace_artifact:
+            trace = json.loads((run / trace_artifact['path']).read_text())
+            trace_runtime = trace.get('agent_runtime')
+            if expected_runtime is None:
+                if trace_runtime is not None:
+                    raise ValueError('host completed sample cannot consume Frozen trace artifact')
+            elif trace_runtime != expected_runtime:
+                raise ValueError('completed sample trace agent_runtime mismatch')
+        normalized_sample = {
+            'task_id': job['task_id'], 'query_id': sample['query_id'], 'tier': job['tier'],
+            'group_id': groups.get(sample['query_id'], sample['query_id']), 'valid': sample['valid_output'],
+            'metrics': sample['metrics'], 'usage': sample['usage'],
+            'wall_seconds': sample['timing']['wall_time_seconds'], 'failure': sample['failure'],
+            'stage_timing': stage_timing,
+            'result_path': str(run / entry['result']['path']),
+        }
+        if expected_runtime is not None:
+            normalized_sample['agent_runtime'] = expected_runtime
+        samples.append(normalized_sample)
     if (len(samples) != len(job['query_ids']) or
             {sample['query_id'] for sample in samples} != set(job['query_ids'])):
         raise ValueError('completed batch sample IDs/count mismatch')
     return samples
+
+
+def terminate_child(child: subprocess.Popen) -> None:
+    if child.poll() is None:
+        os.killpg(child.pid, signal.SIGTERM)
+        try:
+            child.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            os.killpg(child.pid, signal.SIGKILL)
+            child.wait()
 
 
 def run_child(command: list[str], *, env: dict, log: Path, timeout: float | None) -> int:
@@ -277,13 +358,46 @@ def run_child(command: list[str], *, env: dict, log: Path, timeout: float | None
         try:
             return child.wait(timeout=timeout)
         finally:
-            if child.poll() is None:
-                os.killpg(child.pid, signal.SIGTERM)
-                try:
-                    child.wait(timeout=10)
-                except subprocess.TimeoutExpired:
-                    os.killpg(child.pid, signal.SIGKILL)
-                    child.wait()
+            terminate_child(child)
+
+
+def run_data_preflight(jobs: list[dict], args: argparse.Namespace, *, env: dict,
+                       timeout: float = 600) -> None:
+    """Bound independent data-check processes; stop all in-flight work on failure."""
+    pending = iter(jobs)
+    active = {}
+    completed = 0
+    try:
+        while True:
+            for name, (child, started, log) in list(active.items()):
+                code = child.poll()
+                if code is not None:
+                    if code:
+                        raise RuntimeError(f'CPU data preflight failed: {name} (exit {code}); log: {log}')
+                    del active[name]
+                    completed += 1
+                    print(json.dumps({'preflight': name, 'completed': completed,
+                                      'planned': len(jobs)}), flush=True)
+                elif time.monotonic() - started >= timeout:
+                    raise RuntimeError(f'CPU data preflight timed out: {name} ({timeout}s); log: {log}')
+            while len(active) < args.preflight_concurrency:
+                job = next(pending, None)
+                if job is None:
+                    break
+                name = job['task_id'] + '-' + job['tier']
+                log = args.output / 'logs' / (name + '.log')
+                child_env = dict(env, DCI_PROTOCOL_PROFILE='document-pool-v2-' + job['tier'])
+                with log.open('w') as handle:
+                    child = subprocess.Popen(command_for(job, args, None, preflight=True),
+                                             env=child_env, stdout=handle, stderr=subprocess.STDOUT,
+                                             start_new_session=True)
+                active[name] = (child, time.monotonic(), log)
+            if not active:
+                return
+            time.sleep(0.1)
+    finally:
+        for child, _, _ in active.values():
+            terminate_child(child)
 
 
 def _report_accounted_cost(report: dict, *, label: str) -> float:
@@ -343,8 +457,12 @@ def main(argv=None) -> int:
     parser.add_argument('--suite', required=True, type=Path)
     parser.add_argument('--split', choices=['smoke', 'dev', 'test'], default='smoke')
     parser.add_argument('--concurrency', type=int, choices=[4, 8, 16], default=4)
+    parser.add_argument('--preflight-concurrency', type=int, choices=[1, 2, 4, 8, 16], default=4,
+                        help='parallel CPU data checks (default: 4); independent of model concurrency')
     parser.add_argument('--token-budget', type=int, choices=[32000, 64000, 96000], default=64000)
     parser.add_argument('--backend-manifest', type=Path)
+    parser.add_argument('--runtime-config', type=Path,
+                        help='verified Frozen RootFS runtime configuration')
     parser.add_argument('--calibration', type=Path)
     parser.add_argument('--budget-selection', type=Path)
     parser.add_argument('--prices', type=Path)
@@ -371,10 +489,22 @@ def main(argv=None) -> int:
     args.suite = args.suite.resolve()
     if args.backend_manifest:
         args.backend_manifest = args.backend_manifest.resolve()
+    if args.runtime_config:
+        args.runtime_config = args.runtime_config.resolve()
     if args.output:
         args.output = args.output.resolve()
-    plan = build_plan(args.suite, split=args.split, concurrency=args.concurrency, token_budget=args.token_budget,
-                      backend_path=args.backend_manifest, allow_partial=args.allow_partial)
+    verified_runtime = verify_runtime_config(args.runtime_config)
+    runtime_identity = runtime_identity_payload(verified_runtime)
+    plan_kwargs = {
+        'split': args.split,
+        'concurrency': args.concurrency,
+        'token_budget': args.token_budget,
+        'backend_path': args.backend_manifest,
+        'allow_partial': args.allow_partial,
+    }
+    if runtime_identity is not None:
+        plan_kwargs['agent_runtime'] = verified_runtime
+    plan = build_plan(args.suite, **plan_kwargs)
     plan['wall_time_limit_hours'] = args.wall_time_limit_hours
     if not args.execute and not args.preflight_only:
         print(json.dumps(plan, ensure_ascii=False, indent=2))
@@ -398,10 +528,19 @@ def main(argv=None) -> int:
         if args.calibration is None:
             raise ValueError('formal evaluation requires --calibration')
         calibration = json.loads(args.calibration.read_text())
-        validate_complete_report(calibration, split='dev')
+        if runtime_identity is None:
+            validate_complete_report(calibration, split='dev')
+        else:
+            validate_complete_report(
+                calibration,
+                split='dev',
+                expected_agent_runtime=runtime_identity,
+            )
         for key in ('selection_sha256', 'backend_sha256', 'concurrency', 'token_budget', 'source_fingerprint'):
             if calibration.get(key) != plan[key]:
                 raise ValueError('calibration does not match launch: ' + key)
+        if calibration.get('agent_runtime') != runtime_identity:
+            raise ValueError('calibration does not match launch: agent_runtime')
         if calibration.get('split') != 'dev' or calibration.get('completed') != 400 or calibration.get('valid', 0) < 396:
             raise ValueError('formal launch requires 400 dev executions, >=99% valid')
         if args.budget_selection is None:
@@ -409,6 +548,11 @@ def main(argv=None) -> int:
         decision = json.loads(args.budget_selection.read_text())
         if decision.get('selected_budget') != args.token_budget:
             raise ValueError('token budget differs from the measured budget selection')
+        if runtime_identity is None:
+            if decision.get('agent_runtime') is not None:
+                raise ValueError('host launch cannot consume Frozen budget selection')
+        elif decision.get('agent_runtime') != runtime_identity:
+            raise ValueError('budget selection agent_runtime does not match launch')
         if decision.get('sha256') != fingerprint({k: v for k, v in decision.items() if k != 'sha256'}):
             raise ValueError('budget selection hash mismatch')
         references = decision.get('reports')
@@ -423,7 +567,13 @@ def main(argv=None) -> int:
             if not report_path.is_file() or reference.get('sha256') != sha256_file(report_path):
                 raise ValueError(f'budget selection report hash mismatch: {budget}')
             budget_reports[budget] = json.loads(report_path.read_text())
-        independently_selected = select_budget(budget_reports)
+        independently_selected = (
+            select_budget(budget_reports)
+            if runtime_identity is None
+            else select_budget(budget_reports, agent_runtime=runtime_identity)
+        )
+        if independently_selected.get('agent_runtime') != runtime_identity:
+            raise ValueError('budget reports do not match launch: agent_runtime')
         if decision.get('selected_budget') != independently_selected.get('selected_budget'):
             raise ValueError('budget selection decision differs from independently recomputed selection')
         if decision.get('candidates') != independently_selected.get('candidates'):
@@ -466,6 +616,8 @@ def main(argv=None) -> int:
     plan['price_quote'] = json.loads(args.prices.read_text()) if args.prices else None
     plan['budget_cny'] = args.budget_cny
     plan['preflight_only'] = args.preflight_only
+    if args.preflight_only:
+        plan['preflight_concurrency'] = args.preflight_concurrency
     plan['fingerprint'] = fingerprint(plan)
     if args.output.exists():
         if not args.resume:
@@ -479,6 +631,19 @@ def main(argv=None) -> int:
                 raise ValueError('completed suite summary changed')
             if marker.get('launch_fingerprint') != plan['fingerprint']:
                 raise ValueError('completed suite launch fingerprint changed')
+            summary = json.loads((args.output / 'summary.json').read_text())
+            summary_runtime = summary.get('agent_runtime')
+            if runtime_identity is None:
+                if summary_runtime is not None:
+                    raise ValueError('host launch cannot consume Frozen summary')
+            elif summary_runtime != runtime_identity:
+                raise ValueError('completed suite summary agent_runtime mismatch')
+            summary_samples = summary.get('samples', [])
+            if runtime_identity is None:
+                if any(sample.get('agent_runtime') is not None for sample in summary_samples):
+                    raise ValueError('host launch cannot consume Frozen summary samples')
+            elif any(sample.get('agent_runtime') != runtime_identity for sample in summary_samples):
+                raise ValueError('completed suite summary sample agent_runtime mismatch')
             for job in plan['jobs']:
                 run = args.output / 'evaluation' / plan['model_key'] / job['task_id'] / 'runs' / (args.split + '-' + job['tier'])
                 completed_samples(run, job)
@@ -523,17 +688,20 @@ def main(argv=None) -> int:
             telemetry = subprocess.Popen(['nvidia-smi', '--query-gpu=timestamp,index,utilization.gpu,memory.used,memory.total',
                                            '--format=csv,noheader,nounits', '-l', '1'], stdout=telemetry_handle, stderr=subprocess.DEVNULL)
     try:
+        if args.preflight_only:
+            run_data_preflight(plan['jobs'], args, env=env)
+            write_json_atomic(args.output / 'preflight.json', {
+                'status': 'data_preflight_passed', 'jobs': len(plan['jobs']),
+                'preflight_concurrency': args.preflight_concurrency,
+                'elapsed_seconds': time.monotonic() - started,
+                'model_calls': 0, 'sandbox_verified': False,
+            })
+            return 0
         for job in plan['jobs']:
             if args.execute and source_fingerprint() != plan['source_fingerprint']:
                 raise ValueError('source changed after launch; stop before dispatching another batch')
             name = job['task_id'] + '-' + job['tier']
             env['DCI_PROTOCOL_PROFILE'] = 'document-pool-v2-' + job['tier']
-            if args.preflight_only:
-                code = run_child(command_for(job, args, None, preflight=True), env=env,
-                                 log=args.output / 'logs' / (name + '.log'), timeout=600)
-                if code:
-                    raise RuntimeError('CPU data preflight failed: ' + name)
-                continue
             run = args.output / 'evaluation' / plan['model_key'] / job['task_id'] / 'runs' / (args.split + '-' + job['tier'])
             if not (run / '_COMPLETE').exists():
                 reserved = price.reservation(len(job['query_ids']), args.token_budget) if price else 0
@@ -593,11 +761,17 @@ def main(argv=None) -> int:
             samples.extend(restored)
             print(json.dumps({'batch': name, 'completed': len(samples), 'planned': plan['execution_count']}), flush=True)
         elapsed = prior_elapsed + time.monotonic() - started
-        if args.preflight_only:
-            write_json_atomic(args.output / 'preflight.json', {'status': 'data_preflight_passed', 'jobs': len(plan['jobs']),
-                                                               'model_calls': 0, 'sandbox_verified': False})
-            return 0
-        summary = summarize(samples, expected_tasks=plan['expected_tasks'], elapsed_seconds=elapsed, price=price)
+        summary = (
+            summarize(samples, expected_tasks=plan['expected_tasks'], elapsed_seconds=elapsed, price=price)
+            if runtime_identity is None
+            else summarize(
+                samples,
+                expected_tasks=plan['expected_tasks'],
+                elapsed_seconds=elapsed,
+                price=price,
+                agent_runtime=runtime_identity,
+            )
+        )
         summary['hardware_sessions'] = ledger.get('hardware_sessions', [])
         summary['task_executions'] = ledger['attempts']
         summary['wall_time_limit_hours'] = args.wall_time_limit_hours
@@ -607,6 +781,8 @@ def main(argv=None) -> int:
             'After an unclean interruption, total elapsed may include downtime.')
         summary.update({key: plan[key] for key in ('split', 'selection_sha256', 'source_fingerprint', 'backend_sha256',
                                                   'concurrency', 'token_budget', 'complete_scope', 'model_key', 'mode')})
+        if runtime_identity is not None:
+            summary['agent_runtime'] = runtime_identity
         for tier in TIERS:
             attempts = [row for row in ledger['attempts'] if row.get('tier') == tier]
             summary['tiers'][tier]['recorded_batch_seconds'] = sum(row.get('elapsed_seconds', 0) for row in attempts)

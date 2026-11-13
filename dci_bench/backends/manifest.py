@@ -16,6 +16,7 @@ from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 from dci_bench.protocol.contracts import GENERATION_CONFIG, MAX_MODEL_OUTPUT_TOKENS
+from dci_bench.backends.adapters import get_backend_adapter
 
 
 BACKEND_MANIFEST_SCHEMA_VERSION = "dci-backend-manifest-v1"
@@ -109,8 +110,8 @@ def resolve_generation_config(
 
     ``max_model_output_tokens`` is the contract name for the same output cap
     that Inspect receives as its canonical ``max_tokens`` generation kwarg.
-    Provider-specific ``enable_thinking`` is carried through ``extra_body``;
-    it is intentionally not passed as an unknown Inspect generation field.
+    Thinking controls are translated into ``extra_body`` at this boundary;
+    remote models must declare their own mapping or non-reasoning capability.
     """
 
     section = {} if backend is None else backend
@@ -126,9 +127,11 @@ def resolve_generation_config(
         raise ValueError(
             "backend max_model_output_tokens disagrees with the shared protocol contract"
         )
+    thinking_body = get_backend_adapter(section).thinking_body(section, generation_config)
     return {
         "generation_config": generation_config,
         "max_model_output_tokens": MAX_MODEL_OUTPUT_TOKENS,
+        "thinking_extra_body": deepcopy(thinking_body),
     }
 
 
@@ -137,27 +140,14 @@ def inspect_generation_kwargs(
 ) -> dict[str, Any]:
     """Return the actual Inspect ``eval`` generation kwargs.
 
-    Only fields understood by Inspect 0.3.260 are emitted as top-level
-    kwargs.  ``enable_thinking`` is an OpenAI-compatible provider extension
-    and is sent in ``extra_body.chat_template_kwargs``.
+    Only fields understood by Inspect 0.3.260 are emitted as top-level kwargs.
+    Provider-specific thinking controls are sent in ``extra_body``.
     """
 
     resolved = resolve_generation_config(backend)
-    config = resolved["generation_config"]
-    kwargs = {
-        "temperature": config["temperature"],
-        "max_tokens": config["max_tokens"],
-        "seed": config["seed"],
-        "extra_body": {
-            "chat_template_kwargs": {
-                "enable_thinking": config["enable_thinking"],
-            }
-        },
-    }
-    if backend is not None and backend.get("kind") == "remote_api":
-        # chat_template_kwargs is a local serving extension, not an API field.
-        kwargs.pop("extra_body")
-    return kwargs
+    return get_backend_adapter(backend).generation_kwargs(
+        resolved["generation_config"], resolved["thinking_extra_body"],
+    )
 
 
 def resolved_generation_config_record(
@@ -170,6 +160,7 @@ def resolved_generation_config_record(
         "authority": "inspect.eval",
         "generation_config": deepcopy(resolved["generation_config"]),
         "max_model_output_tokens": resolved["max_model_output_tokens"],
+        "thinking_extra_body": resolved["thinking_extra_body"],
     }
 
 
@@ -237,6 +228,8 @@ def build_sglang_manifest(
     dtype: str,
     generation_config: dict[str, Any] | None = None,
     runtime_info_path: Path | None = None,
+    adapter: str = "openai-chat-completions",
+    thinking_policy: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not _MODEL_KEY_RE.fullmatch(model_key):
         raise ValueError("model_key must match [A-Za-z0-9._-]+")
@@ -263,6 +256,7 @@ def build_sglang_manifest(
         },
         "backend": {
             "kind": "sglang",
+            "adapter": adapter,
             "version": sglang_version,
             "git_revision": sglang_git_revision,
             "openai_service": "sglang",
@@ -282,6 +276,8 @@ def build_sglang_manifest(
             "rate_limit_policy": None,
         },
     }
+    if thinking_policy is not None:
+        payload["backend"]["thinking_policy"] = deepcopy(thinking_policy)
     runtime_info = _load_runtime_info(runtime_info_path)
     if runtime_info is not None:
         payload["backend"]["runtime"] = runtime_info
@@ -306,6 +302,8 @@ def build_vllm_manifest(
     gpu_memory_utilization: float,
     generation_config: dict[str, Any] | None = None,
     runtime_info_path: Path | None = None,
+    adapter: str = "openai-chat-completions",
+    thinking_policy: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the same audited backend contract for a vLLM OpenAI endpoint."""
 
@@ -326,6 +324,8 @@ def build_vllm_manifest(
         dtype=dtype,
         generation_config=generation_config,
         runtime_info_path=runtime_info_path,
+        adapter=adapter,
+        thinking_policy=thinking_policy,
     )
     payload["backend"].update(
         kind="vllm",
@@ -342,7 +342,9 @@ def build_vllm_manifest(
 
 
 def build_api_manifest(*, model_key: str, served_model_name: str, provider: str,
-                       revision: str, base_url: str, context_length: int = 65536) -> dict[str, Any]:
+                       revision: str, base_url: str, thinking_policy: dict[str, Any],
+                       context_length: int = 65536, adapter: str = "openai-chat-completions",
+                       transport_version: str = "openai-compatible-chat-v1") -> dict[str, Any]:
     """Pin a remote model identity without fabricating a local weight receipt."""
     if not provider.strip() or not revision.strip():
         raise ValueError("remote API requires provider and pinned model revision")
@@ -350,11 +352,12 @@ def build_api_manifest(*, model_key: str, served_model_name: str, provider: str,
         "schema_version": BACKEND_MANIFEST_SCHEMA_VERSION,
         "model": {"model_key": model_key, "served_model_name": served_model_name,
                   "identity_kind": "provider_revision", "provider": provider, "revision": revision},
-        "backend": {"kind": "remote_api", "version": "openai-compatible-chat-v1",
+        "backend": {"kind": "remote_api", "version": transport_version, "adapter": adapter,
                     "openai_service": provider, "base_url": sanitize_base_url(base_url),
                     "tool_call_parser": "provider_native", "sampling_backend": "provider",
                     "tensor_parallel_size": None, "context_length": context_length, "dtype": None,
                     "generation_config": deepcopy(GENERATION_CONFIG),
+                    "thinking_policy": deepcopy(thinking_policy),
                     "max_model_output_tokens": MAX_MODEL_OUTPUT_TOKENS},
         "capabilities": {"usage_tokens_required": True, "provider_cost_available": False,
                          "retry_policy": "no_implicit_retries", "rate_limit_policy": "configured_concurrency"},
@@ -395,6 +398,7 @@ def validate_backend_manifest(
         raise ValueError(f"backend manifest missing fields: {', '.join(missing)}")
     if not _MODEL_KEY_RE.fullmatch(str(model["model_key"])):
         raise ValueError("backend manifest contains an unsafe model_key")
+    get_backend_adapter(backend).validate(backend)
     if remote:
         if model["identity_kind"] != "provider_revision" or any(
             not isinstance(model[key], str) or not model[key].strip()

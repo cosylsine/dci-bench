@@ -317,6 +317,8 @@ def git_output(repo, *args):
 
 def snapshot_sources(output):
     paths = set()
+    paths.update((REPO / "pi-dci/scripts/adapters").rglob("*.ts"))
+    paths.add(REPO / "pi-dci/scripts/dci-runtime.ts")
     for root, suffixes in (("dci_bench", {".py", ".json"}), ("scripts", {".py", ".sh", ".json"}),
                            ("schemas", {".json"})):
         paths.update(p for p in (REPO / root).rglob("*") if p.is_file() and p.suffix in suffixes

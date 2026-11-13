@@ -12,8 +12,10 @@ from dci_bench.protocol.contracts import BENCHMARK_CONTRACT_VERSION
 from dci_bench.results.phase4_runner import (
     _package_lock_audit,
     _normalize_trajectory,
+    build_and_publish_sample,
     data_audit,
     execute_phase4,
+    inspect_usage,
     preflight_bridge_ports,
 )
 from dci_bench.results.protocol import sha256_json
@@ -28,6 +30,60 @@ def _metrics(value: float = 1.0):
 
 
 class Phase4RunnerTest(unittest.TestCase):
+    def test_cached_inspect_usage_is_normalized_before_pricing(self):
+        from openai.types.chat import ChatCompletion
+        from inspect_ai.model._openai import model_output_from_openai
+        from dci_bench.results.benchmark_v2 import PriceQuote
+
+        completion = ChatCompletion(
+            id="fixture", object="chat.completion", created=0, model="fixture", choices=[],
+            usage={"prompt_tokens": 1000, "completion_tokens": 100, "total_tokens": 1100,
+                   "prompt_tokens_details": {"cached_tokens": 800},
+                   "completion_tokens_details": {"reasoning_tokens": 80}},
+        )
+        raw = model_output_from_openai(completion, []).usage
+        self.assertEqual(raw.input_tokens, 200)
+        normalized = inspect_usage(SimpleNamespace(model_usage={"fixture": raw}))
+        self.assertTrue(normalized["available"])
+        self.assertEqual(normalized["input_tokens"], 1000)
+        self.assertEqual(normalized["output_tokens"], 100)
+        self.assertEqual(normalized["total_tokens"], 1100)
+        self.assertEqual(normalized["cache_read_tokens"], 800)
+        quote = PriceQuote("fixture", "test", "synthetic", 1, 1, 1, 1)
+        self.assertAlmostEqual(quote.cost(normalized)["cost_cny"], 1100 / 1_000_000)
+        raw.input_tokens_cache_write = 0
+        normalized = inspect_usage(SimpleNamespace(model_usage={"fixture": raw}))
+        self.assertAlmostEqual(quote.cost(normalized)["cost_cny"], 1100 / 1_000_000)
+
+    def test_inconsistent_inspect_usage_is_unavailable(self):
+        for total, cached in ((5, 0), (15, 11)):
+            with self.subTest(total=total, cached=cached):
+                raw = SimpleNamespace(input_tokens=10, output_tokens=5, total_tokens=total,
+                                      input_tokens_cache_read=cached, input_tokens_cache_write=0)
+                self.assertFalse(inspect_usage(SimpleNamespace(model_usage={"fixture": raw}))["available"])
+
+    def test_usage_mismatch_cannot_publish_valid_score(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            args = self._fixture(root)
+            fake = self._fake_eval()
+
+            def evaluate(task, **kwargs):
+                logs = fake(task, **kwargs)
+                raw = next(iter(logs[0].samples[0].model_usage.values()))
+                raw.total_tokens = 25
+                raw.input_tokens_cache_read = 10
+                return logs
+
+            execution = execute_phase4(args, selected_query_ids=["Q1"],
+                                       inspect_eval_fn=evaluate, task_factory=self._task_factory)
+            result = json.loads((execution.run_dir / "Q1/result.json").read_text())
+            self.assertEqual(execution.exit_code, 1)
+            self.assertFalse(result["valid_output"])
+            self.assertEqual(result["failure"]["kind"], "usage_unavailable")
+            self.assertFalse(result["provenance"]["usage_cross_check"])
+            self.assertEqual(result["metrics"]["recall_at_1"], 0)
+
     def test_package_lock_audit_prunes_large_runtime_directories(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -467,6 +523,40 @@ class Phase4RunnerTest(unittest.TestCase):
             )
             self.assertEqual(normalized["partial_trace"], partial)
             self.assertEqual(normalized["events"], [])
+
+    def test_frozen_infrastructure_fallback_preserves_runtime_identity(self):
+        runtime = {
+            "schema_version": "dci-agent-runtime-v1",
+            "mode": "frozen-rootfs",
+            "rootfs_tree_sha256": "a" * 64,
+        }
+        verified = SimpleNamespace(
+            identity=runtime,
+            to_payload=lambda: {"identity": runtime, "rootfs_path": "/tmp/rootfs"},
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            run_dir = root / "run"
+            run_dir.mkdir()
+            result = build_and_publish_sample(
+                run_dir=run_dir,
+                staging_root=run_dir / ".staging" / "generation",
+                run_id="run",
+                task="Task",
+                query_id="Q1",
+                query_text="query",
+                metric_ks=[1, 3, 5, 10, 20],
+                inspect_sample=None,
+                inspect_artifact=None,
+                agent_runtime=verified,
+            )
+            sample_dir = run_dir / "Q1"
+            final = json.loads((sample_dir / "final.json").read_text())
+            trace = json.loads((sample_dir / "trace.json").read_text())
+            self.assertEqual(final["agent_runtime"], runtime)
+            self.assertEqual(trace["agent_runtime"], runtime)
+            self.assertEqual(result["provenance"]["agent_runtime"], runtime)
+            self.assertEqual(result["provenance"]["synthetic_failure"]["final"]["source"], "phase4_runner")
 
     def test_missing_inspect_usage_is_terminal_failure_not_zero(self):
         with tempfile.TemporaryDirectory() as temp:

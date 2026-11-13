@@ -12,6 +12,19 @@ from dci_bench.results.protocol import compute_run_fingerprint
 
 
 class TaskInstructionContractTest(unittest.TestCase):
+    def test_code_prompt_is_command_neutral_and_keeps_source_safety_rules(self):
+        from dci_bench.protocol.code_runtime import code_runtime_contract
+
+        contract = code_runtime_contract()
+        prompt = contract["system_prompt"]
+        self.assertNotIn("bounded rg", prompt)
+        self.assertIn("no particular command or search order is required", prompt)
+        self.assertIn("Do not edit corpus files, execute repository code", prompt)
+        self.assertIn("including abstention", prompt)
+        self.assertNotIn("Debian", prompt)
+        self.assertEqual(contract["evaluation_track"], "code")
+        self.assertNotIn("budget_control", contract)
+
     def test_base_contract_stays_task_neutral(self):
         self.assertEqual(BENCHMARK_CONTRACT_VERSION, "dci-mvp-v3.3")
         self.assertEqual(

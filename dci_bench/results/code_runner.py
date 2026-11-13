@@ -13,6 +13,7 @@ from typing import Any, Callable, Sequence
 
 from dci_bench.agents.code_agent import preflight_code_runtime
 from dci_bench.backends.manifest import sanitize_base_url
+from dci_bench.backends.adapters import get_backend_adapter, inspect_model_kwargs
 from dci_bench.data.code_online import CodeSample, validate_workspace
 from dci_bench.protocol.code import CODE_LABELS_VERSION, code_protocol_contract
 from dci_bench.protocol.code_runtime import code_runtime_contract, runtime_contract_sha256
@@ -75,6 +76,14 @@ def execute_code_run(
     code_preflight(samples, max_files=max_files, bridge_port=bridge_port, max_concurrency=max_concurrency)
     runtime = code_runtime_contract(max_files)
     generation = runtime["generation_config"]
+    backend = backend_manifest["backend"] if backend_manifest else {"base_url": base_url}
+    adapter = get_backend_adapter(backend)
+    generation_kwargs = adapter.generation_kwargs(generation, adapter.thinking_body(backend, generation))
+    model_kwargs = ({"model": model, "model_base_url": base_url, "model_args": {}}
+                    if mock_script is not None else inspect_model_kwargs(
+                        backend, backend_manifest["model"] if backend_manifest else {"inspect_model": model},
+                        api_key=api_key,
+                    ))
     scoring = code_protocol_contract()
     scoring.update(metric_ks=list(metric_ks), max_files=max_files, token_budgets=list(token_budgets))
     scoring["final_answer_schema"]["properties"]["ranked_files"]["maxItems"] = max_files
@@ -86,8 +95,12 @@ def execute_code_run(
         "dci_bench/agents/pi_agent.py", "dci_bench/agents/code_agent.py", "dci_bench/backends/manifest.py",
         "dci_bench/tasks/code_retrieval.py", "dci_bench/tasks/mteb_llm_retrieval.py",
         "dci_bench/results/code_runner.py", "dci_bench/results/phase4_runner.py",
-        "scripts/run_code_task.py", "pi-dci/scripts/dci-run.ts",
+        "scripts/run_code_task.py", "pi-dci/scripts/dci-run.ts", "pi-dci/scripts/dci-runtime.ts",
     ]
+    source_names.extend(path.relative_to(root).as_posix() for path in sorted(
+        (root / "dci_bench/backends/adapters").rglob("*.py")))
+    source_names.extend(path.relative_to(root).as_posix() for path in sorted(
+        (root / "pi-dci/scripts/adapters").rglob("*.ts")))
     sources = {}
     for name in source_names:
         data = (root / name).read_bytes()
@@ -119,12 +132,10 @@ def execute_code_run(
     start = time.monotonic()
     try:
         logs = list(inspect_eval_fn(
-            task, model=model, model_base_url=base_url,
-            model_args={"api_key": api_key, "responses_api": False} if mock_script is None else {},
+            task, **model_kwargs,
             log_dir=str(run_dir / "artifacts" / "inspect"), display="plain",
             max_samples=max_concurrency, fail_on_error=False, score_on_error=True,
-            temperature=generation["temperature"], max_tokens=generation["max_tokens"], seed=generation["seed"],
-            extra_body={"chat_template_kwargs": {"enable_thinking": generation["enable_thinking"]}},
+            **generation_kwargs,
         ))
     except Exception as exc:
         evaluation_error = _redact(str(exc), (api_key,))
