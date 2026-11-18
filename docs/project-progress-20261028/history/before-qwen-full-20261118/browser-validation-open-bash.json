@@ -1,0 +1,109 @@
+{
+  "passed": true,
+  "date": "2026-11-13",
+  "checks": [
+    {
+      "name": "workflow_viewbox_text_bounds",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "workflow_card_text_bounds",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "workflow_accessible",
+      "passed": true
+    },
+    {
+      "name": "harness-rules_viewbox_text_bounds",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "harness-rules_card_text_bounds",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "harness-rules_accessible",
+      "passed": true
+    },
+    {
+      "name": "two_inline_diagrams",
+      "passed": true
+    },
+    {
+      "name": "no_svg_id_collisions",
+      "passed": true
+    },
+    {
+      "name": "runtime_evidence_counts",
+      "passed": true
+    },
+    {
+      "name": "desktop_runtime_navigation",
+      "passed": true
+    },
+    {
+      "name": "1440_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "1440_identity_table_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "1440_diagram_scroll_container",
+      "passed": true
+    },
+    {
+      "name": "390_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "390_identity_table_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "390_diagram_scroll_container",
+      "passed": true
+    },
+    {
+      "name": "320_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "320_identity_table_no_page_overflow",
+      "passed": true
+    },
+    {
+      "name": "320_diagram_scroll_container",
+      "passed": true
+    },
+    {
+      "name": "inline_diagram_styles_do_not_overflow",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "srcdoc_runtime_navigation",
+      "passed": true
+    },
+    {
+      "name": "srcdoc_offline_inline_diagrams",
+      "passed": true
+    },
+    {
+      "name": "no_javascript_errors",
+      "passed": true,
+      "detail": []
+    }
+  ],
+  "errors": [],
+  "browser": "130.0.6723.31",
+  "html_sha256": "5632544453cefd19c79f8a4c43b73209833f3dc470c6cd975d1a5e21d91e19d7",
+  "scope": "Open Bash prompt text synchronization, native diagram export, desktop/mobile and srcdoc checks. Earlier data-table browser checks remain historical.",
+  "yuque_host_verified": false
+}

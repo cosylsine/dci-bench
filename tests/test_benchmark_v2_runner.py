@@ -15,6 +15,15 @@ spec.loader.exec_module(runner)
 
 
 class BenchmarkV2RunnerTest(unittest.TestCase):
+    def test_fixed_budget_rejects_api_and_conflicting_calibration(self):
+        for extra in (['--split', 'dev'], ['--split', 'test', '--calibration', '/unused']):
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                runner.main(['--suite', '/unused', '--fixed-budget-reason', 'User request', *extra])
+        with patch.object(runner, 'build_plan', return_value={'mode': 'api'}):
+            with self.assertRaisesRegex(ValueError, 'only for local'):
+                runner.main(['--suite', '/unused', '--split', 'test',
+                             '--fixed-budget-reason', 'User request'])
+
     def test_preflight_runs_all_40_jobs_with_bounded_overlap_and_isolated_profiles(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -225,7 +234,7 @@ print(json.dumps({'start': started, 'end': time.monotonic(),
                         'passed': True, 'failures': [], 'projections': {'formal_cost_cny': 700.0}
                     }), \
                     patch('dci_bench.backends.manifest.load_backend_manifest', return_value={
-                        'backend': {'context_length': 65536}, 'model': {'model_key': 'fixture'}
+                        'backend': {'context_length': 65536, 'kind': 'remote_api'}, 'model': {'model_key': 'fixture'}
                     }):
                 with self.assertRaisesRegex(ValueError, 'prior cost'):
                     runner.main([
@@ -286,7 +295,7 @@ print(json.dumps({'start': started, 'end': time.monotonic(),
                         'passed': True, 'failures': [], 'projections': {'formal_cost_cny': 0.0}
                     }), \
                     patch('dci_bench.backends.manifest.load_backend_manifest', return_value={
-                        'backend': {'context_length': 65536}, 'model': {'model_key': 'fixture'}
+                        'backend': {'context_length': 65536, 'kind': 'remote_api'}, 'model': {'model_key': 'fixture'}
                     }), patch('scripts.inspect_local_runtime.prepare'), \
                     patch.object(runner, 'source_fingerprint', return_value='source'), \
                     patch.object(runner, 'run_child') as child:
@@ -333,7 +342,7 @@ print(json.dumps({'start': started, 'end': time.monotonic(),
             with patch.object(runner, 'build_plan', return_value=plan), \
                     patch.object(runner, 'validate_complete_report'), \
                     patch('dci_bench.backends.manifest.load_backend_manifest', return_value={
-                        'backend': {'context_length': 65536}, 'model': {'model_key': 'fixture'}
+                        'backend': {'context_length': 65536, 'kind': 'remote_api'}, 'model': {'model_key': 'fixture'}
                     }):
                 with self.assertRaisesRegex(ValueError, 'all three'):
                     runner.main([

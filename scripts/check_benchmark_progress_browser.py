@@ -17,6 +17,10 @@ artifact = args.output.resolve()
 artifact.mkdir(parents=True, exist_ok=False)
 source = (report / 'index.html').read_text()
 coverage = json.loads((report / 'benchmark-v2-coverage.json').read_text())
+examples_path = report / 'source-examples.json'
+examples = json.loads(examples_path.read_text())['examples'] if examples_path.exists() else []
+results_path = report / 'qwen-full-results.json'
+results = json.loads(results_path.read_text()) if results_path.exists() else None
 ready = coverage['ready_tasks']
 blocked = coverage['blocked_tasks']
 zh_ready = sum(row['status'] == 'ready' and row['language'] == 'zh' for row in coverage['tasks'])
@@ -58,6 +62,25 @@ with sync_playwright() as pw:
     check('prepared_query_totals', f"开发{coverage['prepared']['dev']} / 正式{coverage['prepared']['test']}题" in page.locator('#filter-count').inner_text())
     check('no_old_inventory_controls', page.locator('#stage').inner_text().find('三档') == -1 and page.locator('#domain option').count() == 11)
     check('unique_ids', page.evaluate('new Set([...document.querySelectorAll("[id]")].map(n=>n.id)).size === document.querySelectorAll("[id]").length'))
+    if results:
+        check('full_run_20_task_rows', page.locator('#qwen-tasks tbody tr').count() == 20)
+        for row in results['tasks']:
+            cells = page.locator(f'#qwen-tasks tr[data-task="{row["task"]}"] td').all_text_contents()
+            expected = [f'{row["tiers"][tier][metric] * 100:.2f}%'
+                        for metric in ('recall_at_10', 'ndcg_at_10', 'f1_at_10')
+                        for tier in ('lite', 'full')]
+            expected.append(f'{row["tiers"]["lite"]["valid"]} / {row["tiers"]["full"]["valid"]}')
+            check(f'full_run_metrics_{row["task"]}', cells == expected)
+        for i, metric in enumerate(('recall_at_10', 'ndcg_at_10', 'f1_at_10')):
+            cells = page.locator('#qwen-summary tbody tr').nth(i).locator('td').all_text_contents()
+            expected = [f'{results["tiers"][tier][metric] * 100:.2f}%' for tier in ('lite', 'full')]
+            expected.append(f'{results["paired_full_minus_lite"][metric]["estimate"] * 100:+.2f} pp')
+            check(f'full_run_summary_{metric}', cells == expected)
+        check('full_run_limits_last_paragraph', page.locator('main p').last.get_attribute('id') == 'limitations')
+        check('full_run_no_obsolete_status', '不认定新版Qwen实验完成' not in page.locator('main').inner_text()
+              and '真实模型 smoke、等预算 Host' not in page.locator('main').inner_text())
+        page.locator('.navlinks a[href="#results"]').click()
+        page.screenshot(path=str(artifact / 'desktop-results.png'))
     navigation(page, 'standalone')
     page.emulate_media(reduced_motion='no-preference')
     page.locator('.navlinks a[href="#data"]').click()
@@ -74,6 +97,21 @@ with sync_playwright() as pw:
         check('blocked_filter_empty_state', page.locator('#matrix tbody td').count() == 20 and '没有匹配任务' in page.locator('#sources tbody').inner_text())
     page.locator('#reset').click()
     check('reset_20_tasks', page.locator('#sources tbody tr').count() == 20)
+    if examples:
+        check('all_source_examples_present', page.locator('.source-example').count() == len(examples) == 20)
+        page.locator('#domain').select_option('legal')
+        check('samples_follow_domain_filter', page.locator('.source-example:not([hidden])').count() == 2)
+        page.locator('#table-view').click()
+        page.locator('#sources a[href="#sample-legal_en"]').click()
+        sample = page.locator('#sample-legal_en')
+        check('sample_link_opens_details', sample.get_attribute('open') is not None)
+        expected = next(row for row in examples if row['task'] == 'legal_en')
+        check('sample_query_and_body_match_export',
+              sample.locator('pre').text_content() == expected['query_text']
+              and sample.locator('blockquote').text_content() == expected['document_excerpt'])
+        check('sample_identity_visible', expected['document_sha256'] in sample.inner_text())
+        page.locator('#reset').click()
+        page.locator('#matrix-view').click()
     page.locator('#stage').select_option('ready')
     check('all_ready_filter', page.locator('#sources tbody tr').count() == ready)
     page.locator('#reset').click()
@@ -141,6 +179,14 @@ with sync_playwright() as pw:
     fallback = nojs.new_page()
     fallback.goto((report / 'index.html').as_uri())
     check('no_script_all_tasks_readable', fallback.locator('#sources tbody tr').count() == 20 and fallback.locator('#table-panel').is_visible())
+    if results:
+        check('no_script_full_results_readable', fallback.locator('#qwen-tasks tbody tr').count() == 20)
+    if examples:
+        check('no_script_all_examples_readable', fallback.locator('.source-example:not([hidden])').count() == 20)
+        fallback.locator('#sample-legal_zh summary').click()
+        expected = next(row for row in examples if row['task'] == 'legal_zh')
+        check('no_script_sample_body_matches_export',
+              fallback.locator('#sample-legal_zh blockquote').text_content() == expected['document_excerpt'])
     check('no_script_dead_controls_hidden', not fallback.locator('#coverage-controls').is_visible())
     check('no_script_no_page_overflow', fallback.evaluate('document.documentElement.scrollWidth <= innerWidth'))
     check('no_javascript_errors', not errors)

@@ -2,7 +2,7 @@
 """Plan, CPU-preflight, or execute a frozen Lite/Full suite against one running service.
 
 Default is a non-inference plan. --execute starts batches; test execution requires
-a complete suite, a measured development report, and a matching cost gate.
+a complete suite and calibrated selection, or an explicit local fixed-budget choice.
 """
 from __future__ import annotations
 
@@ -465,6 +465,8 @@ def main(argv=None) -> int:
                         help='verified Frozen RootFS runtime configuration')
     parser.add_argument('--calibration', type=Path)
     parser.add_argument('--budget-selection', type=Path)
+    parser.add_argument('--fixed-budget-reason',
+                        help='explicit local test budget choice; skips development selection and projection')
     parser.add_argument('--prices', type=Path)
     parser.add_argument('--budget-cny', type=float, default=1000)
     parser.add_argument('--wall-time-limit-hours', type=float,
@@ -478,6 +480,11 @@ def main(argv=None) -> int:
     action.add_argument('--preflight-only', action='store_true')
     action.add_argument('--execute', action='store_true')
     args = parser.parse_args(argv)
+    if args.fixed_budget_reason is not None:
+        if not args.fixed_budget_reason.strip() or args.split != 'test':
+            raise ValueError('--fixed-budget-reason requires a nonempty reason and --split test')
+        if args.calibration is not None or args.budget_selection is not None:
+            raise ValueError('fixed budget cannot be combined with calibrated selection')
     if args.wall_time_limit_hours is not None and (
             not math.isfinite(args.wall_time_limit_hours) or args.wall_time_limit_hours <= 0):
         raise ValueError('--wall-time-limit-hours must be finite and positive')
@@ -506,6 +513,15 @@ def main(argv=None) -> int:
         plan_kwargs['agent_runtime'] = verified_runtime
     plan = build_plan(args.suite, **plan_kwargs)
     plan['wall_time_limit_hours'] = args.wall_time_limit_hours
+    if args.fixed_budget_reason is not None:
+        if plan['mode'] != 'local':
+            raise ValueError('fixed budget is supported only for local evaluation')
+        plan['budget_policy'] = {
+            'mode': 'user-fixed', 'token_budget': args.token_budget,
+            'reason': args.fixed_budget_reason.strip(),
+            'development_selection_applied': False,
+            'calibration_projection_applied': False,
+        }
     if not args.execute and not args.preflight_only:
         print(json.dumps(plan, ensure_ascii=False, indent=2))
         return 0
@@ -524,7 +540,7 @@ def main(argv=None) -> int:
         max_seqs = backend['backend'].get('max_num_seqs')
         if max_seqs is not None and max_seqs < args.concurrency:
             raise ValueError('backend max_num_seqs must cover concurrency')
-    if args.split == 'test' and args.execute:
+    if args.split == 'test' and args.execute and args.fixed_budget_reason is None:
         if args.calibration is None:
             raise ValueError('formal evaluation requires --calibration')
         calibration = json.loads(args.calibration.read_text())
@@ -654,6 +670,12 @@ def main(argv=None) -> int:
         write_json_atomic(args.output / 'launch.json', plan)
     env = dict(os.environ, DCI_DOCUMENT_TOKEN_BUDGET=str(args.token_budget),
                DCI_WORKSPACE_PREFETCH='1', DCI_WORKSPACE_PREFETCH_BATCH_SIZE=str(args.concurrency))
+    if args.execute and backend['backend']['kind'] == 'vllm':
+        # Bind counting to the same server/model as inference, including direct
+        # launches that do not use the Qwen shell wrapper.
+        env.update(DCI_TOKEN_COUNT_BASE_URL=backend['backend']['base_url'],
+                   DCI_TOKEN_COUNT_MODEL=backend['model']['served_model_name'],
+                   DCI_TOKEN_COUNT_PYTHON=sys.executable)
     # Inspect's local HTTP bridge and local model endpoints must bypass proxies.
     no_proxy = ','.join(filter(None, (env.get('NO_PROXY'), env.get('no_proxy'), 'localhost,127.0.0.1,::1')))
     env['NO_PROXY'] = env['no_proxy'] = no_proxy
@@ -781,6 +803,8 @@ def main(argv=None) -> int:
             'After an unclean interruption, total elapsed may include downtime.')
         summary.update({key: plan[key] for key in ('split', 'selection_sha256', 'source_fingerprint', 'backend_sha256',
                                                   'concurrency', 'token_budget', 'complete_scope', 'model_key', 'mode')})
+        if 'budget_policy' in plan:
+            summary['budget_policy'] = plan['budget_policy']
         if runtime_identity is not None:
             summary['agent_runtime'] = runtime_identity
         for tier in TIERS:

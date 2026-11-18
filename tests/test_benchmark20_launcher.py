@@ -1,5 +1,6 @@
 """Run the real shell control flow with synthetic processes, without GPUs."""
 import json
+import importlib.util
 import os
 from pathlib import Path
 import shutil
@@ -7,13 +8,16 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class Benchmark20LauncherTests(unittest.TestCase):
     def launch(self, *, mode=None, fail_stage="", memory="0.80", frozen=False,
-               prepare_fail=False, ensure_fail=False, dry_run=False, warm=False, preflight_concurrency="4"):
+               prepare_fail=False, ensure_fail=False, dry_run=False, warm=False, preflight_concurrency="4",
+               full=False, concurrency="4", selected_budget=64000, inspect_timeout="600", fixed_budget=None,
+               resume=False, named_run=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             scripts = root / "scripts"
@@ -63,11 +67,28 @@ with open(os.environ['TEST_TRACE'], 'a') as f:
     f.write(json.dumps({'stage': stage, 'args': args,
                         'worker': os.environ.get('VLLM_WORKER_CLS'),
                         'memory': os.environ.get('VLLM_GPU_MEMORY_UTILIZATION')}) + '\\n')
+if stage == 'execute':
+    output = pathlib.Path(args[args.index('--output')+1])
+    output.mkdir(parents=True, exist_ok=True)
+    launch = output / 'launch.json'
+    if not launch.exists():
+        launch.write_text('{"fixture":"original launch"}')
+    if os.environ.get('TEST_FAIL_STAGE') == 'kill-execute':
+        import signal
+        (output / 'sealed-sample').write_text('preserve completed result')
+        os.kill(os.getpid(), signal.SIGKILL)
 if os.environ.get('TEST_FAIL_STAGE') == stage:
     sys.exit(23)
+if stage == 'execute' and os.environ.get('TEST_FAIL_STAGE') == 'dev-' + args[args.index('--token-budget')+1]:
+    sys.exit(23)
+if stage == 'analyze_benchmark_v2.py':
+    pathlib.Path(args[args.index('--output')+1]).write_text(json.dumps(
+        {'selected_budget': json.loads(os.environ['TEST_SELECTED_BUDGET'])}))
 if stage == 'harness_pilot_runtime.py':
     pathlib.Path(args[args.index('--output')+1]).write_text(json.dumps(
         {'cuda': {'gpus': [{'name': 'RTX 5090', 'capability': [12, 0]}] * 4}}))
+if stage == 'manifest':
+    pathlib.Path(args[args.index('--output')+1]).write_text('{"fixture":"original backend"}')
 if stage == 'serve':
     while True:
         time.sleep(1)
@@ -87,7 +108,9 @@ pathlib.Path(sys.argv[sys.argv.index('-o')+1]).write_text(json.dumps({'data':[{'
             env = {**os.environ, "DRY_RUN": "1" if dry_run else "0", "TEST_TRACE": str(trace),
                    "TEST_FAIL_STAGE": fail_stage, "TEST_PREPARE_FAIL": "23" if prepare_fail else "0",
                    "TEST_DEP_FAIL": "19" if ensure_fail else "0",
-                   "VLLM_GPU_MEMORY_UTILIZATION": memory, "PREFLIGHT_CONCURRENCY": preflight_concurrency}
+                   "VLLM_GPU_MEMORY_UTILIZATION": memory, "PREFLIGHT_CONCURRENCY": preflight_concurrency,
+                   "INSPECT_PREFLIGHT_TIMEOUT_SECONDS": inspect_timeout,
+                   "CONCURRENCY": concurrency, "TEST_SELECTED_BUDGET": json.dumps(selected_budget)}
             env.pop('DCI_RUNTIME_CONFIG', None)
             env.pop('DCI_RUNTIME_BUNDLE', None)
             if frozen:
@@ -98,8 +121,23 @@ pathlib.Path(sys.argv[sys.argv.index('-o')+1]).write_text(json.dumps({'data':[{'
                     bundle = root/'rootfs.tar'
                     bundle.write_bytes(b'fixture bundle')
                     env['DCI_RUNTIME_BUNDLE'] = str(bundle)
-            command = ["bash", str(launcher), *([mode] if mode else [])]
+            command = ["bash", str(launcher), *(['--full'] if full else []), *([mode] if mode else [])]
+            if fixed_budget is not None:
+                command += ['--token-budget', str(fixed_budget)]
+            if named_run:
+                command += ['--run-dir', str(root/'named-run')]
             result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=30)
+            if resume:
+                self.assertNotEqual(result.returncode, 0)
+                run = root/'named-run' if named_run else next((root/'results/Qwen3.8-27B/benchmark-v2-full-runs').iterdir())
+                original = {p: p.read_bytes() for p in run.rglob('*') if p.is_file()}
+                trace.write_text('')
+                env['TEST_FAIL_STAGE'] = ''
+                resume_command = ["bash", str(launcher), '--full', '--token-budget', str(fixed_budget),
+                                  '--resume-run', str(run)]
+                result = subprocess.run(resume_command, env=env, capture_output=True, text=True, timeout=30)
+                for path, content in original.items():
+                    self.assertEqual(path.read_bytes(), content, str(path))
             rows = [json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
             return result, rows
 
@@ -108,7 +146,7 @@ pathlib.Path(sys.argv[sys.argv.index('-o')+1]).write_text(json.dumps({'data':[{'
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([r["stage"] for r in rows], [
             "data", "check_inspect_parallel.py", "harness_pilot_runtime.py", "check_gdn_kernels.py",
-            "manifest", "serve", "harness_pilot_warmup.py", "execute"])
+            "manifest", "serve", "harness_pilot_warmup.py", "check_budget_tokenizer.py", "execute"])
         serve = next(r for r in rows if r["stage"] == "serve")
         args = serve["args"]
         for name, value in {"--worker-cls": "dci_bench.backends.vllm_gdn_worker.GDNWarmupWorker",
@@ -127,7 +165,7 @@ pathlib.Path(sys.argv[sys.argv.index('-o')+1]).write_text(json.dumps({'data':[{'
         result, rows = self.launch(mode="--serving-smoke-only")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([r["stage"] for r in rows], ["harness_pilot_runtime.py", "check_gdn_kernels.py",
-            "manifest", "serve", "harness_pilot_warmup.py"])
+            "manifest", "serve", "harness_pilot_warmup.py", "check_budget_tokenizer.py"])
         self.assertIn("benchmark not executed", result.stdout)
 
     def test_preflight_concurrency_is_forwarded_independently_of_model_concurrency(self):
@@ -144,7 +182,7 @@ pathlib.Path(sys.argv[sys.argv.index('-o')+1]).write_text(json.dumps({'data':[{'
         result, rows = self.launch(mode="--serving-smoke-only", frozen=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([r["stage"] for r in rows], ["harness_pilot_runtime.py", "check_gdn_kernels.py",
-            "manifest", "serve", "harness_pilot_warmup.py"])
+            "manifest", "serve", "harness_pilot_warmup.py", "check_budget_tokenizer.py"])
 
     def test_failed_kernel_probe_stops_before_manifest_or_model_load(self):
         result, rows = self.launch(mode="--serving-smoke-only", fail_stage="check_gdn_kernels.py")
@@ -156,10 +194,31 @@ pathlib.Path(sys.argv[sys.argv.index('-o')+1]).write_text(json.dumps({'data':[{'
         self.assertEqual(result.returncode, 23)
         self.assertNotIn("execute", [r["stage"] for r in rows])
 
+    def test_tokenizer_mismatch_stops_before_benchmark(self):
+        result, rows = self.launch(fail_stage="check_budget_tokenizer.py")
+        self.assertEqual(result.returncode, 23)
+        self.assertNotIn("execute", [r["stage"] for r in rows])
+
     def test_cpu_only_mode_never_probes_or_loads_gpu(self):
         result, rows = self.launch(mode="--preflight-only")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([r["stage"] for r in rows], ["data", "check_inspect_parallel.py"])
+
+    def test_inspect_timeout_reaches_probe_and_is_logged(self):
+        for seconds in ('600', '900'):
+            with self.subTest(seconds=seconds):
+                result, rows = self.launch(mode='--preflight-only', inspect_timeout=seconds)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                args = next(row['args'] for row in rows if row['stage'] == 'check_inspect_parallel.py')
+                self.assertEqual(args[args.index('--sample-timeout-seconds') + 1], seconds)
+                self.assertIn(f'inspect_preflight_timeout_seconds={seconds}', result.stdout)
+
+    def test_invalid_inspect_timeout_stops_before_preflight(self):
+        for seconds in ('0', '-1', 'abc'):
+            with self.subTest(seconds=seconds):
+                result, rows = self.launch(mode='--preflight-only', inspect_timeout=seconds)
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(rows, [])
 
     def test_frozen_configuration_reaches_data_bridge_and_evaluation(self):
         result, rows = self.launch(frozen=True)
@@ -196,6 +255,126 @@ pathlib.Path(sys.argv[sys.argv.index('-o')+1]).write_text(json.dumps({'data':[{'
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([r["stage"] for r in rows], ["data"])
         self.assertNotIn("frozen_prepare", result.stdout + result.stderr)
+
+    def test_full_run_calibrates_all_budgets_before_selected_formal_test(self):
+        result, rows = self.launch(full=True, frozen=True, selected_budget=96000)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        data = [r['args'] for r in rows if r['stage'] == 'data']
+        self.assertEqual([a[a.index('--split')+1] for a in data], ['dev', 'test'])
+        executions = [r['args'] for r in rows if r['stage'] == 'execute']
+        self.assertEqual([(a[a.index('--split')+1], a[a.index('--token-budget')+1]) for a in executions],
+                         [('dev', '32000'), ('dev', '64000'), ('dev', '96000'), ('test', '96000')])
+        self.assertEqual(len({a[a.index('--backend-manifest')+1] for a in executions}), 1)
+        self.assertEqual(len({a[a.index('--runtime-config')+1] for a in executions}), 1)
+        outputs = [Path(a[a.index('--output')+1]) for a in executions]
+        self.assertEqual([p.name for p in outputs], ['dev-32000', 'dev-64000', 'dev-96000', 'test'])
+        self.assertTrue(all('benchmark-v2-full-runs' in str(p) for p in outputs))
+        analysis = next(r['args'] for r in rows if r['stage'] == 'analyze_benchmark_v2.py')
+        self.assertEqual(analysis[analysis.index('--reports')+1:analysis.index('--output')],
+                         [str(p/'summary.json') for p in outputs[:3]])
+        formal = executions[-1]
+        self.assertEqual(formal[formal.index('--calibration')+1], str(outputs[2]/'summary.json'))
+        self.assertEqual(formal[formal.index('--budget-selection')+1], analysis[analysis.index('--output')+1])
+        self.assertEqual([r['stage'] for r in rows][-5:],
+                         ['execute', 'execute', 'execute', 'analyze_benchmark_v2.py', 'execute'])
+        self.assertEqual(sum(r['stage'] == 'serve' for r in rows), 1)
+
+    def test_model_concurrency_reaches_service_manifest_bridge_warmup_and_all_runs(self):
+        result, rows = self.launch(full=True, concurrency='8', preflight_concurrency='4')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        flags = {'serve': '--max-num-seqs', 'manifest': '--max-num-seqs',
+                 'check_inspect_parallel.py': '--max-concurrency', 'harness_pilot_warmup.py': '--concurrency',
+                 'data': '--concurrency', 'execute': '--concurrency'}
+        for row in rows:
+            if row['stage'] in flags:
+                args = row['args']
+                self.assertEqual(args[args.index(flags[row['stage']])+1], '8', row)
+                if row['stage'] == 'data':
+                    self.assertEqual(args[args.index('--preflight-concurrency')+1], '4')
+
+    def test_full_preflight_and_dry_run_never_start_model(self):
+        for dry_run in (True, False):
+            with self.subTest(dry_run=dry_run):
+                result, rows = self.launch(full=True, dry_run=dry_run,
+                                         mode=None if dry_run else '--preflight-only')
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertNotIn('serve', [r['stage'] for r in rows])
+                self.assertNotIn('execute', [r['stage'] for r in rows])
+                data = [r['args'] for r in rows if r['stage'] == 'data']
+                self.assertEqual([a[a.index('--split')+1] for a in data],
+                                 ['test'] if dry_run else ['dev', 'test'])
+
+    def test_failed_calibration_or_budget_selection_never_enters_test(self):
+        for options in ({'fail_stage': 'dev-64000'}, {'selected_budget': None}):
+            with self.subTest(options=options):
+                result, rows = self.launch(full=True, **options)
+                self.assertNotEqual(result.returncode, 0)
+                executions = [r['args'] for r in rows if r['stage'] == 'execute']
+                self.assertTrue(executions)
+                self.assertTrue(all(a[a.index('--split')+1] == 'dev' for a in executions))
+
+    def test_fixed_budget_runs_only_test_and_keeps_preflights(self):
+        result, rows = self.launch(full=True, frozen=True, fixed_budget=64000, selected_budget=None)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        executions = [r['args'] for r in rows if r['stage'] == 'execute']
+        self.assertEqual(len(executions), 1)
+        args = executions[0]
+        self.assertEqual(args[args.index('--split')+1], 'test')
+        self.assertEqual(args[args.index('--token-budget')+1], '64000')
+        self.assertIn('--fixed-budget-reason', args)
+        self.assertNotIn('--calibration', args)
+        stages = [r['stage'] for r in rows]
+        self.assertNotIn('analyze_benchmark_v2.py', stages)
+        self.assertIn('check_inspect_parallel.py', stages)
+        self.assertIn('check_budget_tokenizer.py', stages)
+        data = [r['args'] for r in rows if r['stage'] == 'data']
+        self.assertEqual([a[a.index('--split')+1] for a in data], ['test'])
+
+    def test_fixed_budget_requires_full_and_supported_value(self):
+        for options in ({'fixed_budget': 64000}, {'full': True, 'fixed_budget': 128000}):
+            result, rows = self.launch(**options)
+            self.assertEqual(result.returncode, 2)
+            self.assertEqual(rows, [])
+
+    def test_resume_after_killed_execution_preserves_original_artifacts(self):
+        result, rows = self.launch(full=True, fixed_budget=64000, fail_stage='kill-execute',
+                                   resume=True, named_run=True, frozen=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn('manifest', [r['stage'] for r in rows])
+        self.assertEqual(sum(r['stage'] == 'check_benchmark20_resume.py' for r in rows), 2)
+        execute = next(r['args'] for r in rows if r['stage'] == 'execute')
+        self.assertIn('--resume', execute)
+        output = Path(execute[execute.index('--output')+1])
+        self.assertEqual(output.parts[-2:], ('named-run', 'test'))
+        preflight = next(r['args'] for r in rows if r['stage'] == 'data')
+        self.assertIn('resume-attempts', preflight[preflight.index('--output')+1])
+
+    def test_resume_before_backend_creation_restarts_preparation(self):
+        result, rows = self.launch(full=True, fixed_budget=64000, fail_stage='check_gdn_kernels.py', resume=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('manifest', [r['stage'] for r in rows])
+        execute = next(r['args'] for r in rows if r['stage'] == 'execute')
+        self.assertNotIn('--resume', execute)
+
+    def test_invalid_concurrency_stops_before_preflight_or_gpu(self):
+        for options in ({'concurrency': '3'}, {'preflight_concurrency': '0'}):
+            with self.subTest(options=options):
+                result, rows = self.launch(full=True, **options)
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(rows, [])
+
+    def test_inspect_probe_parser_accepts_all_launcher_concurrency_values(self):
+        spec = importlib.util.spec_from_file_location('inspect_parallel_probe', ROOT/'scripts/check_inspect_parallel.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for concurrency in ('4', '8', '16'):
+            with self.subTest(concurrency=concurrency):
+                argv = ['check_inspect_parallel.py', '--runtime', str(ROOT), '--tools-directory', '/tmp/tools',
+                        '--output', '/tmp/probe-unused', '--max-concurrency', concurrency, '--child']
+                with patch.object(sys, 'argv', argv), patch.object(module, 'child') as child:
+                    module.main()
+                child.assert_called_once()
+                self.assertEqual(child.call_args.args[0].max_concurrency, int(concurrency))
 
 
 if __name__ == "__main__":

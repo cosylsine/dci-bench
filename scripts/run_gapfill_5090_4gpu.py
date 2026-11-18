@@ -68,6 +68,22 @@ class SourceSpec:
 
 
 SOURCE_SPECS: dict[str, SourceSpec] = {
+    "gapfill_privacyqa_legal_en": SourceSpec(
+        name="gapfill_privacyqa_legal_en",
+        batch_size=8,
+        receipt_name="catalog-row.json",
+        ranking_name="ranking.json",
+        raw_ranking_name="ranking.json",
+        pool_names=("pools-200", "pools-1000"),
+    ),
+    "gapfill_stard_legal_zh": SourceSpec(
+        name="gapfill_stard_legal_zh",
+        batch_size=8,
+        receipt_name="catalog-row.json",
+        ranking_name="ranking.json",
+        raw_ranking_name="ranking.json",
+        pool_names=("pools-200", "pools-1000"),
+    ),
     "gapfill_browsecomp_plus_en": SourceSpec(
         name="gapfill_browsecomp_plus_en",
         batch_size=8,

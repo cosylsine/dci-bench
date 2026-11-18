@@ -61,6 +61,9 @@ class DocumentPoolV2BudgetTests(unittest.TestCase):
             self.assertIn("If you choose rg", contract["search_policy"]["prompt"])
             self.assertEqual(contract["search_policy"]["ripgrep_config"], "--sort=path\n")
             policy = contract["budget_control"]
+            self.assertEqual(policy["version"], "document-pool-v2-tokenizer-finalize-v3")
+            self.assertTrue(policy["dynamic_reserve"])
+            self.assertTrue(policy["tokenizer_reserve"])
             self.assertIn("Both read and bash are available again", policy["resume_prompt"])
             self.assertIn("only if", policy["read_prompt"])
             self.assertIn("Tools are disabled", policy["final_prompt"])

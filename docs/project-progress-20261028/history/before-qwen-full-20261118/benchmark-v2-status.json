@@ -1,0 +1,251 @@
+{
+  "as_of": "2026-11-16",
+  "summary": "新版数据已验收20/20：先按1–10正例过滤，再统一seed42重抽；法律两项替换为PrivacyQA与STARD。dev200/test1000，Lite200⊂Full1000。数据验收不代表新版Qwen模型评测完成。",
+  "data_tasks": [
+    {
+      "task": "encyclopedia_en",
+      "status": "已准备",
+      "source": "gapfill_mlqa_en",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 11,571；抽样前排除 19；选中60题正例 1–1。"
+    },
+    {
+      "task": "encyclopedia_zh",
+      "status": "已准备",
+      "source": "qa_cmrc2018_zh",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 3,217；抽样前排除 2；选中60题正例 1–1。"
+    },
+    {
+      "task": "general_qa_en",
+      "status": "已准备",
+      "source": "gapfill_beir_quora_exact_dedup",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 9,922；抽样前排除 78；选中60题正例 1–6。"
+    },
+    {
+      "task": "general_qa_zh",
+      "status": "已准备",
+      "source": "r4_rawqa_hc3_zh_open_qa",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 3,291；抽样前排除 2；选中60题正例 1–3。"
+    },
+    {
+      "task": "scientific_en",
+      "status": "已准备",
+      "source": "domain_qasper_dev_fullcorpus",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 438；抽样前排除 27；选中60题正例 1–1。"
+    },
+    {
+      "task": "scientific_zh",
+      "status": "已准备",
+      "source": "r4_rawqa_csl_zh",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 1,000；抽样前排除 0；选中60题正例 1–1。"
+    },
+    {
+      "task": "medical_en",
+      "status": "已准备",
+      "source": "gapfill_medquad_rawqa",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 12,949；抽样前排除 3,458；选中60题正例 1–1。"
+    },
+    {
+      "task": "medical_zh",
+      "status": "已准备",
+      "source": "gapfill_mteb_cmedqa_retrieval",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 3,984；抽样前排除 15；选中60题正例 1–9。"
+    },
+    {
+      "task": "finance_en",
+      "status": "已准备",
+      "source": "domain_fiqa_test",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 641；抽样前排除 6；选中60题正例 1–10。"
+    },
+    {
+      "task": "finance_zh",
+      "status": "已准备",
+      "source": "r4_rawqa_hc3_zh_finance",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 666；抽样前排除 13；选中60题正例 1–6。"
+    },
+    {
+      "task": "legal_en",
+      "status": "已准备",
+      "source": "gapfill_privacyqa_legal_en",
+      "detail": "PrivacyQA替换ACORD；4,657篇文档，167题/990正例关系。官方test问题，train只贡献语料；400题中整题排除34个零正例、199个超限问题。合格候选query 167；抽样前排除 0；选中60题正例 1–10。"
+    },
+    {
+      "task": "legal_zh",
+      "status": "已准备",
+      "source": "gapfill_stard_legal_zh",
+      "detail": "STARD替换LeCaRDv2；55,348篇法条，1,542题/2,694正例关系。源阶段整题排除1个23正例问题。合格候选query 1,542；抽样前排除 0；选中60题正例 1–7。"
+    },
+    {
+      "task": "enterprise_en",
+      "status": "已准备",
+      "source": "wixqa_expertwritten",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 200；抽样前排除 0；选中60题正例 1–3。"
+    },
+    {
+      "task": "enterprise_zh",
+      "status": "已准备",
+      "source": "gapfill_cfqa_enterprise_zh",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 63；抽样前排除 0；选中60题正例 1–4。"
+    },
+    {
+      "task": "web_en",
+      "status": "已准备",
+      "source": "gapfill_browsecomp_plus_en",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 808；抽样前排除 17；选中60题正例 2–10。"
+    },
+    {
+      "task": "web_zh",
+      "status": "已准备",
+      "source": "gapfill_mteb_duretrieval",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 1,899；抽样前排除 101；选中60题正例 1–10。"
+    },
+    {
+      "task": "software_en",
+      "status": "已准备",
+      "source": "gapfill_android_en",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 681；抽样前排除 16；选中60题正例 1–7。"
+    },
+    {
+      "task": "software_zh",
+      "status": "已准备",
+      "source": "gapfill_t2ranking_software_zh",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 61；抽样前排除 0；选中60题正例 1–6。"
+    },
+    {
+      "task": "argumentation_en",
+      "status": "已准备",
+      "source": "gapfill_arguana_en",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 1,183；抽样前排除 0；选中60题正例 1–1。"
+    },
+    {
+      "task": "argumentation_zh",
+      "status": "已准备",
+      "source": "gapfill_cedar_zh_v2",
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 240；抽样前排除 1；选中60题正例 1–8。"
+    }
+  ],
+  "stages": [
+    {
+      "name": "法律换源与构池",
+      "status": "通过",
+      "detail": "PrivacyQA / STARD两源60个文档编码分片与200/1000四个源级池完成；完成回执记录正文哈希验证通过。"
+    },
+    {
+      "name": "全量资格过滤与重抽",
+      "status": "通过",
+      "detail": "20项统一应用1–10正例规则；超限整题排除，不裁剪gold；seed42，dev10/test50，Smoke属于dev。"
+    },
+    {
+      "name": "新版20任务池验收",
+      "status": "通过",
+      "detail": "40个任务/档位池、2,400条候选池记录；容量200/1000、Lite严格包含于Full、gold一致且完整、dev/test等价组不交叉。"
+    },
+    {
+      "name": "20个真实来源样本",
+      "status": "通过",
+      "detail": "每项取ID稳定排序首个dev问题、一个正例文档；核对正文SHA-256、qrel与两档池成员关系。仅检查所展示的20篇正文。"
+    },
+    {
+      "name": "目标节点预检与新版模型实验",
+      "status": "单独执行",
+      "detail": "由新版Qwen入口运行数据/沙箱预检、32k/64k/96k开发标定及正式评测。本次文档同步不运行或认定新版模型成绩。"
+    }
+  ],
+  "limitations": [
+    "本次同步范围是2026-11-16数据版本；目标节点预检和模型运行状态应查看对应实验目录，旧模型分数不能作为新版成绩。",
+    "18个复用源核对元数据、来源身份和选中候选池；没有重新编码或重新扫描其全部历史正文。样本正文核验只覆盖展示的20篇。",
+    "法律来源在源转换阶段已有整题过滤；表中抽样前排除数仅计suite阶段，不能当作上游总排除数。",
+    "enterprise_zh为公开年报知识，不代表内部制度库；CFQA标注许可不延伸到原PDF正文。",
+    "T2Ranking保留上游train/dev来源后重新抽样，DCI结果不等于上游官方测试成绩。",
+    "KaLM是离线构池模型；补入正例后的100%覆盖不代表原始检索或Agent质量。"
+  ],
+  "evidence": [
+    {
+      "label": "新版数据与启动说明",
+      "path": "../benchmark_pos10_20261116.md"
+    },
+    {
+      "label": "新版数据验收",
+      "path": "pos10-data-audit.json"
+    },
+    {
+      "label": "20来源真实样本",
+      "path": "source-examples.json"
+    },
+    {
+      "label": "同步前页面",
+      "path": "history/before-pos10-20261116/index.html"
+    }
+  ],
+  "timing_rows": [
+    {
+      "phase": "工作区准备",
+      "lite": 2.5696,
+      "full": 11.7388
+    },
+    {
+      "phase": "前台等待工作区",
+      "lite": 0.2309,
+      "full": 3.9115
+    },
+    {
+      "phase": "桥接启动",
+      "lite": 9.9737,
+      "full": 8.9109
+    },
+    {
+      "phase": "Pi执行",
+      "lite": 19.8684,
+      "full": 24.2752
+    },
+    {
+      "phase": "工作区清理",
+      "lite": 0.6636,
+      "full": 3.9401
+    },
+    {
+      "phase": "候选沙箱校验",
+      "lite": 0.0314,
+      "full": 0.0654
+    },
+    {
+      "phase": "Bubblewrap预检",
+      "lite": 0.0721,
+      "full": 0.1126
+    },
+    {
+      "phase": "bash执行（含命令）",
+      "lite": 0.0564,
+      "full": 0.0757
+    }
+  ],
+  "data_preparation": {
+    "embedding_gpu_inference_completed": true,
+    "new_source_count": 2,
+    "reused_source_count": 18,
+    "benchmark_model_inference_completed": false,
+    "model_execution_scope": "not assessed by this data report"
+  },
+  "data_suite": "/mnt/afs2/202611/embedding_models/dci-bench/eval_data/benchmark_v2_20261116_pos10_v1",
+  "data_ready_for_formal": true,
+  "formal_model_execution_ready": false,
+  "body_validation_note": "18个复用源核对元数据、来源身份和选中候选池；没有重新编码或重新扫描其全部历史正文。样本正文核验只覆盖展示的20篇。",
+  "validation_note": "15:40新版数据验收通过；20/20 ready，0 blocked。本文档不重跑GPU、沙箱或Qwen。",
+  "report_validation": {
+    "data_acceptance_independent_of_browser": true,
+    "browser_receipt": "browser-validation-pos10.json"
+  },
+  "query_eligibility": {
+    "max_positive_count": 10,
+    "min_positive_count": 1,
+    "overflow_policy": "exclude_query_before_sampling",
+    "positive_definition": "canonical_qrel_score_gt_zero",
+    "version": "positive-count-1-to-10-v1"
+  },
+  "positive_summary": {
+    "queries": 1200,
+    "min": 1,
+    "max": 10,
+    "over10": 0,
+    "mean": 2.1458333333333335
+  }
+}

@@ -47,12 +47,24 @@ def main(argv=None):
     args.backend_manifest = args.output / 'backend.json'
     model = 'CPU-Synthetic-V2-Probe'
     requests = []
+    token_counts = []
 
     class Provider(BaseHTTPRequestHandler):
         def log_message(self, *_):
             pass
 
         def do_POST(self):
+            if self.path == '/tokenize':
+                request = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                token_counts.append({'model': request['model']})
+                # Synthetic usage must agree with this fixture's chat response.
+                body = json.dumps({'count': 100}).encode()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
             if self.path != '/v1/chat/completions':
                 self.send_error(404)
                 return
@@ -110,6 +122,8 @@ def main(argv=None):
             env = dict(os.environ, DCI_PROTOCOL_PROFILE='document-pool-v2-' + job['tier'],
                        DCI_DOCUMENT_TOKEN_BUDGET='64000', DCI_WORKSPACE_PREFETCH='1',
                        DCI_WORKSPACE_PREFETCH_BATCH_SIZE='4', DCI_API_KEY='synthetic-not-a-secret',
+                       DCI_TOKEN_COUNT_BASE_URL=backend['backend']['base_url'],
+                       DCI_TOKEN_COUNT_MODEL=model, DCI_TOKEN_COUNT_PYTHON=sys.executable,
                        TMPDIR=str(args.output / 'scratch'))
             env['NO_PROXY'] = env['no_proxy'] = 'localhost,127.0.0.1,::1'
             code = run_child(command_for(job, args, model), env=env,
@@ -126,6 +140,7 @@ def main(argv=None):
                        for row in rows):
                 raise RuntimeError('batch did not publish valid measured samples')
             count = len(requests)
+            token_count = len(token_counts)
             # Simulate interruption after query publication but before batch
             # aggregation, using a disposable copy; preserve original results.
             resume_args = argparse.Namespace(**vars(args))
@@ -136,7 +151,7 @@ def main(argv=None):
             (copied_run / 'task-result.json').unlink()
             code = run_child(command_for(job, resume_args, model), env=env,
                              log=args.output / (job['tier'] + '-resume.log'), timeout=180)
-            if code or len(requests) != count:
+            if code or len(requests) != count or len(token_counts) != token_count:
                 raise RuntimeError('completed query resume made additional requests or failed')
             if completed_samples(copied_run, job) != [dict(row, result_path=str(
                     copied_run / Path(row['result_path']).relative_to(run))) for row in rows]:
@@ -144,7 +159,10 @@ def main(argv=None):
             if list((args.output / 'scratch').glob('dci-query-*')):
                 raise RuntimeError('query workspace remains after evaluation lifecycle cleanup')
             samples.extend(rows)
+        if not token_counts:
+            raise RuntimeError('CPU batches did not exercise token counting')
         result = {'status': 'passed', 'evaluations': len(samples), 'http_requests': len(requests),
+                  'token_count_requests': len(token_counts), 'token_counting': 'synthetic fixture',
                   'capacities': [200, 1000], 'concurrency': 4, 'resume_new_requests': 0,
                   'resume_scenario': 'after_query_publication_before_batch_aggregation_in_disposable_copy',
                   'query_workspace_cleanup_verified': True,

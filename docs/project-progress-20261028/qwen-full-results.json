@@ -1,0 +1,717 @@
+{
+  "schema_version": "dci-qwen-full-report-v1",
+  "as_of": "2026-11-18",
+  "run_id": "20261117-pos10-64k-c16",
+  "run_path": "results/Qwen3.8-27B/benchmark-v2-full-runs/20261117-pos10-64k-c16",
+  "selection_sha256": "9a34df93c27a01e46769628198ddb47665e1e8958260b59b291d37b93a4cbec5",
+  "budget_policy": {
+    "calibration_projection_applied": false,
+    "development_selection_applied": false,
+    "mode": "user-fixed",
+    "reason": "User-requested fixed cumulative budget: 64000 tokens",
+    "token_budget": 64000
+  },
+  "scoring": {
+    "invalid": "zero",
+    "aggregation": "equal-task macro",
+    "f1_precision_denominator": "actual returned prefix length up to 10"
+  },
+  "tiers": {
+    "lite": {
+      "samples": 1000,
+      "valid": 989,
+      "recall_at_10": 0.6496357142857143,
+      "ndcg_at_10": 0.619628761761399,
+      "f1_at_10": 0.4286934586655175
+    },
+    "full": {
+      "samples": 1000,
+      "valid": 992,
+      "recall_at_10": 0.6222087301587301,
+      "ndcg_at_10": 0.587469728543721,
+      "f1_at_10": 0.41820217069652055
+    }
+  },
+  "paired_full_minus_lite": {
+    "recall_at_10": {
+      "estimate": -0.027426984126984126,
+      "interval_95": [
+        -0.047746136823122176,
+        -0.0079022291502525
+      ],
+      "method": "paired_cluster_multiplier_bootstrap",
+      "replicates": 2000,
+      "seed": 42,
+      "groups": 926,
+      "cells": 20
+    },
+    "ndcg_at_10": {
+      "estimate": -0.032159033217678004,
+      "interval_95": [
+        -0.04820630623263902,
+        -0.017216191850140675
+      ],
+      "method": "paired_cluster_multiplier_bootstrap",
+      "replicates": 2000,
+      "seed": 42,
+      "groups": 926,
+      "cells": 20
+    },
+    "f1_at_10": {
+      "estimate": -0.010491287968996945,
+      "interval_95": [
+        -0.023121129682783095,
+        0.0010290326923288054
+      ],
+      "method": "paired_cluster_multiplier_bootstrap",
+      "replicates": 2000,
+      "seed": 42,
+      "groups": 926,
+      "cells": 20
+    }
+  },
+  "tasks": [
+    {
+      "task": "argumentation_en",
+      "domain": "论证检索",
+      "source": "gapfill_arguana_en",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.8,
+          "ndcg_at_10": 0.6170850943764578,
+          "f1_at_10": 0.20522510822510823
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.7,
+          "ndcg_at_10": 0.5434712952186549,
+          "f1_at_10": 0.2187258297258297
+        }
+      }
+    },
+    {
+      "task": "argumentation_zh",
+      "domain": "论证检索",
+      "source": "gapfill_cedar_zh_v2",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 49,
+          "recall_at_10": 0.365,
+          "ndcg_at_10": 0.28528928861498853,
+          "f1_at_10": 0.14014030414030415
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.2833333333333333,
+          "ndcg_at_10": 0.21010219370726949,
+          "f1_at_10": 0.1025974025974026
+        }
+      }
+    },
+    {
+      "task": "encyclopedia_en",
+      "domain": "百科",
+      "source": "gapfill_mlqa_en",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.92,
+          "ndcg_at_10": 0.881018486669216,
+          "f1_at_10": 0.7541760461760462
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.9,
+          "ndcg_at_10": 0.8723613338850188,
+          "f1_at_10": 0.7603809523809524
+        }
+      }
+    },
+    {
+      "task": "encyclopedia_zh",
+      "domain": "百科",
+      "source": "qa_cmrc2018_zh",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 1.0,
+          "ndcg_at_10": 1.0,
+          "f1_at_10": 0.9613333333333334
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 1.0,
+          "ndcg_at_10": 1.0,
+          "f1_at_10": 0.9546666666666667
+        }
+      }
+    },
+    {
+      "task": "enterprise_en",
+      "domain": "企业知识",
+      "source": "wixqa_expertwritten",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 49,
+          "recall_at_10": 0.6633333333333333,
+          "ndcg_at_10": 0.6364998795417467,
+          "f1_at_10": 0.23426640026640028
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.6266666666666667,
+          "ndcg_at_10": 0.6061566038192836,
+          "f1_at_10": 0.2616122766122766
+        }
+      }
+    },
+    {
+      "task": "enterprise_zh",
+      "domain": "企业知识",
+      "source": "gapfill_cfqa_enterprise_zh",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 49,
+          "recall_at_10": 0.88,
+          "ndcg_at_10": 0.8067548462569792,
+          "f1_at_10": 0.45295093795093794
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.89,
+          "ndcg_at_10": 0.7619124093412658,
+          "f1_at_10": 0.4558874458874459
+        }
+      }
+    },
+    {
+      "task": "finance_en",
+      "domain": "金融",
+      "source": "domain_fiqa_test",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 48,
+          "recall_at_10": 0.41085714285714287,
+          "ndcg_at_10": 0.38849664451961674,
+          "f1_at_10": 0.23277019059372
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.32504761904761903,
+          "ndcg_at_10": 0.3160797256677849,
+          "f1_at_10": 0.2034429785900374
+        }
+      }
+    },
+    {
+      "task": "finance_zh",
+      "domain": "金融",
+      "source": "r4_rawqa_hc3_zh_finance",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 49,
+          "recall_at_10": 0.355,
+          "ndcg_at_10": 0.3070754154084588,
+          "f1_at_10": 0.20388139638139638
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.375,
+          "ndcg_at_10": 0.28572796803905803,
+          "f1_at_10": 0.22231934731934733
+        }
+      }
+    },
+    {
+      "task": "general_qa_en",
+      "domain": "通用问答",
+      "source": "gapfill_beir_quora_exact_dedup",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.7383333333333333,
+          "ndcg_at_10": 0.7002277912391691,
+          "f1_at_10": 0.3881817071817072
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.8116666666666666,
+          "ndcg_at_10": 0.7518422730375899,
+          "f1_at_10": 0.43702097902097903
+        }
+      }
+    },
+    {
+      "task": "general_qa_zh",
+      "domain": "通用问答",
+      "source": "r4_rawqa_hc3_zh_open_qa",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 48,
+          "recall_at_10": 0.7666666666666666,
+          "ndcg_at_10": 0.7890501638052922,
+          "f1_at_10": 0.718001443001443
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.6799999999999999,
+          "ndcg_at_10": 0.727385356029335,
+          "f1_at_10": 0.6830586080586081
+        }
+      }
+    },
+    {
+      "task": "legal_en",
+      "domain": "法律",
+      "source": "gapfill_privacyqa_legal_en",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.46994444444444444,
+          "ndcg_at_10": 0.5163591093820301,
+          "f1_at_10": 0.45435622564569933
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.5028015873015873,
+          "ndcg_at_10": 0.5336903002066516,
+          "f1_at_10": 0.4513880596527655
+        }
+      }
+    },
+    {
+      "task": "legal_zh",
+      "domain": "法律",
+      "source": "gapfill_stard_legal_zh",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.6843809523809524,
+          "ndcg_at_10": 0.6227289931521921,
+          "f1_at_10": 0.3103049173049173
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.6003809523809523,
+          "ndcg_at_10": 0.538995377709875,
+          "f1_at_10": 0.2826203796203796
+        }
+      }
+    },
+    {
+      "task": "medical_en",
+      "domain": "医疗",
+      "source": "gapfill_medquad_rawqa",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.9,
+          "ndcg_at_10": 0.8852371901428583,
+          "f1_at_10": 0.4310505050505051
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.88,
+          "ndcg_at_10": 0.8726185950714291,
+          "f1_at_10": 0.3994329004329004
+        }
+      }
+    },
+    {
+      "task": "medical_zh",
+      "domain": "医疗",
+      "source": "gapfill_mteb_cmedqa_retrieval",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 49,
+          "recall_at_10": 0.4258888888888889,
+          "ndcg_at_10": 0.3947201411142505,
+          "f1_at_10": 0.1897667069772333
+        },
+        "full": {
+          "samples": 50,
+          "valid": 46,
+          "recall_at_10": 0.38072222222222224,
+          "ndcg_at_10": 0.363173167945175,
+          "f1_at_10": 0.1845691267796531
+        }
+      }
+    },
+    {
+      "task": "scientific_en",
+      "domain": "科研",
+      "source": "domain_qasper_dev_fullcorpus",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.48,
+          "ndcg_at_10": 0.4090262826368533,
+          "f1_at_10": 0.31346464646464645
+        },
+        "full": {
+          "samples": 50,
+          "valid": 48,
+          "recall_at_10": 0.48,
+          "ndcg_at_10": 0.38813452594630754,
+          "f1_at_10": 0.32081818181818184
+        }
+      }
+    },
+    {
+      "task": "scientific_zh",
+      "domain": "科研",
+      "source": "r4_rawqa_csl_zh",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.94,
+          "ndcg_at_10": 0.94,
+          "f1_at_10": 0.8763809523809524
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.94,
+          "ndcg_at_10": 0.94,
+          "f1_at_10": 0.8780476190476191
+        }
+      }
+    },
+    {
+      "task": "software_en",
+      "domain": "软件技术",
+      "source": "gapfill_android_en",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 48,
+          "recall_at_10": 0.4666666666666667,
+          "ndcg_at_10": 0.41798476247857014,
+          "f1_at_10": 0.2769242424242424
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.4523333333333333,
+          "ndcg_at_10": 0.4018236810203698,
+          "f1_at_10": 0.24915412365412365
+        }
+      }
+    },
+    {
+      "task": "software_zh",
+      "domain": "软件技术",
+      "source": "gapfill_t2ranking_software_zh",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.7473333333333333,
+          "ndcg_at_10": 0.6975491203341795,
+          "f1_at_10": 0.43535925185925184
+        },
+        "full": {
+          "samples": 50,
+          "valid": 49,
+          "recall_at_10": 0.7366666666666667,
+          "ndcg_at_10": 0.6917280695667682,
+          "f1_at_10": 0.43285164835164835
+        }
+      }
+    },
+    {
+      "task": "web_en",
+      "domain": "网页检索",
+      "source": "gapfill_browsecomp_plus_en",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.31876190476190475,
+          "ndcg_at_10": 0.3984938808936272,
+          "f1_at_10": 0.38797635697635696
+        },
+        "full": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.22434126984126984,
+          "ndcg_at_10": 0.2716748428748701,
+          "f1_at_10": 0.2679920634920635
+        }
+      }
+    },
+    {
+      "task": "web_zh",
+      "domain": "网页检索",
+      "source": "gapfill_mteb_duretrieval",
+      "tiers": {
+        "lite": {
+          "samples": 50,
+          "valid": 50,
+          "recall_at_10": 0.660547619047619,
+          "ndcg_at_10": 0.6989781446614947,
+          "f1_at_10": 0.6073585009761481
+        },
+        "full": {
+          "samples": 50,
+          "valid": 49,
+          "recall_at_10": 0.6552142857142857,
+          "ndcg_at_10": 0.6725168517877143,
+          "f1_at_10": 0.5974568242215301
+        }
+      }
+    }
+  ],
+  "usage": {
+    "recorded_total_tokens": 68227397,
+    "complete_samples": 1997,
+    "complete_mean_total_tokens": 34149.27541311968,
+    "complete_max_total_tokens": 46089,
+    "reserve_finalizations": 1879,
+    "repair_attempts": 409
+  },
+  "runtime": {
+    "concurrency": 16,
+    "elapsed_seconds": 39081.06850685179,
+    "queries_per_hour": 184.23242442149905,
+    "p50_seconds": 234.431,
+    "p95_seconds": 407.928,
+    "gpu_utilization": 63.32481837052413
+  },
+  "failures": {
+    "unknown_document_ids": 14,
+    "json_schema": 2,
+    "api_timeout": 1,
+    "api_connection": 2
+  },
+  "inputs": {
+    "results/Qwen3.8-27B/benchmark-v2-full-runs/20261117-pos10-64k-c16/test/summary.json": "6cb94147863fa6881b63ae1ff99706bd1db0473c9b3aafa62e354fafa8f5f2c5",
+    "results/Qwen3.8-27B/benchmark-v2-full-runs/20261117-pos10-64k-c16/test/launch.json": "56db86aff193aff88f8cd9d6df4fd8e30bbbcb67f14c358577dc22fab3b352e4",
+    "results/Qwen3.8-27B/benchmark-v2-full-runs/20261117-pos10-64k-c16/runtime.json": "08077923f52fb3d470395ba8564102639c9d2388d0398ddeee282f4fb15159a2",
+    "results/Qwen3.8-27B/benchmark-v2-full-runs/20261117-pos10-64k-c16/test/_COMPLETE": "f2c0a64690f8908e4d808db085d4541776f479d3b12f6af2686f911e233b842e"
+  },
+  "invalid_samples": [
+    {
+      "task_id": "argumentation_zh",
+      "tier": "lite",
+      "query_id": "query-claim-0368-00000",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    },
+    {
+      "task_id": "enterprise_en",
+      "tier": "lite",
+      "query_id": "expertwritten/119",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    },
+    {
+      "task_id": "enterprise_zh",
+      "tier": "lite",
+      "query_id": "cfqa-train-3689",
+      "failure": {
+        "kind": "agent_error",
+        "message": "{\"error\":{\"message\":\"RetryError[<Future at 0x7fc1e4131b90 state=finished raised APITimeoutError>]\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
+      }
+    },
+    {
+      "task_id": "finance_en",
+      "tier": "lite",
+      "query_id": "3801",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    },
+    {
+      "task_id": "finance_en",
+      "tier": "lite",
+      "query_id": "6635",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    },
+    {
+      "task_id": "finance_zh",
+      "tier": "lite",
+      "query_id": "finance.jsonl#row490",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    },
+    {
+      "task_id": "general_qa_zh",
+      "tier": "lite",
+      "query_id": "open_qa.jsonl#row1289",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "final answer did not match DCI ranked_doc_ids JSON schema"
+      }
+    },
+    {
+      "task_id": "general_qa_zh",
+      "tier": "lite",
+      "query_id": "open_qa.jsonl#row2445",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "final answer did not match DCI ranked_doc_ids JSON schema"
+      }
+    },
+    {
+      "task_id": "medical_zh",
+      "tier": "lite",
+      "query_id": "312a1d62a8cbab6276540272e321717a",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    },
+    {
+      "task_id": "medical_zh",
+      "tier": "full",
+      "query_id": "24cfa7c398e14ed73914570a9e103cfd",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    },
+    {
+      "task_id": "medical_zh",
+      "tier": "full",
+      "query_id": "6460a48e8ef6abb2a20ff06003ab6621",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    },
+    {
+      "task_id": "medical_zh",
+      "tier": "full",
+      "query_id": "dd1a80c0cb261f1c1ff2d019715a5f52",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    },
+    {
+      "task_id": "medical_zh",
+      "tier": "full",
+      "query_id": "e992706e6816a9e1273c11b68417c168",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    },
+    {
+      "task_id": "scientific_en",
+      "tier": "full",
+      "query_id": "b591853e938984e6069d738371500ebdec50d256",
+      "failure": {
+        "kind": "agent_error",
+        "message": "{\"error\":{\"message\":\"RetryError[<Future at 0x7fb329210ad0 state=finished raised APIConnectionError>]\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
+      }
+    },
+    {
+      "task_id": "scientific_en",
+      "tier": "full",
+      "query_id": "ebf0d9f9260ed61cbfd79b962df3899d05f9ebfb",
+      "failure": {
+        "kind": "agent_error",
+        "message": "{\"error\":{\"message\":\"RetryError[<Future at 0x7fb329639490 state=finished raised APIConnectionError>]\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
+      }
+    },
+    {
+      "task_id": "software_en",
+      "tier": "lite",
+      "query_id": "18777",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    },
+    {
+      "task_id": "software_en",
+      "tier": "lite",
+      "query_id": "549",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    },
+    {
+      "task_id": "software_zh",
+      "tier": "full",
+      "query_id": "19102",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    },
+    {
+      "task_id": "web_zh",
+      "tier": "full",
+      "query_id": "476a20b36d122f5275942e151270f1b4",
+      "failure": {
+        "kind": "invalid_json",
+        "message": "Unknown document IDs. Copy exact doc_id values from corpus results; filenames are not IDs (d000001.md -> d000001)."
+      }
+    }
+  ],
+  "verification": {
+    "scored_samples": 2000,
+    "metrics_per_sample": 15,
+    "metric_mismatches": 0,
+    "sample_completion_hashes_matched": 2000,
+    "batch_completion_hashes_matched": 40,
+    "summary_sha256_matched": true,
+    "paired_queries": 1000,
+    "positive_count_range": [
+      1,
+      10
+    ],
+    "candidate_capacities": [
+      200,
+      1000
+    ],
+    "nested_pool_mismatches": 0,
+    "qrels_mismatches": 0,
+    "audit_date": "2026-11-18",
+    "audit_basis": "Read-only artifact audit in the preceding analysis; no model rerun."
+  }
+}

@@ -488,6 +488,8 @@ def _query_label_signature(labels: Mapping[str, Any], *, query_id: str) -> tuple
 def _prepare_query_eligibility(
     rows: Sequence[Mapping[str, Any]],
     qrels: Mapping[str, Any],
+    *,
+    max_positive_count: int = LITE_CAPACITY,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """Filter and deduplicate source queries before global sampling.
 
@@ -509,14 +511,15 @@ def _prepare_query_eligibility(
         labels = qrels[query_id]
         signature = _query_label_signature(labels, query_id=query_id)
         positive_count = sum(score > 0 for _, score in signature)
-        if positive_count > LITE_CAPACITY:
+        if positive_count > max_positive_count:
             overflow.append(
                 {
                     "query_id": query_id,
-                    "tier": "both" if positive_count > FULL_CAPACITY else "lite",
-                    "reason": "positive_overflow",
+                    "tier": "both" if max_positive_count < LITE_CAPACITY or positive_count > FULL_CAPACITY else "lite",
+                    "reason": "positive_count_exceeds_limit" if max_positive_count < LITE_CAPACITY else "positive_overflow",
                     "positive_count": positive_count,
-                    "overflow": positive_count - LITE_CAPACITY,
+                    "max_positive_count": max_positive_count,
+                    "overflow": positive_count - max_positive_count,
                     "excluded_before_sampling": True,
                 }
             )
@@ -565,7 +568,7 @@ def _prepare_query_eligibility(
                     }
                 )
             continue
-        if representative["positive_count"] > LITE_CAPACITY:
+        if representative["positive_count"] > max_positive_count:
             # The overflow records above retain the per-row count and are the
             # canonical exclusion audit; no member enters the sampler.
             continue
@@ -1237,6 +1240,15 @@ def load_benchmark_config(path: Path | None = None) -> dict[str, Any]:
     sizes = sampling.get("sizes")
     if sizes != {"dev": DEV_SIZE, "test": TEST_SIZE, "smoke": SMOKE_SIZE}:
         raise ValueError("benchmark_v2 sampling sizes are invalid")
+    eligibility = config.get("query_eligibility")
+    if eligibility is not None and eligibility != {
+        "version": "positive-count-1-to-10-v1",
+        "min_positive_count": 1,
+        "max_positive_count": 10,
+        "positive_definition": "canonical_qrel_score_gt_zero",
+        "overflow_policy": "exclude_query_before_sampling",
+    }:
+        raise ValueError("unsupported benchmark_v2 query_eligibility policy")
     sources = config.get("sources")
     if not isinstance(sources, Mapping) or set(sources) != set(TASK_IDS):
         raise ValueError("benchmark_v2 source roster must contain exactly 20 tasks")
@@ -1896,6 +1908,9 @@ def prepare_benchmark_v2(
     if os.path.lexists(output_dir):
         raise FileExistsError(f"refusing to overwrite benchmark output: {output_dir}")
     config = load_benchmark_config(config_path)
+    # Historical frozen configurations have no output-aligned eligibility rule.
+    # Their original 200-positive sampling remains reproducible when explicitly used.
+    max_positive_count = config.get("query_eligibility", {}).get("max_positive_count", LITE_CAPACITY)
     catalog = _json_load(Path(catalog_path))
     if not isinstance(catalog, Mapping):
         raise ValueError("catalog must be a JSON object")
@@ -1965,7 +1980,9 @@ def prepare_benchmark_v2(
             qrels = full_meta["qrels"]
             if not isinstance(qrels, Mapping):
                 raise SourceBlockedError(f"source {source_id!r} qrels are not an object")
-            eligible_rows, exclusions, overflow = _prepare_query_eligibility(rows, qrels)
+            eligible_rows, exclusions, overflow = _prepare_query_eligibility(
+                rows, qrels, max_positive_count=max_positive_count
+            )
             if len(eligible_rows) < DEV_SIZE + TEST_SIZE:
                 raise SourceBlockedError(
                     f"source {source_id!r} has only {len(eligible_rows)} eligible queries after "
@@ -2206,6 +2223,8 @@ def prepare_benchmark_v2(
         },
     )
     manifest["tasks"] = {task_id: task_manifests[task_id] for task_id in TASK_IDS}
+    if "query_eligibility" in config:
+        manifest["query_eligibility"] = dict(config["query_eligibility"])
     all_ready = all(
         task_manifests[task_id].get("status") == "ready"
         and len(task_manifests[task_id]["query_ids"]["dev"]) == DEV_SIZE
@@ -2242,6 +2261,11 @@ def audit_benchmark_v2(output_dir: Path) -> dict[str, Any]:
     declared_hash = manifest.get("overall_sha256")
     if declared_hash != _manifest_sha256(manifest):
         raise ValueError("benchmark v2 overall_sha256 does not match manifest contents")
+    config = load_benchmark_config(output_dir / "config.json")
+    eligibility = config.get("query_eligibility")
+    if manifest.get("query_eligibility") != eligibility:
+        raise ValueError("benchmark v2 query eligibility differs from frozen config")
+    max_positive_count = eligibility["max_positive_count"] if eligibility else LITE_CAPACITY
     tasks = manifest.get("tasks")
     if not isinstance(tasks, Mapping) or set(tasks) != set(TASK_IDS):
         raise ValueError("benchmark v2 manifest must contain all 20 tasks")
@@ -2337,6 +2361,11 @@ def audit_benchmark_v2(output_dir: Path) -> dict[str, Any]:
             positives = {
                 doc_id for doc_id, score in lite_qrels[query_id].items() if float(score) > 0
             }
+            if not 1 <= len(positives) <= max_positive_count:
+                raise ValueError(
+                    f"task {task_id} {query_id} has {len(positives)} positives; "
+                    f"query eligibility requires 1..{max_positive_count}"
+                )
             if not positives.issubset(lite_ids) or not positives.issubset(full_ids):
                 raise ValueError(f"task {task_id} {query_id} dropped a positive label")
             for tier, record, ids in (

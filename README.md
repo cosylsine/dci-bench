@@ -18,6 +18,12 @@ deduplication and source/parallel-group separation. Both tiers use the same
 queries, prompts and cumulative token budget. Lite contains 200 documents per
 query and is nested in Full's 1,000; both retain all labelled positives.
 
+The [2026-11-16 positive-count revision](docs/benchmark_pos10_20261116.md)
+filters queries to 1–10 labelled positives before seed-42 resampling, replaces
+both legal sources, and preserves this historical suite. The new suite requires
+the legal pooling stage before evaluation; the original launcher keeps its old
+default, while the new launcher explicitly selects the revised suite.
+
 | Split | Queries per task | Unique queries | Executions across both tiers |
 | --- | ---: | ---: | ---: |
 | Smoke (subset of dev) | 1 | 20 | 40 |
@@ -70,8 +76,24 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 VLLM_GPU_MEMORY_UTILIZATION=0.80 DRY_RUN=0 \
 The launcher uses BF16, TP=4, context 65,536, the GDN warmup worker and a default
 query concurrency of 4. Each smoke task/tier batch contains only one query, so
 this is not a four-query throughput test. `PREFLIGHT_CONCURRENCY` controls CPU
-data checks separately. `--serving-smoke-only` with `DRY_RUN=0` checks the GPU
+data checks separately. The Inspect bridge probe uses `CONCURRENCY` and
+`INSPECT_PREFLIGHT_TIMEOUT_SECONDS` (default 600 seconds per sample, including
+queued bridge startup). Its enclosing process allows another 240 seconds for
+initialization and cleanup. This operational limit applies only to the synthetic
+CPU probe, not benchmark sample budgets. The effective settings are saved in
+`launcher.log` and `sandbox-preflight/result.json`.
+Increasing this overall deadline retains the generic v3 contract's 600-second
+cap on the Pi subprocess; it adds allowance for queued bridge startup.
+`--serving-smoke-only` with `DRY_RUN=0` checks the GPU
 service and synthetic protocol requests without running the benchmark.
+
+The v3 budget controller counts the Inspect-normalized request with the serving
+model's `/tokenize` endpoint, checks every request against the remaining budget,
+and compares the count with returned usage. The launcher automatically checks
+four synthetic request shapes first and saves `tokenizer-preflight.json`;
+a mismatch stops execution before benchmark queries. The 32k/64k/96k budgets
+and one final repair remain unchanged. See the
+[budget policy and validation](docs/benchmark_v2.md#协议与运行).
 
 Each run gets a fresh directory under
 `results/Qwen3.8-27B/benchmark-v2-smoke-runs/`; failures retain their logs and

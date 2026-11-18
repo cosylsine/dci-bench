@@ -1,0 +1,30 @@
+{
+  "schema_version": "dci-benchmark-v2-20261029",
+  "status": "ready",
+  "ready_for_formal": true,
+  "overall_sha256": "23e24edd8ad51f71040e437ae442c938e16363e2abea4e1dd8bc22567d315761",
+  "task_count": 20,
+  "ready_tasks": [
+    "argumentation_en",
+    "argumentation_zh",
+    "encyclopedia_en",
+    "encyclopedia_zh",
+    "enterprise_en",
+    "enterprise_zh",
+    "finance_en",
+    "finance_zh",
+    "general_qa_en",
+    "general_qa_zh",
+    "legal_en",
+    "legal_zh",
+    "medical_en",
+    "medical_zh",
+    "scientific_en",
+    "scientific_zh",
+    "software_en",
+    "software_zh",
+    "web_en",
+    "web_zh"
+  ],
+  "blocked_tasks": []
+}

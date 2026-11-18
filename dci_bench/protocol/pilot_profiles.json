@@ -103,9 +103,10 @@
   },
   "_budget_policy_v2": {
     "policy": {
-      "version": "document-pool-v2-dynamic-finalize-v1",
+      "version": "document-pool-v2-tokenizer-finalize-v3",
       "reserve_tokens": 0,
       "dynamic_reserve": true,
+      "tokenizer_reserve": true,
       "repeat_threshold": 3,
       "max_search_turns_without_read": 6,
       "max_search_turns": 12,

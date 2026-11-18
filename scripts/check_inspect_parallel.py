@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Offline acceptance through real Inspect local tools, bridge and frozen Pi.
 
-Exercise seven simultaneous independent Inspect processes, then eight samples
-within one Inspect process. Only the model provider is synthetic; all sandbox
+Exercise up to seven simultaneous independent Inspect processes, then a
+configurable batch (default eight, up to sixteen) within one Inspect process.
+Only the model provider is synthetic; all sandbox
 startup, loopback HTTP, bash, read, final validation and cleanup are real.
 """
 from __future__ import annotations
@@ -75,7 +76,7 @@ def child(args):
     task = Task(dataset=samples, solver=pi_dci_solver(output_dir=str(args.output / 'samples'),
                 bridge_port_pool=pool, model_context_window=65536,
                 **({'agent_runtime': agent_runtime} if agent_runtime is not None else {})),
-                sandbox='local', time_limit=120)
+                sandbox='local', time_limit=args.sample_timeout_seconds)
     logs = evaluate(task, model=get_model('mockllm/bridge-probe', custom_outputs=response),
                     max_samples=args.samples, max_connections=args.samples,
                     log_dir=str(args.output / 'inspect'), display='none', fail_on_error=False)
@@ -83,8 +84,17 @@ def child(args):
         raise RuntimeError('Inspect bridge probe did not complete')
     records = []
     for sample in logs[0].samples:
+        if sample.limit is not None:
+            raise RuntimeError(
+                f'Inspect sample {sample.id} hit {sample.limit.type} limit '
+                f'({sample.limit.limit}); inspect {args.output / "inspect"} '
+                f'and {args.output / "samples/bridge_probe" / str(sample.id)}'
+            )
         if sample.error:
             raise RuntimeError(f'Inspect sample {sample.id} failed: {sample.error}')
+        if not sample.output.completion.strip():
+            raise RuntimeError(f'Inspect sample {sample.id} returned empty completion; '
+                               f'inspect {args.output / "inspect"}')
         result = json.loads(sample.output.completion)
         trace = json.loads(Path(result['trace_path']).read_text())
         if agent_runtime is not None and trace.get('agent_runtime') != agent_runtime.identity:
@@ -101,7 +111,7 @@ def child(args):
                             model_requests=model_requests, provider='mockllm', external_model_calls=0))
     if len(records) != args.samples:
         raise RuntimeError('Missing probe samples')
-    report = dict(status='passed', samples=records)
+    report = dict(status='passed', samples=records, sample_timeout_seconds=args.sample_timeout_seconds)
     if agent_runtime is not None:
         report['agent_runtime'] = agent_runtime.identity
     (args.output / 'result.json').write_text(json.dumps(report, indent=2) + '\n')
@@ -142,11 +152,16 @@ def main():
     parser.add_argument('--runtime-config', type=Path, help='Verified Agent RootFS configuration (optional)')
     parser.add_argument('--tools-directory', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
-    parser.add_argument('--max-concurrency', type=int, default=8, choices=range(1, 9))
+    parser.add_argument('--max-concurrency', type=int, default=8, choices=range(1, 17))
+    parser.add_argument('--sample-timeout-seconds', type=int, default=600,
+                        help='Overall probe deadline including serialized bridge startup (default: 600); '
+                             'does not override the generic v3 Pi execution cap')
     parser.add_argument('--child', action='store_true')
     parser.add_argument('--samples', type=int, default=1)
     parser.add_argument('--port', type=int)
     args = parser.parse_args()
+    if args.sample_timeout_seconds <= 0:
+        parser.error('--sample-timeout-seconds must be positive')
     args.runtime = args.runtime.resolve()
     args.tools_directory = args.tools_directory.resolve()
     args.output = args.output.resolve()
@@ -158,13 +173,17 @@ def main():
     wrapper = Path(__file__).with_name('inspect_local_runtime.py')
     processes = min(7, args.max_concurrency)
     ports = free_blocks([1] * processes + [args.max_concurrency])
+    # Include interpreter/runtime verification before Inspect starts its sample
+    # clocks, plus time to publish logs and clean up after the sample deadline.
+    process_timeout_seconds = args.sample_timeout_seconds + 240
 
     def run(index, count):
         target = args.output / f'process-{index}'
         command = [sys.executable, '-B', str(wrapper), '--tools-directory', str(args.tools_directory),
                    '--runner', str(Path(__file__).resolve()), '--', '--child', '--runtime', str(args.runtime),
                    '--tools-directory', str(args.tools_directory), '--output', str(target),
-                   '--samples', str(count), '--port', str(ports[index])]
+                   '--samples', str(count), '--port', str(ports[index]),
+                   '--sample-timeout-seconds', str(args.sample_timeout_seconds)]
         if args.runtime_config is not None:
             command += ['--runtime-config', str(args.runtime_config.resolve())]
         # Inspect records Git metadata from cwd. This is a synthetic transport
@@ -173,7 +192,7 @@ def main():
         with tempfile.TemporaryDirectory(prefix='dci-inspect-probe-cwd-') as cwd:
             with (args.output / f'process-{index}.log').open('x') as log:
                 result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT,
-                                        timeout=240, env=os.environ.copy(), cwd=cwd)
+                                        timeout=process_timeout_seconds, env=os.environ.copy(), cwd=cwd)
         if result.returncode:
             raise RuntimeError(f'Inspect parallel probe failed; inspect {log.name}')
         return json.loads((target / 'result.json').read_text())
@@ -183,6 +202,8 @@ def main():
     results.append(run(processes, args.max_concurrency))
     record = dict(status='passed', parallel_processes=processes, batch_concurrency=args.max_concurrency,
                   samples=sum(len(r['samples']) for r in results), external_model_calls=0, gpu_started=False,
+                  sample_timeout_seconds=args.sample_timeout_seconds,
+                  process_timeout_seconds=process_timeout_seconds,
                   elapsed_seconds=time.monotonic() - start, results=results)
     if args.runtime_config is not None:
         identities = [r['agent_runtime'] for r in results]

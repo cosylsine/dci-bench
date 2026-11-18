@@ -1,0 +1,21 @@
+﻿task,domain,language,status,selected_source,source_or_candidate,dev_queries,test_queries,smoke_queries,lite,full,detail
+encyclopedia_en,encyclopedia,en,ready,gapfill_mlqa_en,gapfill_mlqa_en,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除19条
+encyclopedia_zh,encyclopedia,zh,ready,qa_cmrc2018_zh,qa_cmrc2018_zh,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除2条
+general_qa_en,general_qa,en,ready,gapfill_beir_quora_exact_dedup,gapfill_beir_quora_exact_dedup,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除2条
+general_qa_zh,general_qa,zh,ready,r4_rawqa_hc3_zh_open_qa,r4_rawqa_hc3_zh_open_qa,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除2条
+scientific_en,scientific,en,ready,domain_qasper_dev_fullcorpus,domain_qasper_dev_fullcorpus,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除27条
+scientific_zh,scientific,zh,ready,r4_rawqa_csl_zh,r4_rawqa_csl_zh,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+medical_en,medical,en,ready,gapfill_medquad_rawqa,gapfill_medquad_rawqa,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除3458条
+medical_zh,medical,zh,ready,gapfill_mteb_cmedqa_retrieval,gapfill_mteb_cmedqa_retrieval,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+finance_en,finance,en,ready,domain_fiqa_test,domain_fiqa_test,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+finance_zh,finance,zh,ready,r4_rawqa_hc3_zh_finance,r4_rawqa_hc3_zh_finance,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除2条
+legal_en,legal,en,ready,gapfill_acord_en_v3,gapfill_acord_en_v3,10,50,1,200,1000,ACORD：只取官方valid6+test57，排除train51；3/4/5星→relevance1/2/3；DCI采样不等于官方评分。 源规模3931/63/676；注入前Recall@200=0.7048、@1000=0.9707；suite与选中正文hash验收通过。
+legal_zh,legal,zh,ready,gapfill_legal_lecardv2,gapfill_legal_lecardv2,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+enterprise_en,enterprise,en,ready,wixqa_expertwritten,wixqa_expertwritten,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+enterprise_zh,enterprise,zh,ready,gapfill_cfqa_enterprise_zh,gapfill_cfqa_enterprise_zh,10,50,1,200,1000,原生中文；1728文档/63查询/67正例关系；每题1–4正例。dev10/test50/smoke1，seed42；原始人工标签全保留，Lite200⊂Full1000；新两任务所选Full正文hash通过。
+web_en,web,en,ready,gapfill_browsecomp_plus_en,gapfill_browsecomp_plus_en,10,50,1,200,1000,"原生英文网页；99,930文档/825源查询/5,023正例关系。冻结dev10/test50/smoke1；Lite200⊂Full1000，31,822篇所选Full正文SHA-256通过。"
+web_zh,web,zh,ready,gapfill_mteb_duretrieval,gapfill_mteb_duretrieval,10,50,1,200,1000,开发10 / 正式50 / Smoke1；排除0条
+software_en,software,en,ready,gapfill_android_en,gapfill_android_en,10,50,1,200,1000,Android：排除78472歧义题与19971的262正例溢出；其余官方qrels保留。 源规模22998/697/1432；注入前Recall@200=0.9205、@1000=0.9752；suite与选中正文hash验收通过。
+software_zh,software,zh,ready,gapfill_t2ranking_software_zh,gapfill_t2ranking_software_zh,10,50,1,200,1000,原生中文；5635文档/61查询/131正例关系；每题1–6正例。dev10/test50/smoke1，seed42；原始人工标签全保留，Lite200⊂Full1000；新两任务所选Full正文hash通过。
+argumentation_en,argumentation,en,ready,gapfill_arguana_en,gapfill_arguana_en,10,50,1,200,1000,ArguAna：排除218个歧义query，topic整组隔离；排除query自身。 源规模8674/1183/1183；注入前Recall@200=1.0000、@1000=1.0000；suite与选中正文hash验收通过。
+argumentation_zh,argumentation,zh,ready,gapfill_cedar_zh_v2,gapfill_cedar_zh_v2,10,50,1,200,1000,CEDAR：显式support/against关系、精确文本alias合并、每topic一题、排除自身；未标注不作负例。 源规模25794/241/463；注入前Recall@200=0.8420、@1000=0.9253；suite与选中正文hash验收通过。

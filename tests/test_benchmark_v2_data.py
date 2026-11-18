@@ -22,6 +22,8 @@ from dci_bench.data.benchmark_v2 import (
     sample_global_query_splits,
     sample_query_splits,
     select_nested_pools,
+    _manifest_sha256,
+    _prepare_query_eligibility,
     _source_corpus_reference,
 )
 from dci_bench.data.document_pools import load_document_pool_manifest, verify_document_pool_suite
@@ -50,6 +52,19 @@ class BenchmarkV2SamplingTests(unittest.TestCase):
         self.assertEqual(len(sample_query_ids(self.rows, count=50)), 50)
         with self.assertRaises(SamplingShortageError):
             sample_query_ids(self.rows, count=101)
+
+    def test_positive_limit_filters_queries_without_truncating_labels(self):
+        rows = [{"query_id": f"q{n}", "text": f"question {n}"} for n in (0, 1, 10, 11)]
+        qrels = {f"q{n}": {f"d{i}": 1 for i in range(n)} for n in (0, 1, 10, 11)}
+        eligible, exclusions, overflow = _prepare_query_eligibility(
+            rows, qrels, max_positive_count=10
+        )
+        self.assertEqual({row["query_id"] for row in eligible}, {"q1", "q10"})
+        self.assertEqual(len(qrels["q11"]), 11)
+        self.assertEqual(overflow[0]["query_id"], "q11")
+        self.assertEqual(overflow[0]["reason"], "positive_count_exceeds_limit")
+        self.assertEqual(overflow[0]["tier"], "both")
+        self.assertTrue(any(row["reason"] == "no_positive_labels" for row in exclusions))
 
     def test_group_boundaries_and_global_leakage(self):
         rows = [
@@ -359,6 +374,33 @@ class BenchmarkV2PrepareAuditTests(unittest.TestCase):
 
             with patch.object(Path, "stat", new=reject_document_stat):
                 self.assertEqual(audit_benchmark_v2(output)["ready_tasks"], ["encyclopedia_en"])
+
+    def test_audit_rejects_over_limit_query_in_resealed_suite(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            catalog, config_path = self._build_source_fixture(root)
+            config = json.loads(config_path.read_text())
+            policy = config.pop("query_eligibility")
+            self._write_json(config_path, config)
+            for capacity in (200, 1000):
+                metadata = root / f"fixture-source/pools/{capacity}/metadata/fixture"
+                qrels = json.loads((metadata / "qrels.json").read_text())
+                qrels["q002"] = {f"d{i:06d}": 1 for i in range(1, 12)}
+                self._write_json(metadata / "qrels.json", qrels)
+                originals = json.loads((metadata / "original_qrels.json").read_text())
+                originals["q002"] = {f"original-{i:06d}": 1 for i in range(1, 12)}
+                self._write_json(metadata / "original_qrels.json", originals)
+            output = root / "suite"
+            manifest = prepare_benchmark_v2(output_dir=output, config_path=config_path, catalog_path=catalog)
+            self.assertEqual(audit_benchmark_v2(output)["ready_tasks"], ["encyclopedia_en"])
+            config["query_eligibility"] = policy
+            self._write_json(output / "config.json", config)
+            manifest["query_eligibility"] = policy
+            manifest["overall_sha256"] = _manifest_sha256(manifest)
+            for name in ("manifest.json", "benchmark-manifest.json"):
+                self._write_json(output / name, manifest)
+            with self.assertRaisesRegex(ValueError, "q002 has 11 positives"):
+                audit_benchmark_v2(output)
 
     def test_inline_source_requires_real_directory_and_rejects_bad_marker(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -1,0 +1,605 @@
+{
+  "schema_version": "dci-benchmark-v2-coverage-v1",
+  "as_of": "2026-11-16",
+  "scope": {
+    "domains": [
+      "encyclopedia",
+      "general_qa",
+      "scientific",
+      "medical",
+      "finance",
+      "legal",
+      "enterprise",
+      "web",
+      "software",
+      "argumentation"
+    ],
+    "languages": [
+      "en",
+      "zh"
+    ],
+    "task_count": 20
+  },
+  "sampling": {
+    "algorithm_version": "random-without-replacement-v1",
+    "group_assignment_version": "greedy-v1-with-task-local-exact-fallback-v2",
+    "input_order": "stable_sorted_by_query_id",
+    "seed": 42,
+    "selection_policy": "global_equivalence_group_constrained",
+    "sizes": {
+      "dev": 10,
+      "smoke": 1,
+      "test": 50
+    },
+    "smoke_is_subset_of": "dev",
+    "strategy": "random_without_replacement"
+  },
+  "tiers": {
+    "lite": 200,
+    "full": 1000
+  },
+  "target": {
+    "dev": 200,
+    "smoke": 20,
+    "test": 1000
+  },
+  "prepared": {
+    "dev": 200,
+    "smoke": 20,
+    "test": 1000
+  },
+  "ready_tasks": 20,
+  "blocked_tasks": 0,
+  "ready_for_formal": true,
+  "tasks": [
+    {
+      "task": "encyclopedia_en",
+      "domain": "encyclopedia",
+      "domain_label": "百科",
+      "language": "en",
+      "status": "ready",
+      "source": "gapfill_mlqa_en",
+      "source_display": "gapfill_mlqa_en",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 11,571；抽样前排除 19；选中60题正例 1–1。",
+      "excluded_query_count": 19,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 11571,
+      "positive_min": 1,
+      "positive_max": 1,
+      "sample_anchor": "sample-encyclopedia_en"
+    },
+    {
+      "task": "encyclopedia_zh",
+      "domain": "encyclopedia",
+      "domain_label": "百科",
+      "language": "zh",
+      "status": "ready",
+      "source": "qa_cmrc2018_zh",
+      "source_display": "qa_cmrc2018_zh",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 3,217；抽样前排除 2；选中60题正例 1–1。",
+      "excluded_query_count": 2,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 3217,
+      "positive_min": 1,
+      "positive_max": 1,
+      "sample_anchor": "sample-encyclopedia_zh"
+    },
+    {
+      "task": "general_qa_en",
+      "domain": "general_qa",
+      "domain_label": "通用问答",
+      "language": "en",
+      "status": "ready",
+      "source": "gapfill_beir_quora_exact_dedup",
+      "source_display": "gapfill_beir_quora_exact_dedup",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 9,922；抽样前排除 78；选中60题正例 1–6。",
+      "excluded_query_count": 78,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 9922,
+      "positive_min": 1,
+      "positive_max": 6,
+      "sample_anchor": "sample-general_qa_en"
+    },
+    {
+      "task": "general_qa_zh",
+      "domain": "general_qa",
+      "domain_label": "通用问答",
+      "language": "zh",
+      "status": "ready",
+      "source": "r4_rawqa_hc3_zh_open_qa",
+      "source_display": "r4_rawqa_hc3_zh_open_qa",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 3,291；抽样前排除 2；选中60题正例 1–3。",
+      "excluded_query_count": 2,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 3291,
+      "positive_min": 1,
+      "positive_max": 3,
+      "sample_anchor": "sample-general_qa_zh"
+    },
+    {
+      "task": "scientific_en",
+      "domain": "scientific",
+      "domain_label": "科研",
+      "language": "en",
+      "status": "ready",
+      "source": "domain_qasper_dev_fullcorpus",
+      "source_display": "domain_qasper_dev_fullcorpus",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 438；抽样前排除 27；选中60题正例 1–1。",
+      "excluded_query_count": 27,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 438,
+      "positive_min": 1,
+      "positive_max": 1,
+      "sample_anchor": "sample-scientific_en"
+    },
+    {
+      "task": "scientific_zh",
+      "domain": "scientific",
+      "domain_label": "科研",
+      "language": "zh",
+      "status": "ready",
+      "source": "r4_rawqa_csl_zh",
+      "source_display": "r4_rawqa_csl_zh",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 1,000；抽样前排除 0；选中60题正例 1–1。",
+      "excluded_query_count": 0,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 1000,
+      "positive_min": 1,
+      "positive_max": 1,
+      "sample_anchor": "sample-scientific_zh"
+    },
+    {
+      "task": "medical_en",
+      "domain": "medical",
+      "domain_label": "医疗",
+      "language": "en",
+      "status": "ready",
+      "source": "gapfill_medquad_rawqa",
+      "source_display": "gapfill_medquad_rawqa",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 12,949；抽样前排除 3,458；选中60题正例 1–1。",
+      "excluded_query_count": 3458,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 12949,
+      "positive_min": 1,
+      "positive_max": 1,
+      "sample_anchor": "sample-medical_en"
+    },
+    {
+      "task": "medical_zh",
+      "domain": "medical",
+      "domain_label": "医疗",
+      "language": "zh",
+      "status": "ready",
+      "source": "gapfill_mteb_cmedqa_retrieval",
+      "source_display": "gapfill_mteb_cmedqa_retrieval",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 3,984；抽样前排除 15；选中60题正例 1–9。",
+      "excluded_query_count": 15,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 3984,
+      "positive_min": 1,
+      "positive_max": 9,
+      "sample_anchor": "sample-medical_zh"
+    },
+    {
+      "task": "finance_en",
+      "domain": "finance",
+      "domain_label": "金融",
+      "language": "en",
+      "status": "ready",
+      "source": "domain_fiqa_test",
+      "source_display": "domain_fiqa_test",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 641；抽样前排除 6；选中60题正例 1–10。",
+      "excluded_query_count": 6,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 641,
+      "positive_min": 1,
+      "positive_max": 10,
+      "sample_anchor": "sample-finance_en"
+    },
+    {
+      "task": "finance_zh",
+      "domain": "finance",
+      "domain_label": "金融",
+      "language": "zh",
+      "status": "ready",
+      "source": "r4_rawqa_hc3_zh_finance",
+      "source_display": "r4_rawqa_hc3_zh_finance",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 666；抽样前排除 13；选中60题正例 1–6。",
+      "excluded_query_count": 13,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 666,
+      "positive_min": 1,
+      "positive_max": 6,
+      "sample_anchor": "sample-finance_zh"
+    },
+    {
+      "task": "legal_en",
+      "domain": "legal",
+      "domain_label": "法律",
+      "language": "en",
+      "status": "ready",
+      "source": "gapfill_privacyqa_legal_en",
+      "source_display": "gapfill_privacyqa_legal_en",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "PrivacyQA替换ACORD；4,657篇文档，167题/990正例关系。官方test问题，train只贡献语料；400题中整题排除34个零正例、199个超限问题。合格候选query 167；抽样前排除 0；选中60题正例 1–10。",
+      "excluded_query_count": 0,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 167,
+      "positive_min": 1,
+      "positive_max": 10,
+      "sample_anchor": "sample-legal_en"
+    },
+    {
+      "task": "legal_zh",
+      "domain": "legal",
+      "domain_label": "法律",
+      "language": "zh",
+      "status": "ready",
+      "source": "gapfill_stard_legal_zh",
+      "source_display": "gapfill_stard_legal_zh",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "STARD替换LeCaRDv2；55,348篇法条，1,542题/2,694正例关系。源阶段整题排除1个23正例问题。合格候选query 1,542；抽样前排除 0；选中60题正例 1–7。",
+      "excluded_query_count": 0,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 1542,
+      "positive_min": 1,
+      "positive_max": 7,
+      "sample_anchor": "sample-legal_zh"
+    },
+    {
+      "task": "enterprise_en",
+      "domain": "enterprise",
+      "domain_label": "企业知识",
+      "language": "en",
+      "status": "ready",
+      "source": "wixqa_expertwritten",
+      "source_display": "wixqa_expertwritten",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 200；抽样前排除 0；选中60题正例 1–3。",
+      "excluded_query_count": 0,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 200,
+      "positive_min": 1,
+      "positive_max": 3,
+      "sample_anchor": "sample-enterprise_en"
+    },
+    {
+      "task": "enterprise_zh",
+      "domain": "enterprise",
+      "domain_label": "企业知识",
+      "language": "zh",
+      "status": "ready",
+      "source": "gapfill_cfqa_enterprise_zh",
+      "source_display": "gapfill_cfqa_enterprise_zh",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 63；抽样前排除 0；选中60题正例 1–4。",
+      "excluded_query_count": 0,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 63,
+      "positive_min": 1,
+      "positive_max": 4,
+      "sample_anchor": "sample-enterprise_zh"
+    },
+    {
+      "task": "web_en",
+      "domain": "web",
+      "domain_label": "网页检索",
+      "language": "en",
+      "status": "ready",
+      "source": "gapfill_browsecomp_plus_en",
+      "source_display": "gapfill_browsecomp_plus_en",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 808；抽样前排除 17；选中60题正例 2–10。",
+      "excluded_query_count": 17,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 808,
+      "positive_min": 2,
+      "positive_max": 10,
+      "sample_anchor": "sample-web_en"
+    },
+    {
+      "task": "web_zh",
+      "domain": "web",
+      "domain_label": "网页检索",
+      "language": "zh",
+      "status": "ready",
+      "source": "gapfill_mteb_duretrieval",
+      "source_display": "gapfill_mteb_duretrieval",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 1,899；抽样前排除 101；选中60题正例 1–10。",
+      "excluded_query_count": 101,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 1899,
+      "positive_min": 1,
+      "positive_max": 10,
+      "sample_anchor": "sample-web_zh"
+    },
+    {
+      "task": "software_en",
+      "domain": "software",
+      "domain_label": "软件技术",
+      "language": "en",
+      "status": "ready",
+      "source": "gapfill_android_en",
+      "source_display": "gapfill_android_en",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 681；抽样前排除 16；选中60题正例 1–7。",
+      "excluded_query_count": 16,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 681,
+      "positive_min": 1,
+      "positive_max": 7,
+      "sample_anchor": "sample-software_en"
+    },
+    {
+      "task": "software_zh",
+      "domain": "software",
+      "domain_label": "软件技术",
+      "language": "zh",
+      "status": "ready",
+      "source": "gapfill_t2ranking_software_zh",
+      "source_display": "gapfill_t2ranking_software_zh",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 61；抽样前排除 0；选中60题正例 1–6。",
+      "excluded_query_count": 0,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 61,
+      "positive_min": 1,
+      "positive_max": 6,
+      "sample_anchor": "sample-software_zh"
+    },
+    {
+      "task": "argumentation_en",
+      "domain": "argumentation",
+      "domain_label": "论证检索",
+      "language": "en",
+      "status": "ready",
+      "source": "gapfill_arguana_en",
+      "source_display": "gapfill_arguana_en",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 1,183；抽样前排除 0；选中60题正例 1–1。",
+      "excluded_query_count": 0,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 1183,
+      "positive_min": 1,
+      "positive_max": 1,
+      "sample_anchor": "sample-argumentation_en"
+    },
+    {
+      "task": "argumentation_zh",
+      "domain": "argumentation",
+      "domain_label": "论证检索",
+      "language": "zh",
+      "status": "ready",
+      "source": "gapfill_cedar_zh_v2",
+      "source_display": "gapfill_cedar_zh_v2",
+      "counts": {
+        "dev": 10,
+        "smoke": 1,
+        "test": 50
+      },
+      "pools": {
+        "lite": 200,
+        "full": 1000
+      },
+      "detail": "复用原源级检索池，按新规则重新抽样。合格候选query 240；抽样前排除 1；选中60题正例 1–8。",
+      "excluded_query_count": 1,
+      "reason": null,
+      "selection_reason": null,
+      "eligible_query_count": 240,
+      "positive_min": 1,
+      "positive_max": 8,
+      "sample_anchor": "sample-argumentation_zh"
+    }
+  ],
+  "supplementary_translations": [
+    {
+      "task": "encyclopedia_zh",
+      "source": "gapfill_mlqa_zh",
+      "domain_label": "百科",
+      "language": "zh"
+    }
+  ],
+  "evidence": {
+    "prepared_manifest_sha256": "23e24edd8ad51f71040e437ae442c938e16363e2abea4e1dd8bc22567d315761",
+    "config_sha256": "e0a25305b96110571108c18bb8d6b33c35ae21c0e916ff8d91436aafb92ad042",
+    "body_hashes_checked": false,
+    "boundary": "Selected query IDs and pool metadata; not model execution."
+  },
+  "query_eligibility": {
+    "max_positive_count": 10,
+    "min_positive_count": 1,
+    "overflow_policy": "exclude_query_before_sampling",
+    "positive_definition": "canonical_qrel_score_gt_zero",
+    "version": "positive-count-1-to-10-v1"
+  },
+  "data_suite": "/mnt/afs2/202611/embedding_models/dci-bench/eval_data/benchmark_v2_20261116_pos10_v1",
+  "positive_summary": {
+    "queries": 1200,
+    "min": 1,
+    "max": 10,
+    "over10": 0,
+    "mean": 2.1458333333333335
+  }
+}

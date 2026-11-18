@@ -10,6 +10,13 @@
     "translated_is_supplementary": true,
     "unknown_requires_explicit_override_with_evidence": true
   },
+  "query_eligibility": {
+    "version": "positive-count-1-to-10-v1",
+    "min_positive_count": 1,
+    "max_positive_count": 10,
+    "positive_definition": "canonical_qrel_score_gt_zero",
+    "overflow_policy": "exclude_query_before_sampling"
+  },
   "sampling": {
     "algorithm_version": "random-without-replacement-v1",
     "group_assignment_version": "greedy-v1-with-task-local-exact-fallback-v2",
@@ -224,25 +231,11 @@
     "legal_en": {
       "candidates": [
         {
-          "evidence": "docs/acord_20261031.md",
+          "evidence": "docs/privacyqa_pos10.md",
           "provenance": "native",
           "role": "preferred_native",
-          "source_family": "ACORD",
-          "source_id": "gapfill_acord_en_v3"
-        },
-        {
-          "evidence": "data_matrix.sources[LLMLegalBenchConsumerContractsQA]",
-          "provenance": "unknown",
-          "role": "candidate_requires_review",
-          "source_family": "LegalBench",
-          "source_id": "LLMLegalBenchConsumerContractsQA"
-        },
-        {
-          "evidence": "data_matrix.sources[LLMAILAStatutes]",
-          "provenance": "unknown",
-          "role": "candidate_requires_review",
-          "source_family": "LLM-AILA",
-          "source_id": "LLMAILAStatutes"
+          "source_family": "PrivacyQA",
+          "source_id": "gapfill_privacyqa_legal_en"
         }
       ],
       "status": "eligible"
@@ -250,11 +243,11 @@
     "legal_zh": {
       "candidates": [
         {
-          "evidence": "data_matrix.sources[gapfill_legal_lecardv2]",
+          "evidence": "docs/stard_pos10.md",
           "provenance": "native",
           "role": "preferred_native",
-          "source_family": "LeCaRDv2",
-          "source_id": "gapfill_legal_lecardv2"
+          "source_family": "STARD",
+          "source_id": "gapfill_stard_legal_zh"
         }
       ],
       "status": "eligible"
